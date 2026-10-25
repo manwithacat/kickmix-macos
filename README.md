@@ -1,5 +1,7 @@
 # kickmix-macos
 
+[![ci](https://github.com/manwithacat/kickmix-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/manwithacat/kickmix-macos/actions/workflows/ci.yml)
+
 A self-contained, Mac-native build of **kickmix**, the fast classical simulator for
 reversible-plus-phase quantum circuits from Google's
 [Qualtran](https://github.com/quantumlib/Qualtran) project, with **NEON word types

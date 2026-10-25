@@ -3,9 +3,10 @@ __pycache__/
 *.pyc
 *.so
 *.egg-info/
-build/
-python_build_kickmix/
-dist/
+/kickmix/build/
+/kickmix/python_build_kickmix/
+/dist/
+/kickmix/dist/
 wheelhouse/
 bazel-*
 .pytest_cache/

@@ -1,0 +1,12 @@
+.venv*/
+__pycache__/
+*.pyc
+*.so
+*.egg-info/
+build/
+python_build_kickmix/
+dist/
+wheelhouse/
+bazel-*
+.pytest_cache/
+.DS_Store

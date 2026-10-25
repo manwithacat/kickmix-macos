@@ -1,0 +1,88 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+
+jobs:
+  build_and_test:
+    name: build+pytest (${{ matrix.os }}, py${{ matrix.python }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-15, python: "3.13" }        # Apple Silicon: NEON word types
+          - { os: macos-15, python: "3.12" }
+          - { os: macos-15-intel, python: "3.13" }  # Intel Mac: SSE/AVX word types
+          - { os: ubuntu-24.04, python: "3.13" }    # Linux x86-64: upstream path, no behaviour change
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Build, run upstream tests and smoke
+        run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv"
+      - name: Report which word types were compiled in
+        run: python tools/report_word_types.py
+      - name: Synthetic simulator benchmark (informational)
+        run: |
+          "$RUNNER_TEMP/venv/bin/python" bench/sim_bench.py --ops 200000 --batches 8 --repeats 2
+
+  neon_disabled_parity:
+    name: NEON disabled build matches NEON build (macos-15)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv-neon"
+      - run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv-noneon" --disable-neon
+      - name: Same simulation results from both builds
+        run: |
+          "$RUNNER_TEMP/venv-neon/bin/python" tests/parity_dump.py > neon.txt
+          "$RUNNER_TEMP/venv-noneon/bin/python" tests/parity_dump.py > noneon.txt
+          cmp neon.txt noneon.txt && echo "bit-identical simulation output"
+
+  cpp_tests_bazel:
+    name: upstream C++ unit tests incl. NEON instantiations (macos-15)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: bazel-contrib/setup-bazel@0.19.0
+        with:
+          bazelisk-cache: true
+          disk-cache: ${{ github.workflow }}
+          repository-cache: true
+          bazelisk-version: 1.x
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: bazel test (optimized, long timeout)
+        # Upstream builds this target with ASan+UBSan. If the ASan runtime deadlocks at
+        # start-up on a runner (seen locally on macOS 26 / Apple clang 17), add
+        # --copt=-fno-sanitize=address --linkopt=-fno-sanitize=address.
+        run: |
+          bazel test kickmix:kickmix_test -c opt --test_timeout=1800 --test_output=errors
+          LOG="$(bazel info bazel-testlogs)/kickmix/kickmix_test/test.log"
+          echo "NEON test cases run: $(grep -cE '^\[ *RUN *\].*_neon' "$LOG" || true)"
+
+  wheels:
+    name: macOS arm64 wheel artifact
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install "pybind11==2.12.0" cibuildwheel~=3.3 setuptools wheel
+      - run: python -m cibuildwheel kickmix --output-dir dist
+        env:
+          CIBW_BUILD: "cp312-macosx_arm64 cp313-macosx_arm64"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kickmix-macosx-arm64-wheels
+          path: dist/*

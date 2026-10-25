@@ -1,0 +1,120 @@
+#ifndef KICKGEN_PYBIND_CIRCUIT_BUILDER_H
+#define KICKGEN_PYBIND_CIRCUIT_BUILDER_H
+
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <string>
+#include <string_view>
+#include <unordered_set>
+
+#include "kickmix/build/circuit_builder.h"
+#include "kickmix/py/val/array.pybind.h"
+#include "kickmix/py/val/id.pybind.h"
+
+namespace kickmix_py {
+
+struct PyCircuitBuilder {
+    kickmix::CircuitBuilder builder;
+    std::vector<kickmix::QubitId> free_qids;
+    std::vector<kickmix::BitId> free_bids;
+    std::vector<bool> qubit_allocations;
+    std::vector<bool> bit_allocations;
+    size_t max_qubits = SIZE_MAX;
+    size_t allocated_qubits = 0;
+    size_t allocated_bits = 0;
+    /// Backing storage for the `std::string_view` names referenced by `builder.marks`.
+    std::unordered_set<std::string> mark_names;
+
+    // Move-only: copies would keep `string_view`s into the original's `mark_names`.
+    PyCircuitBuilder() = default;
+    PyCircuitBuilder(const PyCircuitBuilder &) = delete;
+    PyCircuitBuilder &operator=(const PyCircuitBuilder &) = delete;
+    PyCircuitBuilder(PyCircuitBuilder &&) = default;
+    PyCircuitBuilder &operator=(PyCircuitBuilder &&) = default;
+
+    kickmix::QubitId alloc_qubit() {
+        kickmix::QubitId result;
+        if (free_qids.empty()) {
+            result = kickmix::QubitId(builder.next_qubit_id++);
+        } else {
+            result = free_qids.back();
+            free_qids.pop_back();
+        }
+        while (qubit_allocations.size() <= result.untagged_id()) {
+            qubit_allocations.push_back(false);
+        }
+        qubit_allocations[result.untagged_id()] = true;
+        allocated_qubits += 1;
+        return result;
+    }
+
+    kickmix::BitId alloc_bit() {
+        kickmix::BitId result;
+        if (free_bids.empty()) {
+            result = kickmix::BitId(builder.next_bit_id++);
+        } else {
+            result = free_bids.back();
+            free_bids.pop_back();
+        }
+        while (bit_allocations.size() <= result.untagged_id()) {
+            bit_allocations.push_back(false);
+        }
+        bit_allocations[result.untagged_id()] = true;
+        allocated_bits += 1;
+        return result;
+    }
+
+    void free_qubit(kickmix::QubitId id) {
+        if (id.untagged_id() >= qubit_allocations.size() || !qubit_allocations[id.untagged_id()]) {
+            std::stringstream ss;
+            ss << "Freed a qubit that wasn't allocated (or was already freed): ";
+            ss << "q(" << id << ")";
+            throw std::invalid_argument(ss.str());
+        }
+        qubit_allocations[id.untagged_id()] = false;
+        free_qids.push_back(kickmix::QubitId{id});
+        allocated_qubits -= 1;
+    }
+
+    void free_bit(kickmix::BitId id) {
+        if (id.untagged_id() >= bit_allocations.size() || !bit_allocations[id.untagged_id()]) {
+            std::stringstream ss;
+            ss << "Freed a bit that wasn't allocated (or was already freed): ";
+            ss << "b(" << id.untagged_id() << ")";
+            throw std::invalid_argument(ss.str());
+        }
+        bit_allocations[id.untagged_id()] = false;
+        free_bids.push_back(id);
+        allocated_bits -= 1;
+    }
+
+    size_t num_free_qubits() const {
+        return max_qubits - allocated_qubits;
+    }
+};
+
+/// Python context manager returned by `CircuitBuilder.mark`.
+struct PyCircuitBuilderMark {
+    PyCircuitBuilder *py_builder = nullptr;
+    std::string_view name;
+};
+
+void register_circuit_builder_mark_class(pybind11::module &m);
+void register_circuit_builder_methods(pybind11::class_<PyCircuitBuilder> &c_circuit_builder);
+
+kickmix::array_z read_python_int_list_into_table_data(const pybind11::object &table, size_t word_length);
+
+void append_init_lookup(
+    PyCircuitBuilder &self,
+    const pybind11::object &table,
+    const pybind11::object &address_obj,
+    const pybind11::object &target_obj);
+void append_del_lookup(
+    PyCircuitBuilder &self,
+    const pybind11::object &table,
+    const pybind11::object &address_obj,
+    const pybind11::object &target_obj);
+
+}  // namespace kickmix_py
+
+#endif

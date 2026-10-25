@@ -32,7 +32,10 @@ tools/build.sh            # creates .venv, builds kickmix, runs upstream tests +
 .venv/bin/python -c 'import kickmix as km; print(km.__file__)'
 ```
 
-Or install straight into an existing environment (Python 3.10 or newer):
+Or install a prebuilt wheel from the [Releases](https://github.com/manwithacat/kickmix-macos/releases)
+page (Apple Silicon wheels for CPython 3.10–3.14, plus Intel macOS and Linux x86-64 wheels
+built by the `release` workflow on GitHub's hosted runners), or install straight into an
+existing environment from source (Python 3.10 or newer):
 
 ```bash
 pip install "pybind11==2.12.0" setuptools wheel numpy

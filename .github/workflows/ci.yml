@@ -47,6 +47,18 @@ jobs:
           "$RUNNER_TEMP/venv-noneon/bin/python" tests/parity_dump.py > noneon.txt
           cmp neon.txt noneon.txt && echo "bit-identical simulation output"
 
+  cpp_word_type_tests:
+    name: C++ word-type unit tests without Bazel (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-15, macos-15-intel, ubuntu-24.04]
+    steps:
+      - uses: actions/checkout@v4
+      - name: simd, ChaCha and popcount suites for every word type (NEON on arm64)
+        run: tools/cpp_word_type_tests.sh
+
   cpp_tests_bazel:
     name: upstream C++ unit tests incl. NEON instantiations (macos-15)
     runs-on: macos-15

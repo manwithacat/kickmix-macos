@@ -69,9 +69,11 @@ repository contains none of it.
 All of the following were measured on a 10-core Apple Silicon Mac (16 GB), macOS 26,
 CPython 3.13.16, with the vendored upstream commit plus the NEON overlay.
 
-**Upstream tests.** `PYTHONPATH=kickmix pytest kickmix/src`: 3,403 passed. The C++
-unit tests (`bazel test kickmix:kickmix_test`), which instantiate every word-type
-test for `b128_neon` and `b256_neon`, are run in CI on `macos-15`.
+**Upstream tests.** `PYTHONPATH=kickmix pytest kickmix/src`: 3,403 passed.
+`tools/cpp_word_type_tests.sh` compiles upstream's C++ `simd`, ChaCha and popcount
+suites with googletest and no Bazel: 174 tests pass, 58 of them the `b128_neon` /
+`b256_neon` instantiations. The full Bazel C++ suite (`bazel test
+kickmix:kickmix_test`) runs in CI on `macos-15`.
 
 **Portable vs NEON.** `tests/parity_dump.py` simulates a 72-qubit, 40,000-gate
 synthetic circuit with measurements and phases in both builds; the transcripts are
@@ -167,6 +169,7 @@ patches/neon-simd.patch  the overlay as a diff against UPSTREAM_COMMIT
 tools/build.sh           venv + build + upstream tests + smoke  [--disable-neon]
 tools/sync_upstream.sh   re-vendor from quantumlib/Qualtran@<commit>
 tools/report_word_types.py
+tools/cpp_word_type_tests.sh  C++ word-type unit tests (simd/ChaCha/popcount) without Bazel
 tests/smoke_neon_build.py, tests/parity_dump.py
 bench/sim_bench.py       throughput benchmark for A/B comparison
 .github/workflows/ci.yml macOS arm64 / Intel / Linux builds, parity, Bazel C++ tests, wheels

@@ -10,3 +10,5 @@ wheelhouse/
 bazel-*
 .pytest_cache/
 .DS_Store
+.gtest/
+.cpp-tests/

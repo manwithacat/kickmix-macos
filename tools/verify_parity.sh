@@ -39,6 +39,7 @@ done
 [[ -x "$A_PY" && -x "$B_PY" ]] || { echo "interpreters not found; run tools/ab_bench.sh first or pass --a-python/--b-python" >&2; exit 2; }
 SUB=()
 [[ -n "${SUBMISSION_DIR:-}" ]] && SUB=(--submission "$SUBMISSION_DIR")
+HERE="$(portable_path "$HERE")"; OUT="$(portable_path "$OUT")"
 mkdir -p "$OUT"
 PYTHON="${PYTHON:-python3}"
 VP="$HERE/tools/verify_parity.py"

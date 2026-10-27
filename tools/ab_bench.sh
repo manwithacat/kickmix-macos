@@ -17,8 +17,9 @@
 #                  with $CXX (default c++/clang++), without Bazel
 #   --isolate-popcounter
 #                  use as the baseline this repository's tree with only
-#                  patches/popcounter-fastpath.patch reversed (keeps the NEON overlay on both
-#                  sides), instead of unmodified upstream; isolates the PopCounter change
+#                  the PopCounter patches (popcounter-deferred, popcounter-fastpath) reversed
+#                  (keeps the other patches on both sides), instead of unmodified upstream;
+#                  isolates the PopCounter changes
 #   --rebuild      ignore cached venvs
 #
 # Environment: PYTHON (default python3), QUALTRAN_DIR (an existing Qualtran checkout to read
@@ -79,8 +80,9 @@ build_variant() {  # <label> <source-dir containing setup.py>
 if [[ "$ISOLATE" == 1 ]]; then
   rm -rf "$WORK/upstream-src"; mkdir -p "$WORK/upstream-src"
   tar -C "$HERE" --exclude=python_build_kickmix --exclude='*.egg-info' --exclude='*.so' -cf - kickmix | tar -C "$WORK/upstream-src" -xf -
-  ( cd "$WORK/upstream-src" && git apply -R "$HERE/patches/popcounter-fastpath.patch" )
-  echo "==> baseline: this tree with patches/popcounter-fastpath.patch reversed"
+  ( cd "$WORK/upstream-src" && git apply -R "$HERE/patches/popcounter-deferred.patch" \
+      && git apply -R "$HERE/patches/popcounter-fastpath.patch" )
+  echo "==> baseline: this tree with patches/popcounter-{deferred,fastpath}.patch reversed"
 else
   COMMIT="$(export_upstream_kickmix "$HERE" "$WORK/upstream-src" "${QUALTRAN_DIR:-}")"
   echo "==> baseline: unmodified quantumlib/Qualtran@$COMMIT"

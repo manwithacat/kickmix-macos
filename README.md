@@ -81,7 +81,7 @@ Everything below runs locally; none of it needs this repository's CI.
 tools/build.sh                         # build + upstream's 3,403 Python tests + smoke
 tools/cpp_word_type_tests.sh           # C++ suites incl. the PopCounter equivalence test
 tools/ab_bench.sh --rounds 3           # upstream vs fork: parity check + alternating timings
-tools/ab_bench.sh --isolate-popcounter # fork vs fork-minus-PopCounter-patch (keeps NEON on both)
+tools/ab_bench.sh --isolate-popcounter # fork vs fork minus the two PopCounter patches (keeps the rest on both)
 KICKMIX_OFFICIAL_DATA=/path/to/your/copy tools/verify_parity.sh   # official verifiers, two builds
 ```
 

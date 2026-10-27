@@ -28,7 +28,7 @@ MAIN_FILES = glob.glob("src/**/main.cc", recursive=True)
 HEADER_FILES = glob.glob("src/**/*.h", recursive=True) + glob.glob("src/**/*.inl", recursive=True)
 RELEVANT_SOURCE_FILES = sorted(set(ALL_SOURCE_FILES) - set(TEST_FILES + PERF_FILES + MAIN_FILES))
 
-__version__ = '0.1.dev0'
+__version__ = '0.2.0'
 
 if platform.system().startswith('Win'):
     common_compile_args = ['/std:c++20', '/O2', f'/DVERSION_INFO={__version__}']

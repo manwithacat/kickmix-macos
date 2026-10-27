@@ -8,8 +8,7 @@
 
 ## Patch series (patches/series, applied in order)
 
-All three patches were written with the assistance of an AI coding model (Claude) under the
-The patches were written with the assistance of an AI coding model (Claude) under the
+All patches were written with the assistance of an AI coding model (Claude) under the
 repository owner's direction; see NOTICE.
 
 ### patches/neon-simd.patch
@@ -59,6 +58,18 @@ repository owner's direction; see NOTICE.
   upstream suite (3,403 tests) passes. Micro-benchmark 882 x 256: write 6.0 -> 0.28 ns/bit,
   read 1.0 -> 0.20 ns/bit. DQI verifier (1 worker, 10240 shots) 16.1 s -> 12.6 s under load.
   Written by an AI coding model (Claude) under the owner's direction.
+### patches/read-shot-phase.patch
+
+- 2026-10-27: `sim_read_phase` (`kickmix/src/kickmix/py/interactive_simulator.pybind.cc`, Python
+  `Simulator.read_shot_phase`) reduces the 128-bit angle natively (strips trailing zero bits against
+  the 2^127 denominator) and builds the `fractions.Fraction` through a cached
+  `Fraction._from_coprime_ints` (falls back to the cached `Fraction` class when absent, e.g. before
+  Python 3.12), instead of importing `fractions` and running a GCD on each call. Returned values and
+  types are unchanged: `int 0`, `int 1` for exactly one half-turn, otherwise a lowest-terms
+  `Fraction` (never an int, since the numerator is non-zero and not 2^127). Validated locally
+  (Apple M2 Pro): 18,946 shot phases (edge cases and Z_POW/NEG circuits) identical in value and
+  type to the previous build on CPython 3.13 and 3.12; upstream Python suite (3,403 tests) passes
+  on both; `tests/parity_dump.py` identical; official invsqrt verifier identical.
 
 ## Tooling added (no effect on the built package)
 

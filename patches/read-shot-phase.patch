@@ -1,0 +1,79 @@
+diff --git a/kickmix/src/kickmix/py/interactive_simulator.pybind.cc b/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
+index 5b3a1fd..772477e 100644
+--- a/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
++++ b/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
+@@ -1,5 +1,6 @@
+ #include "interactive_simulator.pybind.h"
+ 
++#include <pybind11/gil_safe_call_once.h>
+ #include <pybind11/numpy.h>
+ #include <pybind11/pybind11.h>
+ #include <pybind11/stl.h>
+@@ -441,6 +442,34 @@ pybind11::object peek_across_shots_2d_int(PyInteractiveSimulator &self, const st
+     return pybind11::cast(out);
+ }
+ 
++// Number of trailing zero bits of a non-zero value.
++static unsigned phase_ctz64(uint64_t v) {
++#if defined(_MSC_VER) && !defined(__clang__)
++    unsigned n = 0;
++    while (!(v & 1)) {
++        v >>= 1;
++        n++;
++    }
++    return n;
++#else
++    return (unsigned)__builtin_ctzll(v);
++#endif
++}
++
++// Cached callable that builds a Fraction from an already-reduced (numerator, denominator).
++// Uses Fraction._from_coprime_ints (Python 3.12+) when present, else the Fraction class.
++static pybind11::gil_safe_call_once_and_store<pybind11::object> &phase_fraction_factory() {
++    PYBIND11_CONSTINIT static pybind11::gil_safe_call_once_and_store<pybind11::object> storage;
++    storage.call_once_and_store_result([]() -> pybind11::object {
++        pybind11::object cls = pybind11::module_::import("fractions").attr("Fraction");
++        if (pybind11::hasattr(cls, "_from_coprime_ints")) {
++            return cls.attr("_from_coprime_ints");
++        }
++        return cls;
++    });
++    return storage;
++}
++
+ pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index) {
+     if (shot_index >= self.batch_size) {
+         throw pybind11::index_error("Need shot_index < sim.batch_size");
+@@ -462,11 +491,27 @@ pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index)
+             return pybind11::cast(1);
+         }
+ 
+-        // Pack into a fraction.
+-        return pybind11::module_::import("fractions")
+-            .attr("Fraction")(
+-                pybind11::cast(w0) | (pybind11::cast(w1) << pybind11::cast(64)),
+-                pybind11::cast(1) << pybind11::cast(127));
++        // Pack into a fraction. The value is (w0 + w1 * 2^64) / 2^127. Reduce it here by
++        // stripping common trailing zero bits, then build the Fraction without a GCD.
++        // The numerator is non-zero and not 2^127, so the result is never an integer.
++        unsigned tz = w0 != 0 ? phase_ctz64(w0) : 64 + phase_ctz64(w1);
++        uint64_t lo = w0;
++        uint64_t hi = w1;
++        if (tz >= 64) {
++            lo = w1 >> (tz - 64);
++            hi = 0;
++        } else if (tz > 0) {
++            lo = (w0 >> tz) | (w1 << (64 - tz));
++            hi = w1 >> tz;
++        }
++        unsigned e = 127 - tz;  // The reduced denominator is 2^e.
++        pybind11::object num = pybind11::cast(lo);
++        if (hi != 0) {
++            num = num | (pybind11::cast(hi) << pybind11::cast(64));
++        }
++        pybind11::object den = e < 64 ? pybind11::cast(uint64_t{1} << e)
++                                      : pybind11::cast(uint64_t{1} << (e - 64)) << pybind11::cast(64);
++        return phase_fraction_factory().get_stored()(num, den);
+     });
+ }
+ 

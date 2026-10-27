@@ -18,13 +18,16 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 
 ## What differs from upstream
 
-Three patches, applied in order from `patches/series` (each is a plain diff against the
+Five patches, applied in order from `patches/series` (each is a plain diff against the
 pinned upstream commit):
 
 | Patch | Effect | Applies to |
 | --- | --- | --- |
 | `patches/neon-simd.patch` | NEON implementations of the 128- and 256-bit word types, selected on AArch64 unless `KICKMIX_DISABLE_NEON` is defined; test/benchmark instantiations; a macOS build note in `docs/kickmix/dev.md` | AArch64 only (Apple Silicon, Linux aarch64); other platforms compile the same code as upstream |
 | `patches/popcounter-fastpath.patch` | `PopCounter::masked_increments` returns early when the mask is all ones, adding to `shared_count` instead of running the bit-sliced ripple. Results are defined to be the same; only the work differs | All platforms, whenever `counting_operations=True` (the official verifiers always set it) |
+| `patches/stream-reaction-depth.patch` | `Circuit.reaction_depth()` streams over the packed operations instead of copying them all into a list; same result. Removes a ≈ 7 GiB transient on a 55 M-op circuit | All platforms |
+| `patches/bulk-shot-io.patch` | `write_across_shots` / `read_across_shots` with 2-D bool arrays pack and unpack whole 64-bit words instead of one bit at a time; same values | All platforms |
+| `patches/read-shot-phase.patch` | `Simulator.read_shot_phase` reduces the angle natively and constructs the `Fraction` without importing `fractions` or running a GCD per call; same values and types | All platforms |
 
 Nothing else in kickmix is modified: the Python API, file formats (`.kmx`/`.kmb`), RNG and
 numerical behaviour are upstream's.

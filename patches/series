@@ -3,3 +3,4 @@ neon-simd.patch
 popcounter-fastpath.patch
 stream-reaction-depth.patch
 bulk-shot-io.patch
+read-shot-phase.patch

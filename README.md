@@ -18,7 +18,7 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 
 ## What differs from upstream
 
-Five patches, applied in order from `patches/series` (each is a plain diff against the
+Six patches, applied in order from `patches/series` (each is a plain diff against the
 pinned upstream commit):
 
 | Patch | Effect | Applies to |
@@ -28,6 +28,7 @@ pinned upstream commit):
 | `patches/stream-reaction-depth.patch` | `Circuit.reaction_depth()` streams over the packed operations instead of copying them all into a list; same result. Removes a ≈ 7 GiB transient on a 55 M-op circuit | All platforms |
 | `patches/bulk-shot-io.patch` | `write_across_shots` / `read_across_shots` with 2-D bool arrays pack and unpack whole 64-bit words instead of one bit at a time; same values | All platforms |
 | `patches/read-shot-phase.patch` | `Simulator.read_shot_phase` reduces the angle natively and constructs the `Fraction` without importing `fractions` or running a GCD per call; same values and types | All platforms |
+| `patches/cx-run.patch` | `Sim::apply` applies a run of consecutive unconditioned `CX` ops in one tight loop (no per-op `switch`) and adds the run length to the op counter once (all-ones mask: `shared_count += n`; otherwise n `masked_increments`). Same XORs in the same order, same counts | All platforms, all word types; the saving is mainly with `counting_operations=True` |
 
 Nothing else in kickmix is modified: the Python API, file formats (`.kmx`/`.kmb`), RNG and
 numerical behaviour are upstream's.
@@ -310,7 +311,7 @@ The exact diffs are `patches/neon-simd.patch` and `patches/popcounter-fastpath.p
 
 ```
 kickmix/                 vendored upstream package + patches (pip install ./kickmix)
-patches/series           patch order; neon-simd.patch, popcounter-fastpath.patch
+patches/series           patch order; neon-simd.patch ... cx-run.patch (see patches/series)
 tools/build.sh           venv + build + upstream tests + smoke  [--disable-neon]
 tools/sync_upstream.sh   re-vendor from quantumlib/Qualtran@<commit>, apply patches/series
 tools/ab_bench.sh/.py    upstream-vs-fork parity + alternating benchmarks

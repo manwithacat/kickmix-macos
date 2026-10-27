@@ -309,8 +309,10 @@ struct Sim {
         auto *data_bit_targ = circuit.b0;
         auto *data_angles = circuit.angles;
         TWord phase = global_phase_ref();
-        for (size_t k = 0; k < circuit.num_ops; k++) {
+        const size_t num_ops = circuit.num_ops;
+        for (size_t k = 0; k < num_ops; k++) {
             auto kind = circuit.op_types[k];
+            size_t cx_run = 1;  // [fork patch cx-run, AI-assisted] number of consecutive plain CX ops handled this iteration
 
             TWord cond = current_base_condition;
             BitOrBool cond_bit = true;
@@ -325,6 +327,17 @@ struct Sim {
                     cond &= bits[*data_bit_cond++];
                 case OpType::CX:
                     qubits[*data_qq1++] ^= cond & qubits[*data_qq0++];
+                    if (kind == OpType::CX) {
+                        // [fork patch cx-run, AI-assisted] Consume following plain CX ops here without
+                        // re-dispatching. `cond` is unchanged by CX, so the op order, XORs and (below)
+                        // the counts are identical to one-at-a-time application.
+                        const auto *op_types = circuit.op_types;
+                        while (k + cx_run < num_ops && op_types[k + cx_run] == OpType::CX) {
+                            qubits[*data_qq1++] ^= cond & qubits[*data_qq0++];
+                            cx_run++;
+                        }
+                        k += cx_run - 1;
+                    }
                     break;
 
                 case OpType::SWAP_IF:
@@ -505,7 +518,18 @@ struct Sim {
             // Counted after the switch because `*_IF` cases refine `cond &= bits[*data_bit_cond++]`,
             // while `PUSH_CONDITION` / `POP_CONDITION` unconditionally set `cond = ~TWord{}`.
             if constexpr (count_shots) {
-                new_op_counters[(uint8_t)kind].masked_increments(cond);
+                auto &counter = new_op_counters[(uint8_t)kind];
+                if (cx_run == 1) {
+                    counter.masked_increments(cond);
+                } else if (!(~cond).non_zero()) {
+                    // [fork patch cx-run, AI-assisted] same as cx_run all-ones masked_increments calls:
+                    // each adds 1 to shared_count (uint32_t arithmetic wraps identically).
+                    counter.shared_count += (uint32_t)cx_run;
+                } else {
+                    for (size_t i = 0; i < cx_run; i++) {
+                        counter.masked_increments(cond);
+                    }
+                }
             }
         }
 

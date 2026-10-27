@@ -1,0 +1,106 @@
+diff --git a/kickmix/src/kickmix/py/interactive_simulator.pybind.cc b/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
+--- a/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
++++ b/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
+@@ -69,6 +69,69 @@ void set_single_bit(PyInteractiveSimulator &self, QubitOrBit index, size_t shot,
+     });
+ }
+ 
++/// Packs n (<= 64) bools, `stride` bytes apart, into the low n bits of a word (bit k = shot k).
++/// Any nonzero byte counts as true, matching the per-bit path this replaces.
++static inline uint64_t pack_bools_u64(const char *in, Py_ssize_t stride, size_t n) {
++    uint64_t w = 0;
++    if (stride == 1) {
++        // Contiguous: a plain loop the compiler can vectorise.
++        for (size_t i = 0; i < n; i++) {
++            w |= (uint64_t)(in[i] != 0) << i;
++        }
++    } else {
++        for (size_t i = 0; i < n; i++) {
++            w |= (uint64_t)(*in != 0) << i;
++            in += stride;
++        }
++    }
++    return w;
++}
++
++/// Unpacks the low n (<= 64) bits of a word into n bools, `stride` bytes apart.
++static inline void unpack_bools_u64(uint64_t w, char *out, Py_ssize_t stride, size_t n) {
++    if (stride == 1) {
++        for (size_t i = 0; i < n; i++) {
++            out[i] = (char)((w >> i) & 1);
++        }
++    } else {
++        for (size_t i = 0; i < n; i++) {
++            *out = (char)((w >> i) & 1);
++            out += stride;
++        }
++    }
++}
++
++/// Writes one qubit/bit row of a 2-D bool array into all sims, one whole word per sim.
++/// Shots at or beyond the batch size (in the last, partial sim) keep their old contents,
++/// exactly as with the per-bit path.
++static inline void write_bool_row_packed(
++    PyInteractiveSimulator &self, QubitOrBit index, const char *in_ptr, Py_ssize_t stride) {
++    self.with_sims([&](auto &sims) {
++        for (size_t k1_a = 0; k1_a < self.batch_size; k1_a += PY_SIM_WORD_BITS) {
++            auto &v = sims[k1_a / PY_SIM_WORD_BITS].val_for(index);
++            static_assert(sizeof(v) * 8 == PY_SIM_WORD_BITS, "word layout assumed to be 4 x u64");
++            size_t e = std::min(self.batch_size - k1_a, size_t{PY_SIM_WORD_BITS});
++            uint64_t words[PY_SIM_WORD_BITS / 64];
++            if (e < PY_SIM_WORD_BITS) {
++                memcpy(words, &v, sizeof(v));  // partial sim: keep the untouched high bits.
++            }
++            for (size_t j = 0; j < PY_SIM_WORD_BITS; j += 64) {
++                if (j >= e) {
++                    break;
++                }
++                size_t n = std::min(e - j, size_t{64});
++                uint64_t w = pack_bools_u64(in_ptr + (Py_ssize_t)(k1_a + j) * stride, stride, n);
++                if (n < 64) {
++                    uint64_t old = words[j / 64];
++                    w |= old & (~uint64_t{0} << n);
++                }
++                words[j / 64] = w;
++            }
++            memcpy(&v, words, sizeof(v));
++        }
++    });
++}
++
+ /// Writes the bytes of a python int in range(0, 2**max_bits) into the given byte buffer.
+ void int_obj_to_bytes_with_max_bits(
+     const pybind11::object &int_obj,
+@@ -291,10 +354,14 @@ pybind11::object peek_across_shots_2d_np_bool(
+             auto out_ptr = buf.mutable_data(k0, 0);
+             for (size_t k1_a = 0; k1_a < self.batch_size; k1_a += PY_SIM_WORD_BITS) {
+                 auto v = sims[k1_a / PY_SIM_WORD_BITS].safe_read_val(items[k0]);
++                static_assert(sizeof(v) * 8 == PY_SIM_WORD_BITS, "word layout assumed to be 4 x u64");
+                 size_t e = std::min(self.batch_size - k1_a, size_t{PY_SIM_WORD_BITS});
+-                for (size_t k1_b = 0; k1_b < e; k1_b++) {
+-                    *out_ptr = v.bit(k1_b % PY_SIM_WORD_BITS);
+-                    out_ptr += s1;
++                // Unpack whole 64-bit words (same bit order as v.bit(k)) instead of one bit at a time.
++                uint64_t words[PY_SIM_WORD_BITS / 64];
++                memcpy(words, &v, sizeof(v));
++                for (size_t j = 0; j < e; j += 64) {
++                    unpack_bools_u64(words[j / 64], (char *)out_ptr, s1, std::min(e - j, size_t{64}));
++                    out_ptr += (Py_ssize_t)std::min(e - j, size_t{64}) * s1;
+                 }
+             }
+         }
+@@ -559,11 +626,9 @@ void write_across_shots_2d_np_bool(
+     auto s1 = array.strides(1);
+     auto base = array.data(0, 0);
+     for (size_t k0 = 0; k0 < indices.size(); k0++) {
+-        auto in_ptr = base + (Py_ssize_t)k0 * s0;
+-        for (size_t k1 = 0; k1 < self.batch_size; k1++) {
+-            set_single_bit(self, indices[k0], k1, *in_ptr);
+-            in_ptr += s1;
+-        }
++        // Row k0 is packed into words in bulk. Rows are processed in order, so a repeated
++        // index still ends up with its last row, as before.
++        write_bool_row_packed(self, indices[k0], (const char *)(base + (Py_ssize_t)k0 * s0), s1);
+     }
+ }
+ 

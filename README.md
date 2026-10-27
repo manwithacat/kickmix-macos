@@ -18,7 +18,7 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 
 ## What differs from upstream
 
-Two patches, applied in order from `patches/series` (each is a plain diff against the
+Three patches, applied in order from `patches/series` (each is a plain diff against the
 pinned upstream commit):
 
 | Patch | Effect | Applies to |

@@ -9,6 +9,7 @@
 ## Patch series (patches/series, applied in order)
 
 All three patches were written with the assistance of an AI coding model (Claude) under the
+The patches were written with the assistance of an AI coding model (Claude) under the
 repository owner's direction; see NOTICE.
 
 ### patches/neon-simd.patch
@@ -44,6 +45,20 @@ repository owner's direction; see NOTICE.
   dfthcsos circuits, the upstream testdata, and 600 random circuits with measurements,
   conditioned ops and PUSH/POP_CONDITION; `tests/parity_dump.py` identical; DQI verifier 0 of 38
   fields differ vs the baseline; upstream Python suite (3,403 tests) passes.
+### patches/bulk-shot-io.patch
+
+- 2026-10-27: `write_across_shots` and `read_across_shots` with 2-D bool arrays
+  (`interactive_simulator.pybind.cc`) pack/unpack each qubit's row into whole 64-bit
+  words instead of calling `set_single_bit` / `bit()` per shot. Strided and
+  non-contiguous arrays use a strided pack loop; the last partial sim keeps its untouched
+  high bits (read-modify-write); validation, error messages and 1-D paths are unchanged.
+  Validated locally (Apple M2 Pro): randomized old-vs-new equivalence (384 trials: batch
+  sizes 1..1024, C/Fortran/sliced/negative-stride inputs, qubit+bit and duplicate indices,
+  read after write and after `sim.do`, error paths) identical; `tests/parity_dump.py`
+  identical; DQI and dfthcsos official verifiers on the v3 submission 0 differing fields;
+  upstream suite (3,403 tests) passes. Micro-benchmark 882 x 256: write 6.0 -> 0.28 ns/bit,
+  read 1.0 -> 0.20 ns/bit. DQI verifier (1 worker, 10240 shots) 16.1 s -> 12.6 s under load.
+  Written by an AI coding model (Claude) under the owner's direction.
 
 ## Tooling added (no effect on the built package)
 

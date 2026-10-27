@@ -20,6 +20,11 @@ recorded in CHANGES.md:
 
   kickmix/src/kickmix/util/pop_counter.h    changed (2026-10-27): all-ones fast path in
                                             PopCounter::masked_increments
+  kickmix/src/kickmix/py/interactive_simulator.pybind.cc
+                                            changed (2026-10-27): write_across_shots /
+                                            read_across_shots on 2-D bool arrays pack and
+                                            unpack whole 64-bit words instead of one bit
+                                            at a time
 
   kickmix/src/kickmix/circuit/circuit_util.cc  changed (2026-10-27): streaming ReactionDepthTracker
   kickmix/src/kickmix/circuit/circuit_util.h   changed (2026-10-27): compute_reaction_depth(const Circuit &)
@@ -29,6 +34,8 @@ recorded in CHANGES.md:
 The complete change set is also provided as patches/neon-simd.patch,
 patches/popcounter-fastpath.patch and patches/stream-reaction-depth.patch (applied in the
 order of patches/series).
+The complete change set is also provided as patches/neon-simd.patch,
+patches/popcounter-fastpath.patch and patches/bulk-shot-io.patch (applied in the order of patches/series).
 
 Files added by this repository that are not part of upstream kickmix (dated 2026-10-27
 unless noted): tests/cpp/pop_counter_fastpath.test.cc, tools/ab_bench.sh, tools/ab_bench.py,
@@ -41,6 +48,8 @@ Authorship statement
 --------------------
 The NEON additions (2026-10-25) and the PopCounter fast path, tests and tooling
 (2026-10-27) and the streaming reaction-depth change (2026-10-27) were written with the assistance of an AI coding model (Claude)
+The NEON additions (2026-10-25), the PopCounter fast path, the bulk shot I/O change, tests and
+tooling (2026-10-27) were written with the assistance of an AI coding model (Claude)
 operating under the direction of the repository owner, and were validated by the
 upstream test suites and by bit-exact reproduction of published verifier results.
 They are offered here under Apache-2.0. They are not hand-written by the repository owner. They have NOT been contributed to the

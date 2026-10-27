@@ -5,6 +5,11 @@
 # Usage:
 #   tools/build.sh [venv-dir] [--disable-neon]
 #
+# SOURCE_DIR (env) overrides the package directory to build (default: <repo>/kickmix);
+# ab_bench.sh uses it to build the unmodified upstream tree.
+#
+# SKIP_TESTS=1 (env) stops after the build (used by ab_bench.sh).
+#
 # --disable-neon compiles with -DKICKMIX_DISABLE_NEON so the portable scalar word
 # types are used even on Apple Silicon (useful for A/B benchmarking).
 set -euo pipefail
@@ -16,12 +21,15 @@ for arg in "$@"; do
   [[ "$arg" == "--disable-neon" ]] && DISABLE_NEON=1
 done
 
+# shellcheck source=lib.sh
+source "$HERE/tools/lib.sh"
 PYTHON="${PYTHON:-python3}"
 "$PYTHON" -c 'import sys; assert sys.version_info >= (3, 10), "Python 3.10+ required"'
 
 echo "==> venv: $VENV"
 "$PYTHON" -m venv "$VENV"
-"$VENV/bin/python" -m pip install --quiet --upgrade pip setuptools wheel "pybind11==2.12.0" numpy pytest
+VPY="$(venv_python "$VENV")"
+"$VPY" -m pip install --quiet --upgrade pip setuptools wheel "pybind11==2.12.0" numpy pytest
 
 if [[ "$DISABLE_NEON" == "1" ]]; then
   echo "==> building with NEON disabled (portable word types)"
@@ -29,12 +37,17 @@ if [[ "$DISABLE_NEON" == "1" ]]; then
   export CXXFLAGS="${CXXFLAGS:-} -DKICKMIX_DISABLE_NEON"
 fi
 
-echo "==> building kickmix ($(uname -m), $("$VENV/bin/python" --version))"
-"$VENV/bin/python" -m pip install --no-build-isolation "$HERE/kickmix"
+echo "==> building kickmix ($(uname -m), $("$VPY" --version))"
+"$VPY" -m pip install --no-build-isolation "${SOURCE_DIR:-$HERE/kickmix}"
+
+if [[ "${SKIP_TESTS:-0}" == "1" ]]; then
+  echo "OK (SKIP_TESTS=1): $("$VPY" -c 'import kickmix; print(kickmix.__file__)')"
+  exit 0
+fi
 
 echo "==> upstream Python tests"
-( cd "$HERE" && PYTHONPATH=kickmix "$VENV/bin/python" -m pytest kickmix/src -q -p no:cacheprovider )
+( cd "$(dirname "${SOURCE_DIR:-$HERE/kickmix}")" && PYTHONPATH=kickmix "$VPY" -m pytest kickmix/src -q -p no:cacheprovider )
 
 echo "==> smoke"
-"$VENV/bin/python" "$HERE/tests/smoke_neon_build.py"
-echo "OK: $("$VENV/bin/python" -c 'import kickmix; print(kickmix.__file__)')"
+"$VPY" "$HERE/tests/smoke_neon_build.py"
+echo "OK: $("$VPY" -c 'import kickmix; print(kickmix.__file__)')"

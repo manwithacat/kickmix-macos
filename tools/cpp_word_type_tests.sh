@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Build and run the upstream C++ unit tests that instantiate every SIMD word type
-# (simd, ChaCha and popcount suites) without Bazel and without sanitizers.
+# (simd, ChaCha, popcount suites and the PopCounter fast-path
+# equivalence test in tests/cpp/) without Bazel and without sanitizers.
 #
 # On Apple Silicon this includes the b128_neon / b256_neon cases. Needs a C++20
 # compiler and network access the first time (fetches googletest 1.14.0 into
@@ -29,6 +30,7 @@ SOURCES=(
   "$SRC/kickmix/util/chacha.test.cc"
   "$SRC/kickmix/util/pop_counter.test.cc"
   "$SRC/test.test.cc"
+  "$HERE/tests/cpp/pop_counter_fastpath.test.cc"
   "$GTEST_DIR/googletest/src/gtest-all.cc"
   "$GTEST_DIR/googletest/src/gtest_main.cc"
 )

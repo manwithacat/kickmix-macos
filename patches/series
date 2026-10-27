@@ -1,0 +1,3 @@
+# Applied in order by tools/sync_upstream.sh (paths relative to the Qualtran root).
+neon-simd.patch
+popcounter-fastpath.patch

@@ -35,6 +35,13 @@ struct PopCounter {
     }
 
     inline void masked_increments(const TWord &mask_ref) {
+        // Fast path: an all-ones mask increments every position equally, which `shared_count`
+        // already represents (it is added to every total in `compute_total`). Skipping `step`
+        // keeps the stripe/pair transfer schedule intact, since only masked calls touch the stripes.
+        if (!(~mask_ref).non_zero()) {
+            shared_count++;
+            return;
+        }
         TWord mask = mask_ref;
         // Transfer two bits from the striped 32-bits counter into a paired counter.
         step++;

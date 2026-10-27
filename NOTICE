@@ -18,14 +18,26 @@ recorded in CHANGES.md:
   kickmix/src/kickmix/simd/simd.perf.h      changed: instantiate the word-type benchmarks for NEON
   kickmix/src/kickmix/sim/sim.perf.cc       changed: benchmark goal entries for the NEON types
 
-The complete change set is also provided as patches/neon-simd.patch.
+  kickmix/src/kickmix/util/pop_counter.h    changed (2026-10-27): all-ones fast path in
+                                            PopCounter::masked_increments
+
+The complete change set is also provided as patches/neon-simd.patch and
+patches/popcounter-fastpath.patch (applied in the order of patches/series).
+
+Files added by this repository that are not part of upstream kickmix (dated 2026-10-27
+unless noted): tests/cpp/pop_counter_fastpath.test.cc, tools/ab_bench.sh, tools/ab_bench.py,
+tools/verify_parity.sh, tools/verify_parity.py, tools/lib.sh, the workflows under
+.github/workflows/, and changes to tools/build.sh, tools/sync_upstream.sh,
+tools/cpp_word_type_tests.sh, bench/sim_bench.py and tests/parity_dump.py. All were written
+with the assistance of an AI coding model (Claude) as described below.
 
 Authorship statement
 --------------------
-The NEON additions were written with the assistance of an AI coding model (Claude)
+The NEON additions (2026-10-25) and the PopCounter fast path, tests and tooling
+(2026-10-27) were written with the assistance of an AI coding model (Claude)
 operating under the direction of the repository owner, and were validated by the
 upstream test suites and by bit-exact reproduction of published verifier results.
-They are offered here under Apache-2.0. They have NOT been contributed to the
+They are offered here under Apache-2.0. They are not hand-written by the repository owner. They have NOT been contributed to the
 upstream Qualtran repository: Qualtran's CONTRIBUTING.md requires the Google CLA
 and states that AI-generated code does not qualify as a contributor's original
 creation. Anyone wishing to upstream equivalent functionality should author it

@@ -33,6 +33,30 @@ repository owner's direction; see NOTICE.
   C++ equivalence test `tests/cpp/pop_counter_fastpath.test.cc` passes for every word type.
   Known cost: ~4-12% slower per call on masks that are never all ones (micro-benchmark).
 
+### patches/popcounter-deferred.patch
+
+- 2026-10-27: `PopCounter::masked_increments` (`kickmix/src/kickmix/util/pop_counter.h`) stores each
+  non-all-ones mask in a 4-entry buffer; every fourth mask a carry-save tree reduces the four to a
+  3-bit per-position count that is added to the stripes with one adder ripple, and one step-transfer
+  (previously one per call) moves the top stripe into `paired_totals`. To keep the overflow
+  invariant (a position is transferred every 32 flushes = 128 masks) the stripe count grows from 6
+  to 8 and `paired_totals` now carries weight 128; worst case 127 + 128 = 255 fits 8 bits (the old
+  design: 31 + 32 = 63 in 6 bits). `compute_total` adds the still-buffered masks, so it is exact at any
+  time and no reader (`py/operation_statistics.pybind.cc`, `cmd/main_count_operations_sampled.cc`,
+  `sim/sim.perf.cc`, tests) needs a flush; `clear()` zeroes the buffer; `PopCounter` is not copied or
+  merged anywhere else. The all-ones fast path is unchanged. `sizeof(PopCounter)` grows (6 -> 8
+  stripes, +4 buffered words). Validated locally (Apple M2 Pro): `operation_statistics()` (aggregate and
+  15-256 shots each) identical to b90c97f on the v3 DQI, invsqrt and 19 chemistry circuits, the 8
+  upstream testdata circuits, 660 random circuits with measurements, conditions and
+  PUSH/POP_CONDITION, and 48 stress runs of up to 3,000 consecutive conditioned ops with masks of
+  density 0, 1/256, 1%, 50%, 90%, 99%, 1-1/256 and 1 (including `clear_operation_statistics`);
+  `tests/parity_dump.py` identical; official verifiers on v3: 0 of 98 fields differ; upstream Python
+  suite (3,403 tests) passes; C++ word-type suite (216 tests) incl. a naive per-bit comparison
+  (`pop_counter_deferred.*` in `tests/cpp/pop_counter_fastpath.test.cc`). Speed: counting overhead
+  of CX_IF/CZ_IF 3.2 -> 1.6 ns/op; DQI `do` per batch about 1.05x, invsqrt about 1.08x (see the
+  evidence directory named in the commit). Written by an AI coding model (Claude) under the owner's
+  direction.
+
 ### patches/stream-reaction-depth.patch
 
 - 2026-10-27: `Circuit::reaction_depth()` streams over the packed op arrays via `iter_ops`

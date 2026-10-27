@@ -1,5 +1,6 @@
 #include "interactive_simulator.pybind.h"
 
+#include <pybind11/gil_safe_call_once.h>
 #include <pybind11/numpy.h>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -66,6 +67,69 @@ void set_single_bit(PyInteractiveSimulator &self, QubitOrBit index, size_t shot,
     }
     self.with_sims([&](auto &sims) {
         sims[shot / PY_SIM_WORD_BITS].val_for(index).set_bit(shot % PY_SIM_WORD_BITS, new_value);
+    });
+}
+
+/// Packs n (<= 64) bools, `stride` bytes apart, into the low n bits of a word (bit k = shot k).
+/// Any nonzero byte counts as true, matching the per-bit path this replaces.
+static inline uint64_t pack_bools_u64(const char *in, Py_ssize_t stride, size_t n) {
+    uint64_t w = 0;
+    if (stride == 1) {
+        // Contiguous: a plain loop the compiler can vectorise.
+        for (size_t i = 0; i < n; i++) {
+            w |= (uint64_t)(in[i] != 0) << i;
+        }
+    } else {
+        for (size_t i = 0; i < n; i++) {
+            w |= (uint64_t)(*in != 0) << i;
+            in += stride;
+        }
+    }
+    return w;
+}
+
+/// Unpacks the low n (<= 64) bits of a word into n bools, `stride` bytes apart.
+static inline void unpack_bools_u64(uint64_t w, char *out, Py_ssize_t stride, size_t n) {
+    if (stride == 1) {
+        for (size_t i = 0; i < n; i++) {
+            out[i] = (char)((w >> i) & 1);
+        }
+    } else {
+        for (size_t i = 0; i < n; i++) {
+            *out = (char)((w >> i) & 1);
+            out += stride;
+        }
+    }
+}
+
+/// Writes one qubit/bit row of a 2-D bool array into all sims, one whole word per sim.
+/// Shots at or beyond the batch size (in the last, partial sim) keep their old contents,
+/// exactly as with the per-bit path.
+static inline void write_bool_row_packed(
+    PyInteractiveSimulator &self, QubitOrBit index, const char *in_ptr, Py_ssize_t stride) {
+    self.with_sims([&](auto &sims) {
+        for (size_t k1_a = 0; k1_a < self.batch_size; k1_a += PY_SIM_WORD_BITS) {
+            auto &v = sims[k1_a / PY_SIM_WORD_BITS].val_for(index);
+            static_assert(sizeof(v) * 8 == PY_SIM_WORD_BITS, "word layout assumed to be 4 x u64");
+            size_t e = std::min(self.batch_size - k1_a, size_t{PY_SIM_WORD_BITS});
+            uint64_t words[PY_SIM_WORD_BITS / 64];
+            if (e < PY_SIM_WORD_BITS) {
+                memcpy(words, &v, sizeof(v));  // partial sim: keep the untouched high bits.
+            }
+            for (size_t j = 0; j < PY_SIM_WORD_BITS; j += 64) {
+                if (j >= e) {
+                    break;
+                }
+                size_t n = std::min(e - j, size_t{64});
+                uint64_t w = pack_bools_u64(in_ptr + (Py_ssize_t)(k1_a + j) * stride, stride, n);
+                if (n < 64) {
+                    uint64_t old = words[j / 64];
+                    w |= old & (~uint64_t{0} << n);
+                }
+                words[j / 64] = w;
+            }
+            memcpy(&v, words, sizeof(v));
+        }
     });
 }
 
@@ -291,10 +355,14 @@ pybind11::object peek_across_shots_2d_np_bool(
             auto out_ptr = buf.mutable_data(k0, 0);
             for (size_t k1_a = 0; k1_a < self.batch_size; k1_a += PY_SIM_WORD_BITS) {
                 auto v = sims[k1_a / PY_SIM_WORD_BITS].safe_read_val(items[k0]);
+                static_assert(sizeof(v) * 8 == PY_SIM_WORD_BITS, "word layout assumed to be 4 x u64");
                 size_t e = std::min(self.batch_size - k1_a, size_t{PY_SIM_WORD_BITS});
-                for (size_t k1_b = 0; k1_b < e; k1_b++) {
-                    *out_ptr = v.bit(k1_b % PY_SIM_WORD_BITS);
-                    out_ptr += s1;
+                // Unpack whole 64-bit words (same bit order as v.bit(k)) instead of one bit at a time.
+                uint64_t words[PY_SIM_WORD_BITS / 64];
+                memcpy(words, &v, sizeof(v));
+                for (size_t j = 0; j < e; j += 64) {
+                    unpack_bools_u64(words[j / 64], (char *)out_ptr, s1, std::min(e - j, size_t{64}));
+                    out_ptr += (Py_ssize_t)std::min(e - j, size_t{64}) * s1;
                 }
             }
         }
@@ -441,6 +509,34 @@ pybind11::object peek_across_shots_2d_int(PyInteractiveSimulator &self, const st
     return pybind11::cast(out);
 }
 
+// Number of trailing zero bits of a non-zero value.
+static unsigned phase_ctz64(uint64_t v) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    unsigned n = 0;
+    while (!(v & 1)) {
+        v >>= 1;
+        n++;
+    }
+    return n;
+#else
+    return (unsigned)__builtin_ctzll(v);
+#endif
+}
+
+// Cached callable that builds a Fraction from an already-reduced (numerator, denominator).
+// Uses Fraction._from_coprime_ints (Python 3.12+) when present, else the Fraction class.
+static pybind11::gil_safe_call_once_and_store<pybind11::object> &phase_fraction_factory() {
+    PYBIND11_CONSTINIT static pybind11::gil_safe_call_once_and_store<pybind11::object> storage;
+    storage.call_once_and_store_result([]() -> pybind11::object {
+        pybind11::object cls = pybind11::module_::import("fractions").attr("Fraction");
+        if (pybind11::hasattr(cls, "_from_coprime_ints")) {
+            return cls.attr("_from_coprime_ints");
+        }
+        return cls;
+    });
+    return storage;
+}
+
 pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index) {
     if (shot_index >= self.batch_size) {
         throw pybind11::index_error("Need shot_index < sim.batch_size");
@@ -462,11 +558,27 @@ pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index)
             return pybind11::cast(1);
         }
 
-        // Pack into a fraction.
-        return pybind11::module_::import("fractions")
-            .attr("Fraction")(
-                pybind11::cast(w0) | (pybind11::cast(w1) << pybind11::cast(64)),
-                pybind11::cast(1) << pybind11::cast(127));
+        // Pack into a fraction. The value is (w0 + w1 * 2^64) / 2^127. Reduce it here by
+        // stripping common trailing zero bits, then build the Fraction without a GCD.
+        // The numerator is non-zero and not 2^127, so the result is never an integer.
+        unsigned tz = w0 != 0 ? phase_ctz64(w0) : 64 + phase_ctz64(w1);
+        uint64_t lo = w0;
+        uint64_t hi = w1;
+        if (tz >= 64) {
+            lo = w1 >> (tz - 64);
+            hi = 0;
+        } else if (tz > 0) {
+            lo = (w0 >> tz) | (w1 << (64 - tz));
+            hi = w1 >> tz;
+        }
+        unsigned e = 127 - tz;  // The reduced denominator is 2^e.
+        pybind11::object num = pybind11::cast(lo);
+        if (hi != 0) {
+            num = num | (pybind11::cast(hi) << pybind11::cast(64));
+        }
+        pybind11::object den = e < 64 ? pybind11::cast(uint64_t{1} << e)
+                                      : pybind11::cast(uint64_t{1} << (e - 64)) << pybind11::cast(64);
+        return phase_fraction_factory().get_stored()(num, den);
     });
 }
 
@@ -559,11 +671,9 @@ void write_across_shots_2d_np_bool(
     auto s1 = array.strides(1);
     auto base = array.data(0, 0);
     for (size_t k0 = 0; k0 < indices.size(); k0++) {
-        auto in_ptr = base + (Py_ssize_t)k0 * s0;
-        for (size_t k1 = 0; k1 < self.batch_size; k1++) {
-            set_single_bit(self, indices[k0], k1, *in_ptr);
-            in_ptr += s1;
-        }
+        // Row k0 is packed into words in bulk. Rows are processed in order, so a repeated
+        // index still ends up with its last row, as before.
+        write_bool_row_packed(self, indices[k0], (const char *)(base + (Py_ssize_t)k0 * s0), s1);
     }
 }
 

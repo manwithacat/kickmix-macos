@@ -20,22 +20,35 @@ recorded in CHANGES.md:
 
   kickmix/src/kickmix/util/pop_counter.h    changed (2026-10-27): all-ones fast path in
                                             PopCounter::masked_increments
+  kickmix/src/kickmix/circuit/circuit_util.cc  changed (2026-10-27): streaming ReactionDepthTracker
+  kickmix/src/kickmix/circuit/circuit_util.h   changed (2026-10-27): compute_reaction_depth(const Circuit &)
+  kickmix/src/kickmix/circuit/circuit.cc       changed (2026-10-27): Circuit::reaction_depth() no longer
+                                               materialises every operation
+  kickmix/src/kickmix/py/interactive_simulator.pybind.cc
+                                            changed (2026-10-27): write_across_shots /
+                                            read_across_shots on 2-D bool arrays pack and
+                                            unpack whole 64-bit words instead of one bit at a
+                                            time; sim_read_phase reduces the angle natively
+                                            and builds the Fraction without a GCD
 
-The complete change set is also provided as patches/neon-simd.patch and
-patches/popcounter-fastpath.patch (applied in the order of patches/series).
+The complete change set is also provided as the patches listed in patches/series
+(neon-simd, popcounter-fastpath, stream-reaction-depth, bulk-shot-io, read-shot-phase),
+applied in that order.
 
 Files added by this repository that are not part of upstream kickmix (dated 2026-10-27
 unless noted): tests/cpp/pop_counter_fastpath.test.cc, tools/ab_bench.sh, tools/ab_bench.py,
 tools/verify_parity.sh, tools/verify_parity.py, tools/verify_parallel.py,
-tests/test_verify_parallel.py, tests/fake_verifier/, tools/lib.sh, the workflows under
+tests/test_verify_parallel.py, tests/fake_verifier/, tests/test_shot_io_2d.py, tools/lib.sh,
+the workflows under
 .github/workflows/, and changes to tools/build.sh, tools/sync_upstream.sh,
 tools/cpp_word_type_tests.sh, bench/sim_bench.py and tests/parity_dump.py. All were written
 with the assistance of an AI coding model (Claude) as described below.
 
 Authorship statement
 --------------------
-The NEON additions (2026-10-25) and the PopCounter fast path, tests and tooling
-(2026-10-27) were written with the assistance of an AI coding model (Claude)
+The NEON additions (2026-10-25) and the PopCounter fast path, streaming reaction depth,
+bulk shot I/O and read_shot_phase changes, tests and tooling (2026-10-27) were written with
+the assistance of an AI coding model (Claude)
 operating under the direction of the repository owner, and were validated by the
 upstream test suites and by bit-exact reproduction of published verifier results.
 They are offered here under Apache-2.0. They are not hand-written by the repository owner. They have NOT been contributed to the

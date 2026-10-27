@@ -44,6 +44,16 @@ jobs:
         run: |
           source tools/lib.sh
           "$(venv_python "$RUNNER_TEMP/venv")" tests/test_shot_io_2d.py
+      - name: examples/hello_world.ipynb executes (built wheel already installed in the venv)
+        run: |
+          source tools/lib.sh
+          PY="$(venv_python "$RUNNER_TEMP/venv")"
+          "$PY" -m pip install --quiet nbconvert ipykernel
+          "$PY" -m nbconvert --to notebook --execute examples/hello_world.ipynb --output-dir "$RUNNER_TEMP/hello" --ExecutePreprocessor.timeout=120
+      - name: tools/kickmix_tools.py imports and its worker entry point runs
+        run: |
+          source tools/lib.sh
+          "$(venv_python "$RUNNER_TEMP/venv")" tools/kickmix_tools.py --version
       - name: Synthetic simulator benchmark (informational)
         run: |
           source tools/lib.sh

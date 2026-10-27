@@ -140,7 +140,7 @@ checks the wheel against the `SHA256SUMS` next to it and raises on a mismatch:
 
 ```python
 import kickmix_tools as kt
-kt.install('/kaggle/input/kickmix-fork-wheels/kickmix-0.2.0-<tags>.whl')   # use the exact file name in the dataset
+kt.install('/kaggle/input/kickmix-fork-wheels/kickmix-0.2.0-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl')   # use the exact file name in the dataset
 ```
 
 ## Multi-core verification without `fork` (Windows)

@@ -117,8 +117,31 @@ aarch64) and Windows hosted runners; the `ci` workflow runs the tests.
 fork into an isolated directory and runs the unchanged official verifiers with either the shipped
 `kickmix.so` or the fork in a subprocess: `install()`, `verify(task, circuit, build=...)` (result plus wall
 time and peak memory of the process tree), `compare(task, circuit)` (field-by-field equality, time,
-memory) and `angle_strict_check(...)`. `examples/hello_world.ipynb` is a five-minute tour of the Python API
+memory) and `angle_strict_check(...)`. Memory is PSS on Linux and `phys_footprint` (Activity Monitor's
+"Memory") on macOS, read through `proc_pid_rusage`; RSS is the fallback. `examples/hello_world.ipynb` is a five-minute tour of the Python API
 (CI executes it).
+
+### Installing alongside other kickmix builds
+
+PyPI has a `kickmix` 0.1.dev0, which is upstream's code. This fork is version 0.2.0, so pip treats it as
+newer: `pip install kickmix` in an environment that already has the fork silently keeps the fork, and the
+reverse install does not replace it either unless you force it. The builds differ in what they cost (local
+measurement, DQI `reaction_depth`: upstream 0.1.dev0 spikes to 4.25 GB in 4.26 s, this fork 0.52 GB in 0.46 s),
+so it matters which one you are running. Use a separate virtualenv per build, and check what is loaded:
+
+```bash
+python -c "import kickmix, importlib.metadata as m; print(kickmix.__file__, m.version('kickmix'))"
+```
+
+For Kaggle notebooks with the internet off, the public dataset
+[`manwithacat/kickmix-fork-wheels`](https://www.kaggle.com/datasets/manwithacat/kickmix-fork-wheels) holds the
+v0.2.0 Linux cp313 wheel and the release `SHA256SUMS`. Attach it and install from the local path; `install()`
+checks the wheel against the `SHA256SUMS` next to it and raises on a mismatch:
+
+```python
+import kickmix_tools as kt
+kt.install('/kaggle/input/kickmix-fork-wheels/kickmix-0.2.0-<tags>.whl')   # use the exact file name in the dataset
+```
 
 ## Multi-core verification without `fork` (Windows)
 

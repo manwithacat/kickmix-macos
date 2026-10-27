@@ -16,6 +16,27 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 > Not affiliated with Google, Qualtran or Kaggle. Upstream code is Apache-2.0,
 > copyright Google LLC; every modification is listed in `NOTICE` and `CHANGES.md`.
 
+## Why this fork exists
+
+Upstream kickmix is a carefully engineered, fast simulator: it packs 256 shots into each
+machine word, uses hand-vectorised word types, and keeps per-shot state small enough to stay
+in the CPU's fastest cache. This fork does not change that design. Its aim is narrower:
+to make kickmix comfortable to run for the many people who verify circuits on their own,
+resource-constrained hardware, such as laptops, Kaggle notebooks, Windows machines and
+8–16 GB of RAM, rather than on a large compute cluster.
+
+Concretely, the fork works towards, and tests, these properties:
+
+- **Memory that depends on circuit width, not length.** One-pass summaries such as
+  `reaction_depth()` stream over the circuit instead of copying it (on a 55 M-op circuit, a
+  full official DQI verification at one worker peaks at 2.0 GiB instead of 7.8 GiB).
+- **Predictable peaks.** Memory is a fixed amount plus a per-worker amount, so users can pick
+  a worker count that fits their machine.
+- **Every core on every OS.** `tools/verify_parallel.py` runs the official verifiers on
+  multiple cores where `fork` is unavailable (Windows).
+- **No trade of exactness for speed.** Every change gives bit-identical results to upstream,
+  checked in CI on macOS, Linux and Windows.
+
 ## What differs from upstream
 
 Five patches, applied in order from `patches/series` (each is a plain diff against the

@@ -1,5 +1,11 @@
 # Changes
 
+## Releases
+
+- v0.2.0 (2026-10-27): package version 0.2.0; wheels include the full patch series below
+  (streamed `reaction_depth`, packed shot I/O, `read_shot_phase` reduction, PopCounter fast path and
+  deferred counting, CX runs). v0.1.0 (2026-10-25) had the NEON patch only.
+
 ## Vendored upstream
 
 - UPSTREAM_COMMIT: `638777fac4379bc62e2a1e4a52cf1a1753895d48` (quantumlib/Qualtran `main`,

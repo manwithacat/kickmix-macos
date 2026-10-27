@@ -66,9 +66,10 @@ jobs:
           generate_release_notes: true
           body: |
             Prebuilt `kickmix` wheels from this repository's vendored upstream commit plus the
-            NEON overlay (see CHANGES.md). Install with
-            `pip install <wheel>` and `pip install numpy scipy` for the competition verifiers.
-            Apple Silicon and Linux aarch64 wheels include the NEON word types; Intel macOS and
-            Linux/Windows x86-64 wheels use the upstream SSE/AVX or portable paths. All wheels
-            include the PopCounter fast-path patch (see CHANGES.md). Windows wheels are new and
-            untested beyond the smoke test. SHA256SUMS lists every file.
+            patch series in `patches/series` (see CHANGES.md and NOTICE; AI-assisted code).
+            Install with `pip install <wheel>` and `pip install numpy scipy` for the competition
+            verifiers. Results are identical to upstream kickmix (checked in CI); the patches
+            reduce memory (streamed `reaction_depth`) and time (operation counting, CX runs,
+            packed shot I/O, phase readout). Apple Silicon and Linux aarch64 wheels include the
+            NEON word types; x86-64 wheels use the upstream SSE/AVX or portable paths. Windows
+            wheels are tested only by the smoke test. SHA256SUMS lists every file.

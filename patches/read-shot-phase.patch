@@ -1,5 +1,4 @@
 diff --git a/kickmix/src/kickmix/py/interactive_simulator.pybind.cc b/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
-index 5b3a1fd..772477e 100644
 --- a/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
 +++ b/kickmix/src/kickmix/py/interactive_simulator.pybind.cc
 @@ -1,5 +1,6 @@
@@ -9,7 +8,7 @@ index 5b3a1fd..772477e 100644
  #include <pybind11/numpy.h>
  #include <pybind11/pybind11.h>
  #include <pybind11/stl.h>
-@@ -441,6 +442,34 @@ pybind11::object peek_across_shots_2d_int(PyInteractiveSimulator &self, const st
+@@ -508,6 +509,34 @@ pybind11::object peek_across_shots_2d_int(PyInteractiveSimulator &self, const st
      return pybind11::cast(out);
  }
  
@@ -44,7 +43,7 @@ index 5b3a1fd..772477e 100644
  pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index) {
      if (shot_index >= self.batch_size) {
          throw pybind11::index_error("Need shot_index < sim.batch_size");
-@@ -462,11 +491,27 @@ pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index)
+@@ -529,11 +558,27 @@ pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index)
              return pybind11::cast(1);
          }
  

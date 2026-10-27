@@ -33,6 +33,30 @@ repository owner's direction; see NOTICE.
   C++ equivalence test `tests/cpp/pop_counter_fastpath.test.cc` passes for every word type.
   Known cost: ~4-12% slower per call on masks that are never all ones (micro-benchmark).
 
+### patches/popcounter-deferred.patch
+
+- 2026-10-27: `PopCounter::masked_increments` (`kickmix/src/kickmix/util/pop_counter.h`) stores each
+  non-all-ones mask in a 4-entry buffer; every fourth mask a carry-save tree reduces the four to a
+  3-bit per-position count that is added to the stripes with one adder ripple, and one step-transfer
+  (previously one per call) moves the top stripe into `paired_totals`. To keep the overflow
+  invariant (a position is transferred every 32 flushes = 128 masks) the stripe count grows from 6
+  to 8 and `paired_totals` now carries weight 128; worst case 127 + 128 = 255 fits 8 bits (the old
+  design: 31 + 32 = 63 in 6 bits). `compute_total` adds the still-buffered masks, so it is exact at any
+  time and no reader (`py/operation_statistics.pybind.cc`, `cmd/main_count_operations_sampled.cc`,
+  `sim/sim.perf.cc`, tests) needs a flush; `clear()` zeroes the buffer; `PopCounter` is not copied or
+  merged anywhere else. The all-ones fast path is unchanged. `sizeof(PopCounter)` grows (6 -> 8
+  stripes, +4 buffered words). Validated locally (Apple M2 Pro): `operation_statistics()` (aggregate and
+  15-256 shots each) identical to b90c97f on the v3 DQI, invsqrt and 19 chemistry circuits, the 8
+  upstream testdata circuits, 660 random circuits with measurements, conditions and
+  PUSH/POP_CONDITION, and 48 stress runs of up to 3,000 consecutive conditioned ops with masks of
+  density 0, 1/256, 1%, 50%, 90%, 99%, 1-1/256 and 1 (including `clear_operation_statistics`);
+  `tests/parity_dump.py` identical; official verifiers on v3: 0 of 98 fields differ; upstream Python
+  suite (3,403 tests) passes; C++ word-type suite (216 tests) incl. a naive per-bit comparison
+  (`pop_counter_deferred.*` in `tests/cpp/pop_counter_fastpath.test.cc`). Speed: counting overhead
+  of CX_IF/CZ_IF 3.2 -> 1.6 ns/op; DQI `do` per batch about 1.05x, invsqrt about 1.08x (see the
+  evidence directory named in the commit). Written by an AI coding model (Claude) under the owner's
+  direction.
+
 ### patches/stream-reaction-depth.patch
 
 - 2026-10-27: `Circuit::reaction_depth()` streams over the packed op arrays via `iter_ops`
@@ -78,3 +102,22 @@ repository owner's direction; see NOTICE.
   `tests/cpp/pop_counter_fastpath.test.cc`; `bench/sim_bench.py --counting/--json`;
   `tests/parity_dump.py` also covers operation counting; workflows `perf.yml`,
   `upstream-sync.yml`; Linux aarch64 and Windows x86-64 jobs in `ci.yml` / `release.yml`.
+
+### patches/cx-run.patch
+
+- 2026-10-27: in `Sim::apply` (`kickmix/src/kickmix/sim/sim.h`) the `CX` case (not `CX_IF`) keeps
+  consuming following `OpType::CX` ops in a `while` loop instead of returning to the dispatch
+  `switch` per op; the operand streams advance exactly as before and `cond` (all-ones, or the
+  active condition-stack mask, which CX does not change) is applied per op as before, so the XORs
+  and their order are unchanged. Counting is done once per run: all-ones `cond` adds the run length
+  to `PopCounter::shared_count` (`uint32_t`, modular like n separate `++`); any other mask calls
+  `masked_increments(cond)` n times. Runs of length 1 take the old call. No ops are fused or
+  reordered. Validated (Apple M2 Pro): `operation_statistics()` (aggregate and per shot) and
+  qubit/bit/phase readouts identical to b90c97f on the v3 DQI and invsqrt circuits, 19
+  chemistry circuits, upstream testdata, 660 random and 660 CX-run-rich circuits (runs up to 2,500 CX,
+  CX_IF, measurements, PUSH/POP_CONDITION) and 48 stress circuits; `tests/test_cx_run.py`
+  (run vs one-op-per-`do`); `tests/parity_dump.py` identical; composite v3 official verifiers
+  0 of 98 fields differ; upstream suite (3,403 tests) and the C++ word-type suite pass.
+  Speed (alternating A/B, counting on): DQI `do` per 256-shot batch 173 ms -> 109 ms; CX-run
+  micro-benchmark 4.4 -> 1.2 ns/CX for long runs; invsqrt and chemistry `do` not slower.
+  Written by an AI coding model (Claude) under the owner's direction.

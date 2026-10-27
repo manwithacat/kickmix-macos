@@ -9,6 +9,9 @@
 // This file was written with the assistance of an AI coding model (Claude) under the
 // repository owner's direction; see NOTICE. It is licensed under Apache-2.0.
 //
+// The pop_counter_deferred tests at the end compare against a naive per-bit counter
+// (popcounter-deferred.patch).
+//
 // Build: tools/cpp_word_type_tests.sh (no Bazel needed).
 
 #include <cstdint>
@@ -182,5 +185,75 @@ TEST_EACH_SIZE_W(pop_counter_fastpath, mostly_all_ones, {
                                 Kind::ALL_ONES, Kind::ALL_ONES, Kind::RANDOM};
         run_sequence<W>(kinds, 2000, rng, "mostly_all_ones");
         if (HasFatalFailure()) return;
+    }
+})
+
+// Added with patches/popcounter-deferred.patch (AI-assisted, see NOTICE): the deferred-carry
+// PopCounter against a naive per-bit counter, checking totals after every call so partially
+// filled pending buffers, flush boundaries, the 32-flush transfer cycle and the 8-bit stripe
+// capacity (long runs of non-all-ones masks, including dense ones) are all covered.
+namespace {
+
+template <typename W>
+struct NaivePopCounter {
+    std::vector<uint64_t> counts = std::vector<uint64_t>(sizeof(W) * 8, 0);
+    void masked_increments(const W &m) {
+        for (size_t k = 0; k < counts.size(); k++) counts[k] += m.bit(k);
+    }
+};
+
+template <typename W>
+void compare_naive(const PopCounter<W> &a, const NaivePopCounter<W> &b, const char *what, size_t call) {
+    for (size_t k = 0; k < b.counts.size(); k++) {
+        ASSERT_EQ(a.compute_total(k), b.counts[k]) << what << " call " << call << " position " << k;
+    }
+}
+
+}  // namespace
+
+TEST_EACH_SIZE_W(pop_counter_deferred, naive_every_call, {
+    std::mt19937_64 rng = INDEPENDENT_TEST_RNG();
+    for (size_t trial = 0; trial < 30; trial++) {
+        std::vector<Kind> kinds;
+        switch (trial % 5) {
+            case 0: kinds = {Kind::RANDOM}; break;
+            case 1: kinds = {Kind::NEAR_ALL_ONES}; break;  // densest non-fast-path masks
+            case 2: kinds = {Kind::SINGLE_ZERO_BIT, Kind::ZERO, Kind::ALL_ONES}; break;
+            case 3: kinds = {Kind::NEAR_ALL_ONES, Kind::RANDOM, Kind::ALL_ONES, Kind::ZERO}; break;
+            default: kinds = {Kind::NEAR_ALL_ONES, Kind::NEAR_ALL_ONES, Kind::NEAR_ALL_ONES, Kind::ALL_ONES}; break;
+        }
+        PopCounter<W> c;
+        NaivePopCounter<W> n;
+        size_t calls = 1 + rng() % 1500;  // > 1024 consecutive masked increments, > 32 flushes * 4
+        for (size_t i = 0; i < calls; i++) {
+            W m = make_mask<W>(kinds[rng() % kinds.size()], rng);
+            c.masked_increments(m);
+            n.masked_increments(m);
+            if (i < 140 || i % 7 == 0) {
+                compare_naive(c, n, "naive", i);
+                if (HasFatalFailure()) return;
+            }
+        }
+        compare_naive(c, n, "naive_final", calls);
+        if (HasFatalFailure()) return;
+        // clear() must reset everything, including the pending buffer.
+        c.clear();
+        for (size_t k = 0; k < sizeof(W) * 8; k++) ASSERT_EQ(c.compute_total(k), 0u);
+    }
+})
+
+TEST_EACH_SIZE_W(pop_counter_deferred, naive_worst_case_capacity, {
+    // Position 0 set in every mask (never all ones), so its stripe value is at the capacity bound.
+    PopCounter<W> c;
+    NaivePopCounter<W> n;
+    W m = ~W{};
+    m.set_bit(sizeof(W) * 8 - 1, false);
+    for (size_t i = 0; i < 20000; i++) {
+        c.masked_increments(m);
+        n.masked_increments(m);
+        if (i % 3 == 0 || i < 300) {
+            compare_naive(c, n, "capacity", i);
+            if (HasFatalFailure()) return;
+        }
     }
 })

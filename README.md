@@ -18,16 +18,18 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 
 ## What differs from upstream
 
-Five patches, applied in order from `patches/series` (each is a plain diff against the
+Seven patches, applied in order from `patches/series` (each is a plain diff against the
 pinned upstream commit):
 
 | Patch | Effect | Applies to |
 | --- | --- | --- |
 | `patches/neon-simd.patch` | NEON implementations of the 128- and 256-bit word types, selected on AArch64 unless `KICKMIX_DISABLE_NEON` is defined; test/benchmark instantiations; a macOS build note in `docs/kickmix/dev.md` | AArch64 only (Apple Silicon, Linux aarch64); other platforms compile the same code as upstream |
 | `patches/popcounter-fastpath.patch` | `PopCounter::masked_increments` returns early when the mask is all ones, adding to `shared_count` instead of running the bit-sliced ripple. Results are defined to be the same; only the work differs | All platforms, whenever `counting_operations=True` (the official verifiers always set it) |
+| `patches/popcounter-deferred.patch` | `PopCounter` buffers up to four non-all-ones masks and adds them to the bit-striped counters in one carry-save step (8 stripes instead of 6, one step-transfer per flush instead of per call); `compute_total` also counts buffered masks, so every reader is exact without a flush. Counts are bit-identical; only the work differs | All platforms, whenever `counting_operations=True` and operations are conditioned |
 | `patches/stream-reaction-depth.patch` | `Circuit.reaction_depth()` streams over the packed operations instead of copying them all into a list; same result. Removes a ≈ 7 GiB transient on a 55 M-op circuit | All platforms |
 | `patches/bulk-shot-io.patch` | `write_across_shots` / `read_across_shots` with 2-D bool arrays pack and unpack whole 64-bit words instead of one bit at a time; same values | All platforms |
 | `patches/read-shot-phase.patch` | `Simulator.read_shot_phase` reduces the angle natively and constructs the `Fraction` without importing `fractions` or running a GCD per call; same values and types | All platforms |
+| `patches/cx-run.patch` | `Sim::apply` applies a run of consecutive unconditioned `CX` ops in one tight loop (no per-op `switch`) and adds the run length to the op counter once (all-ones mask: `shared_count += n`; otherwise n `masked_increments`). Same XORs in the same order, same counts | All platforms, all word types; the saving is mainly with `counting_operations=True` |
 
 Nothing else in kickmix is modified: the Python API, file formats (`.kmx`/`.kmb`), RNG and
 numerical behaviour are upstream's.
@@ -79,7 +81,7 @@ Everything below runs locally; none of it needs this repository's CI.
 tools/build.sh                         # build + upstream's 3,403 Python tests + smoke
 tools/cpp_word_type_tests.sh           # C++ suites incl. the PopCounter equivalence test
 tools/ab_bench.sh --rounds 3           # upstream vs fork: parity check + alternating timings
-tools/ab_bench.sh --isolate-popcounter # fork vs fork-minus-PopCounter-patch (keeps NEON on both)
+tools/ab_bench.sh --isolate-popcounter # fork vs fork minus the two PopCounter patches (keeps the rest on both)
 KICKMIX_OFFICIAL_DATA=/path/to/your/copy tools/verify_parity.sh   # official verifiers, two builds
 ```
 
@@ -299,8 +301,8 @@ parent transient of about 5 GB (local profiling, 2026-10-26).
   `KICKMIX_DISABLE_NEON` is defined. `b512` remains the portable type on AArch64.
 - `simd.test.h`, `simd.perf.h`: instantiate the word-type tests and benchmarks for
   the NEON types; `sim/sim.perf.cc`: goal entries for the new type names.
-- `util/pop_counter.h`: the all-ones fast path. It relies on `non_zero()` and
-  `operator~`, which every word type provides (`b64`/`b128`/`b256`/`b512` polyfill,
+- `util/pop_counter.h`: the all-ones fast path and the 4-mask deferred accumulation. They rely on
+  `non_zero()`, `operator~`, `^ & |`, `bit()`, `u64_*` shifts and adds, which every word type provides (`b64`/`b128`/`b256`/`b512` polyfill,
   `b128_sse`, `b256_avx`, `b512_avx`, `b128_neon`, `b256_neon`).
 - `docs/kickmix/dev.md` (macOS build note) is touched by the NEON patch only.
 
@@ -310,7 +312,7 @@ The exact diffs are `patches/neon-simd.patch` and `patches/popcounter-fastpath.p
 
 ```
 kickmix/                 vendored upstream package + patches (pip install ./kickmix)
-patches/series           patch order; neon-simd.patch, popcounter-fastpath.patch
+patches/series           patch order; neon-simd.patch ... popcounter-deferred.patch (see patches/series)
 tools/build.sh           venv + build + upstream tests + smoke  [--disable-neon]
 tools/sync_upstream.sh   re-vendor from quantumlib/Qualtran@<commit>, apply patches/series
 tools/ab_bench.sh/.py    upstream-vs-fork parity + alternating benchmarks

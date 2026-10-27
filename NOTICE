@@ -19,7 +19,10 @@ recorded in CHANGES.md:
   kickmix/src/kickmix/sim/sim.perf.cc       changed: benchmark goal entries for the NEON types
 
   kickmix/src/kickmix/util/pop_counter.h    changed (2026-10-27): all-ones fast path in
-                                            PopCounter::masked_increments
+                                            PopCounter::masked_increments; buffered carry-save
+                                            accumulation of the other masks (8 stripes)
+  kickmix/src/kickmix/sim/sim.h             changed (2026-10-27): Sim::apply consumes runs of consecutive
+                                            plain CX ops in one loop and counts the run at once
   kickmix/src/kickmix/circuit/circuit_util.cc  changed (2026-10-27): streaming ReactionDepthTracker
   kickmix/src/kickmix/circuit/circuit_util.h   changed (2026-10-27): compute_reaction_depth(const Circuit &)
   kickmix/src/kickmix/circuit/circuit.cc       changed (2026-10-27): Circuit::reaction_depth() no longer
@@ -32,13 +35,14 @@ recorded in CHANGES.md:
                                             and builds the Fraction without a GCD
 
 The complete change set is also provided as the patches listed in patches/series
-(neon-simd, popcounter-fastpath, stream-reaction-depth, bulk-shot-io, read-shot-phase),
+(neon-simd, popcounter-fastpath, stream-reaction-depth, bulk-shot-io, read-shot-phase, cx-run,
+popcounter-deferred),
 applied in that order.
 
 Files added by this repository that are not part of upstream kickmix (dated 2026-10-27
-unless noted): tests/cpp/pop_counter_fastpath.test.cc, tools/ab_bench.sh, tools/ab_bench.py,
+unless noted): tests/cpp/pop_counter_fastpath.test.cc (extended for popcounter-deferred), tools/ab_bench.sh, tools/ab_bench.py,
 tools/verify_parity.sh, tools/verify_parity.py, tools/verify_parallel.py,
-tests/test_verify_parallel.py, tests/fake_verifier/, tests/test_shot_io_2d.py, tools/lib.sh,
+tests/test_verify_parallel.py, tests/fake_verifier/, tests/test_shot_io_2d.py, tests/test_cx_run.py, tools/lib.sh,
 the workflows under
 .github/workflows/, and changes to tools/build.sh, tools/sync_upstream.sh,
 tools/cpp_word_type_tests.sh, bench/sim_bench.py and tests/parity_dump.py. All were written
@@ -46,8 +50,8 @@ with the assistance of an AI coding model (Claude) as described below.
 
 Authorship statement
 --------------------
-The NEON additions (2026-10-25) and the PopCounter fast path, streaming reaction depth,
-bulk shot I/O and read_shot_phase changes, tests and tooling (2026-10-27) were written with
+The NEON additions (2026-10-25) and the PopCounter fast path and deferred accumulation, streaming
+reaction depth, bulk shot I/O and read_shot_phase changes, tests and tooling (2026-10-27) were written with
 the assistance of an AI coding model (Claude)
 operating under the direction of the repository owner, and were validated by the
 upstream test suites and by bit-exact reproduction of published verifier results.

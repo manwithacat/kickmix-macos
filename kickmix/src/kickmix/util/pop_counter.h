@@ -9,58 +9,100 @@ namespace kickmix {
 
 /// Tracks per-bit-position population counts of values given to the
 /// `masked_increments` method.
+///
+/// Fork changes (AI-assisted, written by Claude under the repository owner's direction; see
+/// NOTICE and CHANGES.md): all-ones masks go to `shared_count` (popcounter-fastpath.patch);
+/// other masks are buffered and added four at a time (popcounter-deferred.patch).
 template <typename TWord>
 struct PopCounter {
     /// Bit-striped counters, with bit_totals[k] storing the 64 bits with weight 1<<k.
     constexpr static size_t BATCH_SIZE = sizeof(TWord) * 8;
+    /// Number of stripes. The top stripe (weight 1<<(STRIPES-1)) is moved into `paired_totals` by one
+    /// transfer per flush, and each position is visited once every 32 flushes.
+    constexpr static size_t STRIPES = 8;
+    /// Masks buffered before being added to the stripes in one carry-save step. A position gains at most
+    /// FLUSH_SIZE per flush, so between two transfers of the same position it gains at most 32*FLUSH_SIZE
+    /// = 128 = 1<<(STRIPES-1); starting from at most 127 after a transfer it ends at most 255, which
+    /// still fits in STRIPES bits. (Upstream's 6 stripes with one mask per call is the case 32 + 31 = 63.)
+    constexpr static size_t FLUSH_SIZE = 4;
 
-    TWord bit_totals[6]{};
-    /// Merged counter pairs, with each uint64_t storing two uint32_t's.
+    TWord bit_totals[STRIPES]{};
+    /// Merged counter pairs, with each uint64_t storing two uint32_t's. Weight 1<<(STRIPES-1).
     TWord paired_totals[32]{};
+    /// Masks given to `masked_increments` that have not been added to the stripes yet.
+    TWord pending[FLUSH_SIZE]{};
     /// This counter is added to all 64 totals.
     uint32_t shared_count = 0;
-    /// Tracks how many increment calls have happened, mod 32.
+    /// Tracks how many flushes have happened, mod 32.
     uint8_t step = 0;
+    /// Number of valid entries in `pending`.
+    uint8_t pending_count = 0;
 
     void clear() {
         memset(this, 0, sizeof(PopCounter));
     }
 
+    /// Exact at any time: masks still sitting in `pending` are included, so readers need not flush.
     inline uint64_t compute_total(size_t k) const {
-        uint64_t result = static_cast<uint64_t>(paired_totals[k % 32].u32(k / 32)) << 5;
-        for (size_t r = 0; r < 6; r++) {
+        uint64_t result = static_cast<uint64_t>(paired_totals[k % 32].u32(k / 32)) << (STRIPES - 1);
+        for (size_t r = 0; r < STRIPES; r++) {
             result += static_cast<uint64_t>(bit_totals[r].bit(k)) << r;
+        }
+        for (size_t i = 0; i < pending_count; i++) {
+            result += pending[i].bit(k);
         }
         return result + shared_count;
     }
 
-    inline void masked_increments(const TWord &mask_ref) {
+    inline void masked_increments(const TWord &mask) {
         // Fast path: an all-ones mask increments every position equally, which `shared_count`
-        // already represents (it is added to every total in `compute_total`). Skipping `step`
-        // keeps the stripe/pair transfer schedule intact, since only masked calls touch the stripes.
-        if (!(~mask_ref).non_zero()) {
+        // already represents (it is added to every total in `compute_total`).
+        if (!(~mask).non_zero()) {
             shared_count++;
             return;
         }
-        TWord mask = mask_ref;
-        // Transfer two bits from the striped 32-bits counter into a paired counter.
+        pending[pending_count] = mask;
+        if (++pending_count == FLUSH_SIZE) {
+            pending_count = 0;
+            flush_pending();
+        }
+    }
+
+    /// Adds the FLUSH_SIZE (=4) buffered masks to the stripes: a carry-save tree reduces them to a
+    /// 3-bit per-position count (ones, twos, fours) that is then added to the stripes.
+    inline void flush_pending() {
+        // Transfer the top stripe's bit for two positions (step and step + 32) into a paired counter.
         step++;
         step &= 31;
-        paired_totals[step].u64_iadd(bit_totals[5].u64_right_shift(step) & TWord::from_u32_broadcast(1));
-        bit_totals[5] &= ~(TWord::from_u32_broadcast(1).u64_left_shift(step));
+        paired_totals[step].u64_iadd(bit_totals[STRIPES - 1].u64_right_shift(step) & TWord::from_u32_broadcast(1));
+        bit_totals[STRIPES - 1] &= ~(TWord::from_u32_broadcast(1).u64_left_shift(step));
 
-        // Conditionally increment the per-bit-position counters.
-        bit_totals[0] ^= mask;
-        mask &= ~bit_totals[0];
-        bit_totals[1] ^= mask;
-        mask &= ~bit_totals[1];
-        bit_totals[2] ^= mask;
-        mask &= ~bit_totals[2];
-        bit_totals[3] ^= mask;
-        mask &= ~bit_totals[3];
-        bit_totals[4] ^= mask;
-        mask &= ~bit_totals[4];
-        bit_totals[5] ^= mask;
+        TWord u = pending[0] ^ pending[1];
+        TWord c1 = pending[0] & pending[1];
+        TWord v = pending[2] ^ pending[3];
+        TWord c2 = pending[2] & pending[3];
+        TWord ones = u ^ v;
+        TWord c3 = u & v;
+        TWord c12 = c1 ^ c2;
+        TWord twos = c12 ^ c3;
+        TWord fours = (c1 & c2) | (c12 & c3);
+
+        // bit_totals += ones + 2*twos + 4*fours, as a ripple of full/half adders.
+        TWord carry = bit_totals[0] & ones;
+        bit_totals[0] ^= ones;
+        TWord x = bit_totals[1] ^ twos;
+        TWord next = (bit_totals[1] & twos) | (x & carry);
+        bit_totals[1] = x ^ carry;
+        carry = next;
+        x = bit_totals[2] ^ fours;
+        next = (bit_totals[2] & fours) | (x & carry);
+        bit_totals[2] = x ^ carry;
+        carry = next;
+        for (size_t r = 3; r < STRIPES; r++) {
+            next = bit_totals[r] & carry;
+            bit_totals[r] ^= carry;
+            carry = next;
+        }
     }
 };
 

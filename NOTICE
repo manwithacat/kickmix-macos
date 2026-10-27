@@ -37,7 +37,9 @@ applied in that order.
 
 Files added by this repository that are not part of upstream kickmix (dated 2026-10-27
 unless noted): tests/cpp/pop_counter_fastpath.test.cc, tools/ab_bench.sh, tools/ab_bench.py,
-tools/verify_parity.sh, tools/verify_parity.py, tools/lib.sh, tests/test_shot_io_2d.py, the workflows under
+tools/verify_parity.sh, tools/verify_parity.py, tools/verify_parallel.py,
+tests/test_verify_parallel.py, tests/fake_verifier/, tests/test_shot_io_2d.py, tools/lib.sh,
+the workflows under
 .github/workflows/, and changes to tools/build.sh, tools/sync_upstream.sh,
 tools/cpp_word_type_tests.sh, bench/sim_bench.py and tests/parity_dump.py. All were written
 with the assistance of an AI coding model (Claude) as described below.

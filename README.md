@@ -88,6 +88,27 @@ not depend on any binary from this repository. See *Developer tools* for details
 `perf` workflow runs the same comparison on macOS (arm64, Intel), Linux (x86-64,
 aarch64) and Windows hosted runners; the `ci` workflow runs the tests.
 
+## Multi-core verification without `fork` (Windows)
+
+The competition's invsqrt and DQI verifiers parallelise only through the `fork` start method
+and run serially where it does not exist, as on native Windows. `tools/verify_parallel.py`
+runs them with `spawn` workers instead, leaving the verifier files unchanged: each worker
+loads the circuit and evaluates every n-th of the verifier's own seeded batch tasks, and the
+parent passes the results back into the verifier's `verify()` for aggregation. It works with
+any kickmix build, upstream included.
+
+```bash
+python tools/verify_parallel.py --verifiers /path/to/your/verifiers --task dqi \
+    --circuit dqi.kmb --workers 6
+```
+
+Measured on an M2 Pro (spawn forced) against the verifiers' own `fork` pool, same circuits:
+DQI 28 s vs 22–24 s, invsqrt 84 s vs 82 s; reports identical field for field. Each DQI worker
+holds its own copy of the circuit (about 1 GB). `tests/test_verify_parallel.py` checks the
+scheduling against a serial run on every CI platform using a stand-in verifier, since the
+official files cannot be redistributed. WSL2 with the verifiers' own `fork` pool is the
+alternative.
+
 ## Quick start
 
 ```bash

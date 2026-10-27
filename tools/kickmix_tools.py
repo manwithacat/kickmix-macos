@@ -54,7 +54,21 @@ _MARK = "KICKMIX_TOOLS_RESULT "
 
 
 def competition_dir() -> Path:
-    return Path(os.environ.get("KICKMIX_TOOLS_COMPETITION_DIR", KAGGLE_COMPETITION_DIR))
+    """The competition data root: the environment override, the usual Kaggle mount, or (since mount
+    paths vary) the directory two levels above the one `kickmix/kickmix.so` found under /kaggle/input."""
+    env = os.environ.get("KICKMIX_TOOLS_COMPETITION_DIR")
+    if env:
+        return Path(env)
+    default = Path(KAGGLE_COMPETITION_DIR)
+    if (default / "kickmix").is_dir():
+        return default
+    root = Path("/kaggle/input")
+    if root.is_dir():
+        hits = sorted(p for p in root.rglob("kickmix.so")
+                      if p.parent.name == "kickmix" and (p.parent.parent / "verifiers").is_dir())
+        if hits:
+            return hits[0].parent.parent
+    return default
 
 
 def official_build() -> Path:

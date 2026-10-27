@@ -111,6 +111,15 @@ not depend on any binary from this repository. See *Developer tools* for details
 `perf` workflow runs the same comparison on macOS (arm64, Intel), Linux (x86-64,
 aarch64) and Windows hosted runners; the `ci` workflow runs the tests.
 
+## Kaggle entry point and hello world
+
+`tools/kickmix_tools.py` is a single-file helper (intended as a Kaggle utility script) that installs the
+fork into an isolated directory and runs the unchanged official verifiers with either the shipped
+`kickmix.so` or the fork in a subprocess: `install()`, `verify(task, circuit, build=...)` (result plus wall
+time and peak memory of the process tree), `compare(task, circuit)` (field-by-field equality, time,
+memory) and `angle_strict_check(...)`. `examples/hello_world.ipynb` is a five-minute tour of the Python API
+(CI executes it).
+
 ## Multi-core verification without `fork` (Windows)
 
 The competition's invsqrt and DQI verifiers parallelise only through the `fork` start method

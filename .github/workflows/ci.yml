@@ -36,6 +36,10 @@ jobs:
         run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv"
       - name: Report which word types were compiled in
         run: python tools/report_word_types.py
+      - name: 2-D bool shot I/O (packed words) matches the 1-D per-bit path
+        run: |
+          source tools/lib.sh
+          "$(venv_python "$RUNNER_TEMP/venv")" tests/test_shot_io_2d.py
       - name: Synthetic simulator benchmark (informational)
         run: |
           source tools/lib.sh

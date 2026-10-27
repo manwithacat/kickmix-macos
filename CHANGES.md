@@ -8,7 +8,7 @@
 
 ## Patch series (patches/series, applied in order)
 
-Both patches were written with the assistance of an AI coding model (Claude) under the
+All three patches were written with the assistance of an AI coding model (Claude) under the
 repository owner's direction; see NOTICE.
 
 ### patches/neon-simd.patch
@@ -32,6 +32,18 @@ repository owner's direction; see NOTICE.
   (3,403 tests) passes; `tests/parity_dump.py` identical with and without the patch;
   C++ equivalence test `tests/cpp/pop_counter_fastpath.test.cc` passes for every word type.
   Known cost: ~4-12% slower per call on masks that are never all ones (micro-benchmark).
+
+### patches/stream-reaction-depth.patch
+
+- 2026-10-27: `Circuit::reaction_depth()` streams over the packed op arrays via `iter_ops`
+  into a `ReactionDepthTracker` (`circuit_util.cc`; the per-op logic is moved unchanged from
+  `compute_reaction_depth`) instead of copying every op into a `std::vector<Op>`. The span
+  overload is kept for the diagram code. On the 55 M-op DQI circuit: `reaction_depth()` 1.6 s
+  to 0.3 s, peak RSS 7.1-7.5 GiB to 0.49 GiB; the official DQI verifier (4 workers) parent peak
+  RSS 7.43 GB to 2.07 GB. Validated: identical reaction depth on the DQI, invsqrt and 19
+  dfthcsos circuits, the upstream testdata, and 600 random circuits with measurements,
+  conditioned ops and PUSH/POP_CONDITION; `tests/parity_dump.py` identical; DQI verifier 0 of 38
+  fields differ vs the baseline; upstream Python suite (3,403 tests) passes.
 
 ## Tooling added (no effect on the built package)
 

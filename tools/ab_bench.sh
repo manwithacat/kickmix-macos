@@ -48,6 +48,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 PYTHON="${PYTHON:-python3}"
+HERE="$(portable_path "$HERE")"; WORK="$(portable_path "$WORK")"
 mkdir -p "$WORK"
 
 fingerprint() {  # hash of a kickmix source tree (portable: python does the hashing)

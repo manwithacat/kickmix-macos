@@ -9,6 +9,7 @@ jobs:
   wheels:
     name: wheels (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    continue-on-error: ${{ matrix.experimental || false }}
     strategy:
       fail-fast: false
       matrix:
@@ -16,6 +17,10 @@ jobs:
           - { os: macos-15,       build: "cp310-macosx_arm64 cp311-macosx_arm64 cp312-macosx_arm64 cp313-macosx_arm64 cp314-macosx_arm64" }
           - { os: macos-15-intel, build: "cp312-macosx_x86_64 cp313-macosx_x86_64" }
           - { os: ubuntu-24.04,   build: "cp312-manylinux_x86_64 cp313-manylinux_x86_64" }
+          - { os: ubuntu-24.04-arm, build: "cp312-manylinux_aarch64 cp313-manylinux_aarch64" }  # native, NEON word types
+          # Windows x86-64 (MSVC). Never built before this entry was added: expect the first run
+          # to need fixes. Its failure does not block the other wheels or the release.
+          - { os: windows-latest, build: "cp312-win_amd64 cp313-win_amd64", experimental: true }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -63,5 +68,7 @@ jobs:
             Prebuilt `kickmix` wheels from this repository's vendored upstream commit plus the
             NEON overlay (see CHANGES.md). Install with
             `pip install <wheel>` and `pip install numpy scipy` for the competition verifiers.
-            Apple Silicon wheels include the NEON word types; Intel and Linux wheels use the
-            upstream SSE/AVX paths. SHA256SUMS lists every file.
+            Apple Silicon and Linux aarch64 wheels include the NEON word types; Intel macOS and
+            Linux/Windows x86-64 wheels use the upstream SSE/AVX or portable paths. All wheels
+            include the PopCounter fast-path patch (see CHANGES.md). Windows wheels are new and
+            untested beyond the smoke test. SHA256SUMS lists every file.

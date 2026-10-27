@@ -19,6 +19,7 @@ take the best of several repeats.
 from __future__ import annotations
 
 import argparse
+import json
 import platform
 import random
 import statistics
@@ -59,6 +60,9 @@ def main() -> None:
     parser.add_argument("--batches", type=int, default=8, help="batches simulated per repeat")
     parser.add_argument("--repeats", type=int, default=5)
     parser.add_argument("--seed", type=int, default=20261025)
+    parser.add_argument("--counting", action="store_true",
+                        help="simulate with counting_operations=True, as the competition verifiers do (exercises PopCounter)")
+    parser.add_argument("--json", default=None, help="also write the per-repeat rates and metadata to this JSON file")
     args = parser.parse_args()
 
     if args.circuit:
@@ -71,9 +75,9 @@ def main() -> None:
     num_ops = len(circuit)
     print(f"kickmix {km.__file__}")
     print(f"{platform.system()} {platform.machine()} python {sys.version.split()[0]} numpy {np.__version__}")
-    print(f"circuit: {label}; {circuit.num_qubits} qubits, {num_ops:,} ops; batch {args.batch_size}; {args.batches} batches/repeat")
+    print(f"circuit: {label}; {circuit.num_qubits} qubits, {num_ops:,} ops; batch {args.batch_size}; {args.batches} batches/repeat; counting={args.counting}")
 
-    sim = km.Simulator(batch_size=args.batch_size, debug_print=False, seed=args.seed)
+    sim = km.Simulator(batch_size=args.batch_size, debug_print=False, counting_operations=args.counting, seed=args.seed)
     rates = []
     for r in range(args.repeats):
         start = time.perf_counter()
@@ -85,6 +89,24 @@ def main() -> None:
         rates.append(gate_shots / elapsed / 1e9)
         print(f"  repeat {r + 1}: {elapsed:.3f} s, {rates[-1]:.2f} G gate-shots/s")
     print(f"best {max(rates):.2f} G gate-shots/s; median {statistics.median(rates):.2f}")
+    if args.json:
+        with open(args.json, "w") as f:
+            json.dump(
+                {
+                    "kickmix": km.__file__,
+                    "circuit": label,
+                    "num_qubits": circuit.num_qubits,
+                    "num_ops": num_ops,
+                    "batch_size": args.batch_size,
+                    "batches": args.batches,
+                    "counting": args.counting,
+                    "gate_shots_per_s_G": rates,
+                    "median_G": statistics.median(rates),
+                    "best_G": max(rates),
+                },
+                f,
+                indent=2,
+            )
 
 
 if __name__ == "__main__":

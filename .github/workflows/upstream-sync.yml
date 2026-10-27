@@ -1,0 +1,110 @@
+# Weekly check for new upstream commits touching kickmix/ in quantumlib/Qualtran. If there are
+# any, try tools/sync_upstream.sh against the newest one in a throwaway checkout (the runner's
+# working tree is never pushed), build, run the Python tests and the parity check, and record
+# the outcome in ONE issue in this repository (created if absent, otherwise edited). No pull
+# requests and no commits are made automatically.
+name: upstream-sync
+on:
+  schedule:
+    - cron: "43 6 * * 1"   # Mondays 06:43 UTC
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_TITLE: "Upstream sync status (quantumlib/Qualtran kickmix/)"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Find new upstream commits touching kickmix/
+        id: find
+        run: |
+          source tools/lib.sh
+          PINNED="$(upstream_commit .)"
+          git clone --quiet --filter=blob:none https://github.com/quantumlib/Qualtran.git "$RUNNER_TEMP/Qualtran"
+          git -C "$RUNNER_TEMP/Qualtran" log --format='%h %s' "$PINNED..origin/HEAD" -- kickmix > "$RUNNER_TEMP/new-commits.txt"
+          NEWEST="$(git -C "$RUNNER_TEMP/Qualtran" log -n1 --format=%H origin/HEAD -- kickmix)"
+          echo "pinned=$PINNED" >> "$GITHUB_OUTPUT"
+          echo "newest=$NEWEST" >> "$GITHUB_OUTPUT"
+          COUNT="$(wc -l < "$RUNNER_TEMP/new-commits.txt" | tr -d ' ')"
+          echo "count=$COUNT" >> "$GITHUB_OUTPUT"
+          echo "pinned $PINNED; $COUNT new commit(s) touching kickmix/" | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Re-vendor from the newest commit
+        id: sync
+        if: steps.find.outputs.count != '0'
+        continue-on-error: true
+        run: tools/sync_upstream.sh "${{ steps.find.outputs.newest }}" "$RUNNER_TEMP/Qualtran" 2>&1 | tee "$RUNNER_TEMP/sync.log"; exit "${PIPESTATUS[0]}"
+      - name: Build and run upstream Python tests
+        id: build
+        if: steps.sync.outcome == 'success'
+        continue-on-error: true
+        run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv" 2>&1 | tee "$RUNNER_TEMP/build.log"; exit "${PIPESTATUS[0]}"
+      - name: C++ word-type and PopCounter tests
+        id: cpp
+        if: steps.sync.outcome == 'success'
+        continue-on-error: true
+        run: tools/cpp_word_type_tests.sh 2>&1 | tee "$RUNNER_TEMP/cpp.log"; exit "${PIPESTATUS[0]}"
+      - name: Parity against the new unmodified upstream
+        id: parity
+        if: steps.sync.outcome == 'success' && steps.build.outcome == 'success'
+        continue-on-error: true
+        run: |
+          # Point the baseline at the new commit (this edit stays on the runner).
+          sed -i "s/^- UPSTREAM_COMMIT: \`[0-9a-f]\{40\}\`/- UPSTREAM_COMMIT: \`${{ steps.find.outputs.newest }}\`/" CHANGES.md
+          QUALTRAN_DIR="$RUNNER_TEMP/Qualtran" PYTHON=python \
+            tools/ab_bench.sh --work "$RUNNER_TEMP/ab" --rounds 1 --repeats 1 2>&1 | tee "$RUNNER_TEMP/parity.log"; exit "${PIPESTATUS[0]}"
+      - name: Open or update the status issue
+        if: always() && steps.find.outputs.count != ''
+        env:
+          COUNT: ${{ steps.find.outputs.count }}
+          PINNED: ${{ steps.find.outputs.pinned }}
+          NEWEST: ${{ steps.find.outputs.newest }}
+          SYNC: ${{ steps.sync.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          CPP: ${{ steps.cpp.outcome }}
+          PARITY: ${{ steps.parity.outcome }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          EXISTING="$(gh issue list --repo "$GITHUB_REPOSITORY" --state open --search "in:title \"$ISSUE_TITLE\"" --json number --jq '.[0].number // empty')"
+          if [[ "$COUNT" == "0" && -z "$EXISTING" ]]; then echo "up to date, no issue open"; exit 0; fi
+          {
+            echo "Last checked: $(date -u +%Y-%m-%dT%H:%MZ) ([run]($RUN_URL))"
+            echo
+            if [[ "$COUNT" == "0" ]]; then
+              echo "No new upstream commits touch \`kickmix/\` since the pinned \`$PINNED\`. Up to date."
+            else
+              echo "Pinned: \`$PINNED\`. Newest upstream commit touching \`kickmix/\`: \`$NEWEST\` ($COUNT new)."
+              echo
+              echo "| Step | Result |"
+              echo "| --- | --- |"
+              echo "| tools/sync_upstream.sh (all patches in patches/series) | $SYNC |"
+              echo "| build + upstream Python tests | $BUILD |"
+              echo "| C++ word-type + PopCounter tests | $CPP |"
+              echo "| parity_dump versus new unmodified upstream | $PARITY |"
+              echo
+              echo "New upstream commits (subject lines are untrusted text from another repository):"
+              echo '```'
+              head -n 30 "$RUNNER_TEMP/new-commits.txt"
+              echo '```'
+              if [[ "$SYNC" != "success" && -f "$RUNNER_TEMP/sync.log" ]]; then
+                echo "Sync log tail:"; echo '```'; tail -n 20 "$RUNNER_TEMP/sync.log"; echo '```'
+              fi
+              echo
+              echo "To adopt: run \`tools/sync_upstream.sh $NEWEST\` locally, update UPSTREAM_COMMIT in CHANGES.md, review, and commit. This workflow never opens pull requests."
+            fi
+          } > "$RUNNER_TEMP/issue.md"
+          if [[ -n "$EXISTING" ]]; then
+            gh issue edit "$EXISTING" --repo "$GITHUB_REPOSITORY" --body-file "$RUNNER_TEMP/issue.md"
+            [[ "$COUNT" == "0" ]] && gh issue close "$EXISTING" --repo "$GITHUB_REPOSITORY" --comment "Up to date with upstream."
+          else
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$ISSUE_TITLE" --body-file "$RUNNER_TEMP/issue.md"
+          fi
+          exit 0

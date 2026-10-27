@@ -10,6 +10,13 @@ jobs:
   build_and_test:
     name: build+pytest (${{ matrix.os }}, py${{ matrix.python }})
     runs-on: ${{ matrix.os }}
+    # Windows has never been built from this tree (setup.py has an MSVC branch that upstream
+    # does not exercise in its own CI). Keep it non-blocking until a green run exists, then
+    # remove `experimental: true` from that matrix entry.
+    continue-on-error: ${{ matrix.experimental || false }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
@@ -18,6 +25,8 @@ jobs:
           - { os: macos-15, python: "3.12" }
           - { os: macos-15-intel, python: "3.13" }  # Intel Mac: SSE/AVX word types
           - { os: ubuntu-24.04, python: "3.13" }    # Linux x86-64: upstream path, no behaviour change
+          - { os: ubuntu-24.04-arm, python: "3.13" }  # Linux aarch64: NEON word types
+          - { os: windows-latest, python: "3.13", experimental: true }  # MSVC; never built before
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -29,7 +38,8 @@ jobs:
         run: python tools/report_word_types.py
       - name: Synthetic simulator benchmark (informational)
         run: |
-          "$RUNNER_TEMP/venv/bin/python" bench/sim_bench.py --ops 200000 --batches 8 --repeats 2
+          source tools/lib.sh
+          "$(venv_python "$RUNNER_TEMP/venv")" bench/sim_bench.py --ops 200000 --batches 8 --repeats 2 --counting
 
   neon_disabled_parity:
     name: NEON disabled build matches NEON build (macos-15)
@@ -53,11 +63,14 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-15, macos-15-intel, ubuntu-24.04]
+        os: [macos-15, macos-15-intel, ubuntu-24.04, ubuntu-24.04-arm]
     steps:
       - uses: actions/checkout@v4
       - name: simd, ChaCha and popcount suites for every word type (NEON on arm64)
         run: tools/cpp_word_type_tests.sh
+      - name: PopCounter fast-path equivalence test (patches/popcounter-fastpath.patch)
+        # Already part of the run above; repeated by filter so the result is visible on its own.
+        run: tools/cpp_word_type_tests.sh '*fastpath*'
 
   cpp_tests_bazel:
     name: upstream C++ unit tests incl. NEON instantiations (macos-15)

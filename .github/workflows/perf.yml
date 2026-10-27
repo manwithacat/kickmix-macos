@@ -1,0 +1,62 @@
+# Alternating A/B performance and parity check: unmodified upstream kickmix (pinned commit in
+# CHANGES.md) versus this repository's tree, one job per OS so both variants share a machine.
+# Synthetic circuits and upstream's own testdata only; no competition data.
+#
+# Per job: build both variants -> tests/parity_dump.py must print identical output (the job
+# fails otherwise) -> >= 3 alternating rounds per workload -> medians and ratios in the job
+# summary and in an artifact JSON. Performance numbers are reported, never gated: hosted
+# runners are shared machines, so treat ratios as indicative and compare within one job only.
+name: perf
+on:
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    - cron: "17 5 * * 1"   # Mondays 05:17 UTC
+permissions:
+  contents: read
+
+jobs:
+  ab:
+    name: A/B ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    # Windows has never been built from this tree; do not let it block pull requests yet.
+    # Remove `experimental: true` once it is green.
+    continue-on-error: ${{ matrix.experimental || false }}
+    defaults:
+      run:
+        shell: bash
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: macos-15 }            # Apple Silicon (arm64): NEON in the fork
+          - { os: macos-15-intel }      # Intel Mac
+          - { os: ubuntu-24.04 }        # Linux x86-64
+          - { os: ubuntu-24.04-arm }    # Linux aarch64
+          - { os: windows-latest, experimental: true }  # MSVC
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Build both variants, check parity, alternate benchmarks
+        env:
+          PYTHON: python
+        run: |
+          tools/ab_bench.sh --work "$RUNNER_TEMP/ab" --rounds 3 --repeats 3 \
+            --circuit kickmix/testdata/big_circuit.kmb \
+            --json "perf-${{ matrix.os }}.json"
+      - name: Isolate the PopCounter patch (fork versus fork without it), informational
+        if: always()
+        env:
+          PYTHON: python
+        run: |
+          tools/ab_bench.sh --work "$RUNNER_TEMP/ab-iso" --isolate-popcounter --rounds 3 --repeats 3 \
+            --json "perf-isolated-${{ matrix.os }}.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: perf-${{ matrix.os }}
+          path: perf-*.json
+          if-no-files-found: warn

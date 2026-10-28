@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>kickmix-macos</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono&display=swap">
+<style>
+/* Same palette and type as the circuit viewer, so the site reads as one thing. */
+:root { --bg: #eef1f4; --panel: #f8fafb; --ink: #17202b; --muted: #5b6878; --rule: #cfd6de; --accent: #0f6f78; --warm: #c46a14;
+  --display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif; --body: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace; }
+@media (prefers-color-scheme: dark) { :root { --bg: #11161c; --panel: #171e26; --ink: #e6ebf1; --muted: #9aa7b6; --rule: #2a3440; --accent: #48c1c9; --warm: #e58a35; color-scheme: dark; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.6 var(--body); padding: 40px max(16px, 5vw) 56px; }
+main { max-width: 860px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2 { font-family: var(--display); margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+h1 { font-size: clamp(32px, 6vw, 52px); line-height: 1.05; }
+h2 { font-size: 20px; }
+p { margin: 0; max-width: 68ch; }
+.lede { color: var(--muted); font-size: 17px; }
+a { color: var(--accent); }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 18px; display: grid; gap: 8px; align-content: start; min-width: 0; }
+.card.feature { border-color: var(--warm); }
+.card .go { font-weight: 600; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+code { font-family: var(--mono); font-size: 14px; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; }
+pre { font-family: var(--mono); font-size: 14px; background: var(--panel); border: 1px solid var(--rule); border-radius: 8px; padding: 12px 14px; overflow-x: auto; margin: 0; }
+.foot { color: var(--muted); font-size: 14px; display: grid; gap: 6px; }
+</style>
+<main>
+  <header style="display:grid;gap:12px">
+    <div class="eyebrow">Google Quantum AI's kickmix, for constrained hardware</div>
+    <h1>kickmix-macos</h1>
+    <p class="lede">An openly AI-assisted fork of kickmix, the circuit simulator behind the Verifiable Quantum Circuit Compilation competition. Same results as the official build, with much less memory, macOS builds, and a few tools for looking inside circuits.</p>
+  </header>
+
+  <section class="cards">
+    <a class="card feature" href="viewer/" style="text-decoration:none;color:inherit">
+      <div class="eyebrow">Interactive</div>
+      <h2>Inside invsqrt</h2>
+      <p>Follow one input through mrmeows' 63-qubit invsqrt circuit: qubit values, stages, Toffolis, qubit lifetimes, the precision curve over every input, and the phase building to 1/√x. Load your own <code>.kmx</code> too.</p>
+      <span class="go">Open the viewer →</span>
+    </a>
+    <div class="card">
+      <div class="eyebrow">Install</div>
+      <h2>The fork</h2>
+      <p>Prebuilt wheels for macOS, Linux and Windows on the <a href="https://github.com/manwithacat/kickmix-macos/releases">releases page</a>, or an offline wheel for Kaggle notebooks in the <a href="https://www.kaggle.com/datasets/manwithacat/kickmix-fork-wheels">kickmix-fork-wheels</a> dataset.</p>
+      <p>On Kaggle, DQI verification peaks at about 3.2 GB instead of about 9.1 GB, with identical verifier output.</p>
+    </div>
+    <div class="card">
+      <div class="eyebrow">Kaggle</div>
+      <h2>Notebooks and data</h2>
+      <p><a href="https://www.kaggle.com/code/manwithacat/kickmix-tools">kickmix_tools</a> utility script, the <a href="https://www.kaggle.com/datasets/manwithacat/vqcc-angle-k-formal-check">ANGLE_k formal checker</a>, and a weekly <a href="https://www.kaggle.com/code/manwithacat/dqi-salt-check-public-frontier">DQI salt check</a>.</p>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <h2>Run the viewer locally</h2>
+    <pre>git clone https://github.com/manwithacat/kickmix-macos
+cd kickmix-macos/tools/circuit-viewer
+python -m http.server 8000      # open http://localhost:8000</pre>
+  </section>
+
+  <footer class="foot">
+    <p>kickmix is by Google Quantum AI (Qualtran, Apache-2.0). This fork's changes are AI-assisted (Claude) under the direction of James Barlow (<a href="https://orcid.org/0009-0004-6530-1610">ORCID 0009-0004-6530-1610</a>) and listed in <a href="https://github.com/manwithacat/kickmix-macos/blob/main/CHANGES.md">CHANGES.md</a>. The official build and verifiers remain the reference for scoring.</p>
+    <p><a href="https://github.com/manwithacat/kickmix-macos">Source on GitHub</a></p>
+  </footer>
+</main>
+</html>

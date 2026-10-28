@@ -1,0 +1,39 @@
+name: pages
+
+# Publishes the documentation site: site/ as the landing page and tools/circuit-viewer/ at /viewer/.
+on:
+  push:
+    branches: [main]
+    paths: ["site/**", "tools/circuit-viewer/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Assemble the site
+        run: |
+          mkdir -p _site/viewer
+          cp -r site/. _site/
+          cp tools/circuit-viewer/index.html tools/circuit-viewer/*.js tools/circuit-viewer/*.json _site/viewer/
+          touch _site/.nojekyll
+          ls -la _site _site/viewer
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -10,9 +10,8 @@ jobs:
   build_and_test:
     name: build+pytest (${{ matrix.os }}, py${{ matrix.python }})
     runs-on: ${{ matrix.os }}
-    # Windows has never been built from this tree (setup.py has an MSVC branch that upstream
-    # does not exercise in its own CI). Keep it non-blocking until a green run exists, then
-    # remove `experimental: true` from that matrix entry.
+    # All matrix entries are required. Windows (MSVC) became required on 2026-10-28 after a green run on main;
+    # set `experimental: true` on an entry only to make it non-blocking temporarily.
     continue-on-error: ${{ matrix.experimental || false }}
     defaults:
       run:
@@ -26,7 +25,7 @@ jobs:
           - { os: macos-15-intel, python: "3.13" }  # Intel Mac: SSE/AVX word types
           - { os: ubuntu-24.04, python: "3.13" }    # Linux x86-64: upstream path, no behaviour change
           - { os: ubuntu-24.04-arm, python: "3.13" }  # Linux aarch64: NEON word types
-          - { os: windows-latest, python: "3.13", experimental: true }  # MSVC; never built before
+          - { os: windows-latest, python: "3.13" }    # Windows: MSVC
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

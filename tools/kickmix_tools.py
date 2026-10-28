@@ -42,10 +42,10 @@ try:  # not available on Windows
 except ImportError:  # pragma: no cover
     resource = None
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 REPO = "manwithacat/kickmix-macos"
-DEFAULT_TAG = "v0.2.0"
+DEFAULT_TAG = "latest"  # the newest GitHub release; pass tag="vX.Y.Z" to pin
 KAGGLE_COMPETITION_DIR = "/kaggle/input/google-verifiable-quantum-circuit-compilation"
 TASKS = ("dfthcsos", "invsqrt", "dqi")
 _MARK = "KICKMIX_TOOLS_RESULT "
@@ -152,8 +152,21 @@ def _check_local_wheel(wheel: Path) -> str:
     return "SHA-256 matches SHA256SUMS"
 
 
+def _release(tag: str, repo: str) -> dict:
+    """GitHub release metadata for `tag` ("latest" = the newest published release)."""
+    path = "releases/latest" if tag == "latest" else f"releases/tags/{tag}"
+    return json.loads(_http_get(f"https://api.github.com/repos/{repo}/{path}"))
+
+
+def _wheel_in_dir(directory: Path) -> Path | None:
+    """The wheel in `directory` matching this interpreter and platform (e.g. the Kaggle wheels dataset)."""
+    name = _pick_wheel(sorted(p.name for p in directory.glob("*.whl")))
+    return directory / name if name else None
+
+
 def _install_wheel(target: Path, tag: str, repo: str) -> str:
-    api = json.loads(_http_get(f"https://api.github.com/repos/{repo}/releases/tags/{tag}"))
+    api = _release(tag, repo)
+    tag = api.get("tag_name", tag)
     urls = {a["name"]: a["browser_download_url"] for a in api["assets"]}
     name = _pick_wheel(list(urls))
     if name is None:
@@ -173,7 +186,7 @@ def _install_wheel(target: Path, tag: str, repo: str) -> str:
         wheel = Path(tmp) / name
         wheel.write_bytes(data)
         _pip_install(target, str(wheel))
-    return f"prebuilt wheel {name} ({checked}; sha256 {digest[:16]}...)"
+    return f"prebuilt wheel {name} from release {tag} ({checked}; sha256 {digest[:16]}...)"
 
 
 def _install_source(target: Path, tag: str, repo: str) -> str:
@@ -189,9 +202,11 @@ def install(source: str = "auto", *, target: str | os.PathLike | None = None, ta
     (default /kaggle/working/kickmix_fork, or a temp dir elsewhere) and is selected by
     putting that directory first on sys.path in the verifier subprocess.
 
-    source: "auto" (wheel from the GitHub release `tag`, then source build if that fails),
-    "wheel", "source", or a path to a .whl file / a directory that already holds a built
-    kickmix module (used as is). Prints which route was used.
+    source: "auto" (wheel from the GitHub release `tag`, default the newest release, then a
+    source build if that fails), "wheel", "source", a path to a .whl file, a directory of wheels
+    (such as the attached Kaggle dataset kickmix-fork-wheels: the wheel for this interpreter is
+    chosen, so notebooks need not name a version), or a directory that already holds a built
+    kickmix module (used as is). Prints which route was used; `provenance()` records it.
     """
     override = os.environ.get("KICKMIX_TOOLS_FORK_BUILD")
     if override:
@@ -207,6 +222,12 @@ def install(source: str = "auto", *, target: str | os.PathLike | None = None, ta
         base = Path("/kaggle/working") if Path("/kaggle/working").is_dir() else Path(tempfile.gettempdir())
         target = base / "kickmix_fork"
     target = Path(target)
+    if source not in ("auto", "wheel", "source") and src_path.is_dir():
+        found = _wheel_in_dir(src_path)
+        if found is None:
+            raise FileNotFoundError(f"no kickmix module or wheel for cp{sys.version_info.major}"
+                                    f"{sys.version_info.minor} on {platform.system()} in {src_path}")
+        src_path, source = found, str(found)
     if target.exists():
         for old in target.glob("kickmix*"):
             if old.is_dir():
@@ -236,7 +257,48 @@ def install(source: str = "auto", *, target: str | os.PathLike | None = None, ta
     _STATE["fork_build"] = target
     _STATE["fork_how"] = how
     print(f"fork: installed via {how}\nfork: directory {target}")
+    p = provenance()
+    print(f"fork: kickmix {p['fork_version']}, kickmix_tools {__version__}")
     return target
+
+
+def _installed_version(build: Path | None) -> str | None:
+    """Package version recorded in the build directory's kickmix-*.dist-info, if any."""
+    if build is None:
+        return None
+    for info in sorted(Path(build).glob("kickmix-*.dist-info")):
+        return info.name[len("kickmix-"):-len(".dist-info")]
+    return None
+
+
+def provenance() -> dict:
+    """Which fork build this session uses: record it with any result (version, install route)."""
+    build = _STATE.get("fork_build")
+    return {"kickmix_tools_version": __version__, "fork_version": _installed_version(build),
+            "fork_install": _STATE.get("fork_how"), "fork_build_dir": str(build) if build else None}
+
+
+def check_latest(repo: str = REPO, *, quiet: bool = False) -> dict:
+    """Compare the installed fork with the newest GitHub release (needs internet).
+
+    Returns {"installed", "latest", "up_to_date"}; up_to_date is None when the release could not
+    be read (internet off) or nothing is installed. Prints a warning when the build is behind.
+    """
+    installed = provenance()["fork_version"]
+    try:
+        latest = _release("latest", repo).get("tag_name", "").lstrip("v") or None
+    except Exception:  # noqa: BLE001 - offline notebooks cannot reach GitHub
+        latest = None
+    ok = None if (installed is None or latest is None) else installed == latest
+    if not quiet:
+        if ok is False:
+            print(f"WARNING: kickmix fork {installed} is behind the latest release {latest} "
+                  f"(https://github.com/{repo}/releases/latest)")
+        elif ok is None:
+            print(f"fork: installed {installed}; latest release {'unknown (offline?)' if latest is None else latest}")
+        else:
+            print(f"fork: {installed} is the latest release")
+    return {"installed": installed, "latest": latest, "up_to_date": ok}
 
 
 # --------------------------------------------------------------------------- memory sampling
@@ -504,7 +566,8 @@ def verify(task: str, circuit, build: str = "fork", workers: int | None = None, 
     return {"task": task, "build": build, "result": payload["result"], "wall_seconds": wall,
             "peak_rss_sum_mb": sampler.peak_rss, "peak_pss_sum_mb": sampler.peak_pss,
             "max_single_process_mb": payload["max_single_process_mb"],
-            "kickmix_module": payload["kickmix_module"], "workers": workers}
+            "kickmix_module": payload["kickmix_module"], "workers": workers,
+            "provenance": provenance() if build == "fork" else {"kickmix_tools_version": __version__}}
 
 
 def _flatten(x, prefix=""):

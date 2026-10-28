@@ -2,13 +2,21 @@
 
 ## Releases
 
-- Unreleased: adds `patches/batch-phase-read.patch` (`Simulator.read_phases_u64`).
+- v0.3.0 (unreleased until tagged): package version 0.3.0; adds `patches/batch-phase-read.patch`
+  (`Simulator.read_phases_u64`), Windows build fixes, and required Windows CI. Releases are now mirrored to
+  Kaggle by `.github/workflows/kaggle-publish.yml` (wheels dataset `manwithacat/kickmix-fork-wheels` and the
+  `kickmix_tools` utility script).
 - v0.2.0 (2026-10-27): package version 0.2.0; wheels include the full patch series below
   (streamed `reaction_depth`, packed shot I/O, `read_shot_phase` reduction, PopCounter fast path and
   deferred counting, CX runs). v0.1.0 (2026-10-25) had the NEON patch only.
 
 ## Tooling changes
 
+- 2026-10-28, `tools/kickmix_tools.py` 0.2.0 (no change to kickmix itself): `install()` defaults to the newest
+  GitHub release (`tag="latest"`), and accepts a directory of wheels (e.g. the attached Kaggle dataset) and picks
+  the wheel for the running interpreter, so notebooks need not name a version. New `provenance()` (fork version,
+  install route) is attached to every fork `verify()` result, and `check_latest()` warns when the installed fork
+  is behind the newest release (needs internet; returns `up_to_date: None` offline).
 - 2026-10-27, `tools/kickmix_tools.py` (no change to kickmix itself): `install()` given a local `.whl` now
   checks it against a `SHA256SUMS` file in the same directory when one exists, raising on a mismatch or if
   the file does not list the wheel; whether it was checked is recorded in the install description

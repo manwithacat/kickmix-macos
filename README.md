@@ -43,7 +43,7 @@ small list of patches, for anyone who wants the official simulator, faster.
 competition's unchanged official invsqrt and DQI verifiers with three builds (the organisers' `kickmix`, this
 fork, and [kickmix-engine](https://github.com/manwithacat/kickmix-engine)), shows wall time and peak memory
 for each and checks that every result field is identical, then lets you verify your own circuit. With the
-default settings it is sized for roughly 15-25 minutes; a `RUN_LONG` flag adds the slow official runs. Two ways
+default settings it takes about 30 minutes on Kaggle's CPU notebook (28.5 minutes measured for v0.3.1); a `RUN_LONG` flag adds the slow official runs. Two ways
 to get it:
 
 1. **Copy & Edit** the public Kaggle notebook

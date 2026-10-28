@@ -1,6 +1,7 @@
 # kickmix-macos
 
 [![ci](https://github.com/manwithacat/kickmix-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/manwithacat/kickmix-macos/actions/workflows/ci.yml)
+[![site](https://img.shields.io/badge/site-manwithacat.github.io%2Fkickmix--macos-0f6f78)](https://manwithacat.github.io/kickmix-macos/)
 
 An openly AI-assisted fork of `kickmix/`, the classical simulator for
 reversible-plus-phase quantum circuits in Google's
@@ -15,6 +16,14 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 
 > Not affiliated with Google, Qualtran or Kaggle. Upstream code is Apache-2.0,
 > copyright Google LLC; every modification is listed in `NOTICE` and `CHANGES.md`.
+
+## Try it in your browser
+
+- **[Circuit viewer](https://manwithacat.github.io/kickmix-macos/viewer/)**: follow one input through mrmeows'
+  63-qubit invsqrt circuit, with qubit values, stages, Toffolis, qubit lifetimes, the precision curve over every
+  input and the phase building to 1/√x. Load your own `.kmx` too. Source and local instructions:
+  [`tools/circuit-viewer/`](tools/circuit-viewer/).
+- **[Project site](https://manwithacat.github.io/kickmix-macos/)**: install routes, Kaggle notebooks and datasets.
 
 ## Why this fork exists
 

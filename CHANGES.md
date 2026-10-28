@@ -2,6 +2,7 @@
 
 ## Releases
 
+- Unreleased: adds `patches/batch-phase-read.patch` (`Simulator.read_phases_u64`).
 - v0.2.0 (2026-10-27): package version 0.2.0; wheels include the full patch series below
   (streamed `reaction_depth`, packed shot I/O, `read_shot_phase` reduction, PopCounter fast path and
   deferred counting, CX runs). v0.1.0 (2026-10-25) had the NEON patch only.
@@ -110,6 +111,23 @@ repository owner's direction; see NOTICE.
   (Apple M2 Pro): 18,946 shot phases (edge cases and Z_POW/NEG circuits) identical in value and
   type to the previous build on CPython 3.13 and 3.12; upstream Python suite (3,403 tests) passes
   on both; `tests/parity_dump.py` identical; official invsqrt verifier identical.
+
+### patches/batch-phase-read.patch
+
+- 2026-10-28: new `Simulator.read_phases_u64(out)` (`kickmix/src/kickmix/py/interactive_simulator.pybind.cc`).
+  `out` is a writable 1-D `np.ndarray[np.uint64]` of length `batch_size` (any stride); element `i` is the
+  shot's phase in units of 2^-64 turn, equal to the official verifiers'
+  `half_turns_to_units(sim.read_shot_phase(i))` = `(((n << 64) // d + 1) >> 1) & (2**64 - 1)` for the
+  phase `n/d` in half turns, i.e. the nearest multiple of 2^-64 turn, ties rounding up, modulo one turn.
+  Natively, with the 128-bit angle `W = w0 + w1 * 2^64` (global-phase bit XORed into bit 63 of `w1`,
+  value `W / 2^127` half turns): `((W >> 63) + 1) >> 1 = w1 + (w0 >> 63)` mod 2^64; the 0 and one-half-turn
+  cases of `read_shot_phase` fall out of the same formula. No Python object is created per shot. Existing
+  methods are untouched. Tests: `tests/test_phase_batch.py` compares against the per-shot conversion on
+  edge phases (0, 1, tiny angles, exact ties at +-1/2 unit, values near one turn, with and without the
+  global-phase bit), random written phases, random Z_POW circuits, batch sizes 1..1024, strided output
+  and error paths. Motivation: in a full official invsqrt verification `read_shot_phase` plus the
+  Fraction conversion was about 44% of the time per batch. Written by an AI coding model (Claude) under
+  the owner's direction.
 
 ## Tooling added (no effect on the built package)
 

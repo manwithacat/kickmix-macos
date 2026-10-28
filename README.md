@@ -48,7 +48,7 @@ Concretely, the fork works towards, and tests, these properties:
 
 ## What differs from upstream
 
-Seven patches, applied in order from `patches/series` (each is a plain diff against the
+Eight patches, applied in order from `patches/series` (each is a plain diff against the
 pinned upstream commit):
 
 | Patch | Effect | Applies to |
@@ -60,6 +60,7 @@ pinned upstream commit):
 | `patches/bulk-shot-io.patch` | `write_across_shots` / `read_across_shots` with 2-D bool arrays pack and unpack whole 64-bit words instead of one bit at a time; same values | All platforms |
 | `patches/read-shot-phase.patch` | `Simulator.read_shot_phase` reduces the angle natively and constructs the `Fraction` without importing `fractions` or running a GCD per call; same values and types | All platforms |
 | `patches/cx-run.patch` | `Sim::apply` applies a run of consecutive unconditioned `CX` ops in one tight loop (no per-op `switch`) and adds the run length to the op counter once (all-ones mask: `shared_count += n`; otherwise n `masked_increments`). Same XORs in the same order, same counts | All platforms, all word types; the saving is mainly with `counting_operations=True` |
+| `patches/batch-phase-read.patch` | Adds `Simulator.read_phases_u64(out)`: writes every shot's phase into a `uint64` array in units of 2^-64 turn, rounded exactly as the official verifiers' `half_turns_to_units(sim.read_shot_phase(i))` (no per-shot Python object). New method; existing behaviour unchanged | All platforms |
 
 Nothing else in kickmix is modified: the Python API, file formats (`.kmx`/`.kmb`), RNG and
 numerical behaviour are upstream's.

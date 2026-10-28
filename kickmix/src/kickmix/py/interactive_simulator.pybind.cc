@@ -582,6 +582,43 @@ pybind11::object sim_read_phase(PyInteractiveSimulator &self, size_t shot_index)
     });
 }
 
+// Batched phase readout. Writes, for every shot, the tracked phase rounded exactly as the official
+// Kaggle verifiers' `half_turns_to_units(sim.read_shot_phase(i))` does:
+//   units = (((n << 64) // d + 1) >> 1) & (2^64 - 1)   where n/d is the phase in half turns.
+// The phase is W / 2^127 half turns for the 128-bit word W = w0 + w1 * 2^64 (w1 bit 63 flipped by the
+// global phase bit), so floor(n * 2^64 / d) = W >> 63, and ((W >> 63) + 1) >> 1 = w1 + (w0 >> 63).
+// Reduction by powers of two does not change the floor, and the 0 and 1 (half turn) special cases of
+// read_shot_phase follow the same formula (0 and 2^63). The result is taken mod 2^64.
+void sim_read_phases_u64(PyInteractiveSimulator &self, const pybind11::object &out) {
+    if (!pybind11::isinstance<pybind11::array_t<uint64_t>>(out)) {
+        throw std::invalid_argument("out wasn't a np.ndarray[np.uint64].");
+    }
+    auto buf = pybind11::cast<pybind11::array_t<uint64_t>>(out);
+    if (buf.ndim() != 1) {
+        throw std::invalid_argument("len(out.shape) != 1");
+    }
+    if ((size_t)buf.shape(0) != self.batch_size) {
+        std::stringstream ss;
+        ss << "Expected out.shape == (" << self.batch_size << ",) but got out.shape=(" << buf.shape(0) << ",).";
+        throw std::invalid_argument(ss.str());
+    }
+    uint64_t *base = buf.mutable_data(0);  // Throws if the array is read-only.
+    ssize_t stride = buf.strides(0) / (ssize_t)sizeof(uint64_t);
+    self.with_sims([&](const auto &sims) {
+        for (size_t shot = 0; shot < self.batch_size; shot++) {
+            const auto &sim = sims[shot / PY_SIM_WORD_BITS];
+            size_t k2 = shot % PY_SIM_WORD_BITS;
+            const auto &angle = sim.angles[k2];
+            uint64_t w0 = angle.words[0];
+            uint64_t w1 = angle.words[1];
+            if (sim.global_phase_ref().bit(k2)) {
+                w1 ^= uint64_t{1} << 63;
+            }
+            base[(ssize_t)shot * stride] = w1 + (w0 >> 63);  // Wraps mod 2^64 by design.
+        }
+    });
+}
+
 void sim_write_phase(PyInteractiveSimulator &self, size_t shot_index, pybind11::object new_value) {
     auto new_angle = fixed_precision_angle_from_half_turns_obj(new_value);
 
@@ -1236,6 +1273,28 @@ void kickmix_py::register_interactive_simulator_methods(pybind11::class_<PyInter
                 ... '''))
                 >>> sim.read_shot_phase(shot_index=4)
                 Fraction(18014398509481985, 72057594037927936)
+        )DOC")
+            .data());
+
+    c_sim.def(
+        "read_phases_u64",
+        &sim_read_phases_u64,
+        pybind11::arg("out"),
+        clean_doc_string(R"DOC(
+            @signature def read_phases_u64(self, out: np.ndarray) -> None:
+            Writes the tracked phase of every shot into `out`, in units of 2**-64 turns.
+
+            `out` must be a writable 1-D `np.ndarray[np.uint64]` with
+            `len(out) == batch_size`. Element `i` equals
+            `half_turns_to_units(sim.read_shot_phase(i))`, where
+            `half_turns_to_units(h)` is:
+
+                n, d = h.as_integer_ratio()
+                return (((n << 64) // d + 1) >> 1) % 2**64
+
+            This is the rounding used by the official verifiers: the phase in turns,
+            rounded to the nearest multiple of 2**-64 (ties up), modulo one turn.
+            No Python objects are created per shot.
         )DOC")
             .data());
 

@@ -2,7 +2,10 @@
 
 ## Releases
 
-- v0.3.0 (unreleased until tagged): package version 0.3.0; adds `patches/batch-phase-read.patch`
+- v0.3.1 (2026-10-28): package version 0.3.1; simulator code identical to v0.3.0. Ships `kickmix_tools` 0.3.0
+  (kickmix-engine support) to Kaggle and publishes the quickstart notebook `manwithacat/kickmix-quickstart`
+  (`notebooks/kaggle-quickstart.ipynb`) after the release.
+- v0.3.0 (2026-10-28): package version 0.3.0; adds `patches/batch-phase-read.patch`
   (`Simulator.read_phases_u64`), Windows build fixes, and required Windows CI. Releases are now mirrored to
   Kaggle by `.github/workflows/kaggle-publish.yml` (wheels dataset `manwithacat/kickmix-fork-wheels` and the
   `kickmix_tools` utility script).

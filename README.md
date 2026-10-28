@@ -25,6 +25,16 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
   [`tools/circuit-viewer/`](tools/circuit-viewer/).
 - **[Project site](https://manwithacat.github.io/kickmix-macos/)**: install routes, Kaggle notebooks and datasets.
 
+## Need the fastest verification? See kickmix-engine
+
+[kickmix-engine](https://github.com/manwithacat/kickmix-engine) is a separate, independent Rust re-implementation of
+kickmix's simulation semantics, checked shot for shot against kickmix, with a `kickmix-engine verify` command for the
+invsqrt and DQI tasks that runs the official verifier logic and can `--cross-check` every field against it. On full DQI
+verification it measured about 2x this fork and 6-7x kickmix 1.0.0, at a fraction of the memory (Apple M2 Pro and
+Kaggle CPU notebooks; details and caveats in its README). It needs a `kickmix` installed alongside (this fork or the
+official one), because the official verifier modules import it. This fork stays what it is: upstream kickmix plus a
+small list of patches, for anyone who wants the official simulator, faster.
+
 ## Why this fork exists
 
 Upstream kickmix is a carefully engineered, fast simulator: it packs 256 shots into each

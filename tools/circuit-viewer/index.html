@@ -173,6 +173,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <button id="playBtn" type="button" aria-pressed="false">▶ Play through the circuit</button>
       <button id="sweepBtn" type="button" aria-pressed="false">⟳ Sweep x from 1 to max</button>
       <label class="speed" for="speed">Speed <input id="speed" type="range" min="1" max="10" value="4"></label>
+      <span class="presets" role="group" aria-label="Repeat" id="loopModes"><button type="button" data-mode="once" aria-pressed="false">Once</button><button type="button" data-mode="loop" aria-pressed="true">Loop</button><button type="button" data-mode="bounce" aria-pressed="false">Back and forth</button></span>
       <button id="hueBtn" type="button" aria-pressed="true">Colour bits by phase</button>
       <button id="envBtn" type="button" aria-pressed="true">Show qubit lifetimes</button>
       <span class="status mono" id="playStatus" aria-live="polite"></span>
@@ -659,31 +660,44 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     $('sweepBtn').setAttribute('aria-pressed', 'false'); $('sweepBtn').textContent = '⟳ Sweep x from 1 to max';
     $('playStatus').textContent = ''; if (state.res) draw();
   }
+  // Progress through one pass, by repeat mode. Speed changes mid-run keep the position (phase accumulator).
+  state.loop = 'loop';
+  for (const b of $('loopModes').children) b.addEventListener('click', () => {
+    state.loop = b.dataset.mode; for (const o of $('loopModes').children) o.setAttribute('aria-pressed', String(o === b));
+  });
+  function advance(ts, secsPerPass) {
+    if (!anim.last) anim.last = ts;
+    anim.pos += Math.min(0.25, (ts - anim.last) / 1000) / secsPerPass; anim.last = ts;
+    const m = state.loop;
+    if (m === 'once') return anim.pos >= 1 ? null : anim.pos;
+    if (m === 'loop') return anim.pos % 1;
+    const p = anim.pos % 2; return p <= 1 ? p : 2 - p;            // back and forth
+  }
   function playStep(ts) {
-    const R = state.res; if (!anim.t0) anim.t0 = ts;
-    const secs = 32 / +$('speed').value, c = Math.floor((ts - anim.t0) / 1000 / secs * R.cols);
-    if (c >= R.cols) { stopAnim(); return; }
+    const R = state.res;
+    const f = advance(ts, 32 / +$('speed').value);
+    if (f == null) { stopAnim(); return; }
+    const c = Math.min(R.cols - 1, Math.floor(f * R.cols));
     state.reveal = c; draw();
     const op = Math.floor(R.a + c * (R.b - R.a) / R.cols), si = C.opStage[op];
     $('playStatus').textContent = `op ${fmt(op)} · ${si >= 0 ? C.stages[si].title : ''} · non-x qubits at 1: ${R.occ[c]}/${C.other.length} · phase ${R.ph[c].toFixed(6)}`;
     anim.raf = requestAnimationFrame(playStep);
   }
   function sweepStep(ts) {
-    if (!anim.t0) anim.t0 = ts;
-    const f = (ts - anim.t0) / 1000 / (120 / +$('speed').value);
-    if (f >= 1) { setX(C.maxx); stopAnim(); return; }
+    const f = advance(ts, 120 / +$('speed').value);
+    if (f == null) { setX(C.maxx); stopAnim(); return; }
     setX(Math.round(Math.exp(f * Math.log(C.maxx))));
     $('playStatus').textContent = `x = ${fmt(state.x)} · ${C.xq.length - Math.floor(Math.log2(state.x)) - 1} leading zeros`;
     anim.raf = requestAnimationFrame(sweepStep);
   }
   $('playBtn').addEventListener('click', () => {
     if (anim && anim.kind === 'play') return stopAnim();
-    stopAnim(); anim = { kind: 'play', t0: 0 }; $('playBtn').setAttribute('aria-pressed', 'true'); $('playBtn').textContent = '■ Stop';
+    stopAnim(); anim = { kind: 'play', pos: 0, last: 0 }; $('playBtn').setAttribute('aria-pressed', 'true'); $('playBtn').textContent = '■ Stop';
     anim.raf = requestAnimationFrame(playStep);
   });
   $('sweepBtn').addEventListener('click', () => {
     if (anim && anim.kind === 'sweep') return stopAnim();
-    stopAnim(); anim = { kind: 'sweep', t0: 0 }; $('sweepBtn').setAttribute('aria-pressed', 'true'); $('sweepBtn').textContent = '■ Stop sweep';
+    stopAnim(); anim = { kind: 'sweep', pos: 0, last: 0 }; $('sweepBtn').setAttribute('aria-pressed', 'true'); $('sweepBtn').textContent = '■ Stop sweep';
     anim.raf = requestAnimationFrame(sweepStep);
   });
 

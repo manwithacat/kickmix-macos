@@ -25,9 +25,11 @@ jobs:
       TAG: ${{ inputs.tag }}
       GH_TOKEN: ${{ github.token }}
     steps:
+      # The workflow's own ref supplies kaggle/ metadata; the release tag supplies the published
+      # files (wheels from the release assets, kickmix_tools.py from the tagged commit).
       - uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
@@ -56,7 +58,9 @@ jobs:
       - name: Stage the utility script
         run: |
           mkdir -p stage/tools
-          cp kaggle/kickmix-tools/kernel-metadata.json tools/kickmix_tools.py stage/tools/
+          cp kaggle/kickmix-tools/kernel-metadata.json stage/tools/
+          git show "refs/tags/$TAG:tools/kickmix_tools.py" > stage/tools/kickmix_tools.py
+          grep -m1 '^__version__' stage/tools/kickmix_tools.py
           python -c "import ast,sys; ast.parse(open('stage/tools/kickmix_tools.py').read())"
       - name: Push to Kaggle
         if: ${{ !inputs.dry_run }}

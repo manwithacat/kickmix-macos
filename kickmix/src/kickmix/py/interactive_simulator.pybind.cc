@@ -603,7 +603,7 @@ void sim_read_phases_u64(PyInteractiveSimulator &self, const pybind11::object &o
         throw std::invalid_argument(ss.str());
     }
     uint64_t *base = buf.mutable_data(0);  // Throws if the array is read-only.
-    ssize_t stride = buf.strides(0) / (ssize_t)sizeof(uint64_t);
+    Py_ssize_t stride = buf.strides(0) / (Py_ssize_t)sizeof(uint64_t);
     self.with_sims([&](const auto &sims) {
         for (size_t shot = 0; shot < self.batch_size; shot++) {
             const auto &sim = sims[shot / PY_SIM_WORD_BITS];
@@ -614,7 +614,7 @@ void sim_read_phases_u64(PyInteractiveSimulator &self, const pybind11::object &o
             if (sim.global_phase_ref().bit(k2)) {
                 w1 ^= uint64_t{1} << 63;
             }
-            base[(ssize_t)shot * stride] = w1 + (w0 >> 63);  // Wraps mod 2^64 by design.
+            base[(Py_ssize_t)shot * stride] = w1 + (w0 >> 63);  // Wraps mod 2^64 by design.
         }
     });
 }

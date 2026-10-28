@@ -1,0 +1,65 @@
+name: kaggle-publish
+# Mirror a GitHub release to Kaggle: the Linux x86-64 wheels as a new version of the dataset
+# manwithacat/kickmix-fork-wheels, and tools/kickmix_tools.py as a new version of the utility
+# script manwithacat/kickmix-tools. Called by release.yml after the release is published; can
+# also be run by hand for an existing tag (dry_run stages and authenticates without pushing).
+on:
+  workflow_call:
+    inputs:
+      tag: { type: string, required: true }
+      dry_run: { type: boolean, default: false }
+    secrets:
+      KAGGLE_API_TOKEN: { required: true }
+  workflow_dispatch:
+    inputs:
+      tag: { description: "release tag, e.g. v0.3.0", type: string, required: true }
+      dry_run: { description: "stage and authenticate only", type: boolean, default: true }
+permissions:
+  contents: read
+
+jobs:
+  kaggle:
+    runs-on: ubuntu-24.04
+    env:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+      TAG: ${{ inputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - run: python -m pip install "kaggle>=1.7.4.5"
+      - name: Check the token is set and accepted
+        run: |
+          test -n "$KAGGLE_API_TOKEN" || { echo "::error::secret KAGGLE_API_TOKEN is not set"; exit 1; }
+          kaggle datasets files manwithacat/kickmix-fork-wheels > /dev/null
+      - name: Stage the wheels dataset from the release assets
+        run: |
+          set -euo pipefail
+          mkdir -p assets
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir assets \
+            --pattern '*manylinux*x86_64*.whl' --pattern SHA256SUMS
+          ls assets/*.whl > /dev/null  # fail if the release has no Linux x86-64 wheel
+          stage=stage/wheels && mkdir -p "$stage"
+          cp kaggle/wheels-dataset/dataset-metadata.json "$stage/"
+          cp assets/*.whl "$stage/"
+          # SHA256SUMS lists exactly the staged wheels: the release's lines for them, with the
+          # release build's "dist/" directory prefix dropped from the file names
+          for w in assets/*.whl; do grep -E "[ *](dist/)?$(basename "$w")\$" assets/SHA256SUMS; done \
+            | sed -E 's#^([0-9a-f]+) ([ *])dist/#\1 \2#' > "$stage/SHA256SUMS"
+          test "$(wc -l < "$stage/SHA256SUMS")" -eq "$(ls assets/*.whl | wc -l)"
+          (cd "$stage" && sha256sum --check SHA256SUMS)
+          ls -la "$stage"
+      - name: Stage the utility script
+        run: |
+          mkdir -p stage/tools
+          cp kaggle/kickmix-tools/kernel-metadata.json tools/kickmix_tools.py stage/tools/
+          python -c "import ast,sys; ast.parse(open('stage/tools/kickmix_tools.py').read())"
+      - name: Push to Kaggle
+        if: ${{ !inputs.dry_run }}
+        run: |
+          kaggle datasets version -p stage/wheels -m "kickmix-macos $TAG (from the GitHub release)"
+          kaggle kernels push -p stage/tools

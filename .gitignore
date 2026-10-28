@@ -16,3 +16,4 @@ bazel-*
 .upstream-cache/
 .ab-bench/
 .verify-parity/
+.hypothesis/

@@ -1,0 +1,16 @@
+{
+  "id": "manwithacat/kickmix-tools",
+  "title": "kickmix_tools",
+  "code_file": "kickmix_tools.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": true,
+  "keywords": ["utility script"],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": ["google-verifiable-quantum-circuit-compilation"],
+  "model_sources": []
+}

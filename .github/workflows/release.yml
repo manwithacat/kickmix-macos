@@ -73,3 +73,12 @@ jobs:
             packed shot I/O, phase readout). Apple Silicon and Linux aarch64 wheels include the
             NEON word types; x86-64 wheels use the upstream SSE/AVX or portable paths. Windows
             wheels are tested only by the smoke test. SHA256SUMS lists every file.
+
+  kaggle:
+    # Mirror the release to Kaggle (wheels dataset + kickmix_tools utility script).
+    needs: [publish]
+    uses: ./.github/workflows/kaggle-publish.yml
+    with:
+      tag: ${{ github.ref_name }}
+    secrets:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}

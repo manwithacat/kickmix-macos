@@ -83,6 +83,13 @@ jobs:
         run: |
           source tools/lib.sh
           "$(venv_python "$RUNNER_TEMP/venv")" tools/kickmix_tools.py --version
+      - name: kickmix_tools tests (wheel choice, hash checks, engine support; stand-ins, no network)
+        run: |
+          source tools/lib.sh
+          "$(venv_python "$RUNNER_TEMP/venv")" -m pytest -q -p no:cacheprovider tests/test_kickmix_tools_release.py tests/test_kickmix_tools_engine.py
+      - name: notebooks/kaggle-quickstart.ipynb matches kaggle/quickstart/build.py
+        if: runner.os == 'Linux'
+        run: python kaggle/quickstart/build.py --check
       - name: Synthetic simulator benchmark (informational)
         run: |
           source tools/lib.sh

@@ -32,17 +32,19 @@ recorded in CHANGES.md:
                                             read_across_shots on 2-D bool arrays pack and
                                             unpack whole 64-bit words instead of one bit at a
                                             time; sim_read_phase reduces the angle natively
-                                            and builds the Fraction without a GCD
+                                            and builds the Fraction without a GCD;
+                                            changed (2026-10-28): new Simulator.read_phases_u64
+                                            (batched phase readout in units of 2^-64 turn)
 
 The complete change set is also provided as the patches listed in patches/series
 (neon-simd, popcounter-fastpath, stream-reaction-depth, bulk-shot-io, read-shot-phase, cx-run,
-popcounter-deferred),
+popcounter-deferred, batch-phase-read),
 applied in that order.
 
 Files added by this repository that are not part of upstream kickmix (dated 2026-10-27
 unless noted): tests/cpp/pop_counter_fastpath.test.cc (extended for popcounter-deferred), tools/ab_bench.sh, tools/ab_bench.py,
 tools/verify_parity.sh, tools/verify_parity.py, tools/verify_parallel.py,
-tests/test_verify_parallel.py, tests/fake_verifier/, tests/test_shot_io_2d.py, tests/test_cx_run.py, tools/lib.sh,
+tests/test_verify_parallel.py, tests/fake_verifier/, tests/test_shot_io_2d.py, tests/test_cx_run.py, tests/test_phase_batch.py (2026-10-28), tools/lib.sh,
 the workflows under
 .github/workflows/, and changes to tools/build.sh, tools/sync_upstream.sh,
 tools/cpp_word_type_tests.sh, bench/sim_bench.py and tests/parity_dump.py. All were written

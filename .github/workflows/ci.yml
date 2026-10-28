@@ -44,6 +44,10 @@ jobs:
         run: |
           source tools/lib.sh
           "$(venv_python "$RUNNER_TEMP/venv")" tests/test_shot_io_2d.py
+      - name: Simulator.read_phases_u64 equals the per-shot official phase conversion
+        run: |
+          source tools/lib.sh
+          "$(venv_python "$RUNNER_TEMP/venv")" tests/test_phase_batch.py
       - name: examples/hello_world.ipynb executes (built wheel already installed in the venv)
         run: |
           source tools/lib.sh

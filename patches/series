@@ -6,3 +6,4 @@ bulk-shot-io.patch
 read-shot-phase.patch
 cx-run.patch
 popcounter-deferred.patch
+batch-phase-read.patch

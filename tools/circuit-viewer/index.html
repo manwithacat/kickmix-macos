@@ -1,0 +1,661 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body { margin: 0; } [hidden] { display: none !important; }</style>
+<title>Inside invsqrt</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one instrument column. Controls and readouts on top; the qubit raster with aligned tracks
+   (stages, Toffolis, measurements, skipped branches, occupancy, phase) as the centrepiece; then the
+   precision curve over every x; then stage notes. */
+:root {
+  --bg: #eef1f4; --panel: #f8fafb; --ink: #17202b; --muted: #5b6878; --rule: #cfd6de;
+  --one: #c46a14; --one-x: #8f3f0b; --zero: #e2e7ec; --zero-x: #d6dde4;
+  --tof: #b3263e; --meas: #b8860b; --skip: #6b7c93; --phase: #0f6f78; --target: #17202b;
+  --peak: #b3263e; --env: #cdd5de; --doc: #2f6b3f; --inf: #7a5aa6; --sel: rgba(15, 111, 120, 0.14);
+  --hue-s: 72%; --hue-l: 46%;
+  --font-display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #11161c; --panel: #171e26; --ink: #e6ebf1; --muted: #9aa7b6; --rule: #2a3440;
+    --one: #e58a35; --one-x: #f2b36b; --zero: #1d252e; --zero-x: #25303b; --tof: #ff6b81; --meas: #e3b341; --skip: #8fa1b8;
+    --phase: #48c1c9; --target: #e6ebf1; --peak: #ff6b81; --env: #2b3540; --doc: #7cc68c; --inf: #b49be0; --sel: rgba(72, 193, 201, 0.16);
+    --hue-s: 70%; --hue-l: 62%; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #11161c; --panel: #171e26; --ink: #e6ebf1; --muted: #9aa7b6; --rule: #2a3440;
+  --one: #e58a35; --one-x: #f2b36b; --zero: #1d252e; --zero-x: #25303b; --tof: #ff6b81; --meas: #e3b341; --skip: #8fa1b8;
+  --phase: #48c1c9; --target: #e6ebf1; --peak: #ff6b81; --env: #2b3540; --doc: #7cc68c; --inf: #b49be0; --sel: rgba(72, 193, 201, 0.16);
+  --hue-s: 70%; --hue-l: 62%; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1180px; margin: 0 auto; display: grid; gap: 28px; }
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h1 { font-size: clamp(30px, 5vw, 46px); font-weight: 700; line-height: 1.05; }
+h2 { font-size: 21px; font-weight: 700; }
+h3 { font-size: 17px; font-weight: 700; }
+p { margin: 0; }
+.lede { max-width: 70ch; color: var(--muted); font-size: 16px; }
+.lede b { color: var(--ink); font-weight: 600; }
+.small { font-size: 13px; color: var(--muted); max-width: 80ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.mono, .num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+header { display: grid; gap: 12px; }
+.formula { font-family: var(--font-mono); font-size: 15px; background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 6px; padding: 6px 10px; justify-self: start; max-width: 100%; overflow-x: auto; white-space: pre; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: end; }
+.field { display: grid; gap: 4px; min-width: 0; }
+.field > label, .field > .lbl { font-size: 12px; color: var(--muted); letter-spacing: 0.04em; }
+input[type=number] { font-family: var(--font-mono); font-size: 18px; width: 11ch; padding: 6px 8px; border: 1px solid var(--rule);
+  border-radius: 6px; background: var(--panel); color: var(--ink); }
+input[type=range] { width: min(320px, 80vw); accent-color: var(--phase); }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; }
+button, .filebtn { font: 500 13px var(--font-body); color: var(--ink); background: var(--panel); border: 1px solid var(--rule);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; }
+button:hover, .filebtn:hover { border-color: var(--phase); }
+button[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+button:focus-visible, input:focus-visible, .filebtn:focus-within { outline: 2px solid var(--phase); outline-offset: 2px; }
+.filebtn input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.filebtn { position: relative; display: inline-block; }
+.notice { font-size: 13px; padding: 8px 12px; border-radius: 6px; background: var(--panel); border: 1px solid var(--rule); }
+.notice.err { border-color: var(--tof); color: var(--tof); }
+.readouts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--rule);
+  border: 1px solid var(--rule); border-radius: 8px; overflow: hidden; }
+.ro { background: var(--panel); padding: 12px 14px; display: grid; gap: 2px; min-width: 0; align-content: start; }
+.ro .k { font-size: 12px; color: var(--muted); }
+.ro .v { font-family: var(--font-mono); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.ro .s { font-size: 12px; color: var(--muted); }
+.ok { color: var(--doc); font-weight: 600; }
+.bad { color: var(--tof); font-weight: 600; }
+.tolbar { position: relative; height: 8px; border-radius: 4px; background: var(--zero); margin-top: 4px; }
+.tolbar i { position: absolute; top: -3px; width: 3px; height: 14px; background: var(--phase); border-radius: 2px; }
+.tolbar::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--muted); }
+.instrument, .card { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 16px; display: grid; gap: 10px; min-width: 0; align-content: start; }
+.inst-head { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: baseline; justify-content: space-between; }
+.inst-head .hint { font-size: 13px; color: var(--muted); }
+.player { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.player .speed { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
+.player .speed input { width: 110px; }
+.status { font-size: 12px; min-width: 0; overflow-wrap: anywhere; }
+.canvas-box { position: relative; width: 100%; min-width: 0; }
+canvas { display: block; width: 100%; }
+#ribbon { cursor: pointer; }
+#raster, #tolCurve { cursor: crosshair; }
+.axis { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 11px; color: var(--muted); gap: 8px; }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font: 12px/1.45 var(--font-mono);
+  padding: 6px 8px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); z-index: 3; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 12px; height: 12px; border-radius: 2px; display: inline-block; flex: none; }
+.detail { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 20px; }
+@media (max-width: 760px) { .detail { grid-template-columns: 1fr; } }
+.tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid currentColor; }
+.tag.documented { color: var(--doc); }
+.tag.inferred { color: var(--inf); }
+.tag.segment { color: var(--muted); }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; }
+.fact .k { font-size: 12px; color: var(--muted); }
+.fact .v { font-family: var(--font-mono); font-size: 15px; font-variant-numeric: tabular-nums; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+th { font-weight: 600; color: var(--muted); font-size: 12px; }
+td.num, th.num { text-align: right; font-family: var(--font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tablebox { overflow-x: auto; }
+tr.stage-row { cursor: pointer; }
+tr.stage-row:hover td { background: var(--sel); }
+tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600; }
+.bar { height: 8px; border-radius: 2px; min-width: 1px; background: var(--rule); position: relative; }
+.bar i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--tof); border-radius: 2px; }
+.twocol { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 760px) { .twocol { grid-template-columns: 1fr; } }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 13px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.phasehead { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
+#dial { width: 96px; height: 96px; flex: none; }
+.wheel { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, hsl(0 72% 50%), hsl(60 72% 50%), hsl(120 72% 50%), hsl(180 72% 50%), hsl(240 72% 50%), hsl(300 72% 50%), hsl(360 72% 50%)); }
+.foot { font-size: 13px; color: var(--muted); max-width: 90ch; display: grid; gap: 6px; }
+.foot a, .small a { color: var(--phase); }
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Verifiable quantum circuit compilation · invsqrt task</div>
+    <h1>Inside invsqrt</h1>
+    <p class="lede" id="lede">The circuit must multiply each basis state <b>|x⟩</b> by the phase <b>e<sup>2πi/√x</sup></b> for every x from 1 to 3,133,452, and hand x back untouched with every scratch qubit at zero. Pick an x and follow it through all <b>46,610</b> operations on <b>63</b> qubits: where its bits go, which stages do the work, where the qubit budget peaks, and how the phase builds up to its target.</p>
+    <div class="formula">|x⟩|0…0⟩  →  exp(2πi · 1/√x) |x⟩|0…0⟩     tolerance 2⁻²⁴/√x turns</div>
+  </header>
+
+  <section class="controls" aria-label="Input">
+    <div class="field"><label for="xIn">Input x</label><input id="xIn" type="number" min="1" step="1" value="161"></div>
+    <div class="field"><label for="xLog">Slide over the range (log scale)</label><input id="xLog" type="range" min="0" max="1000" step="1" value="0"></div>
+    <div class="field"><span class="lbl">Try</span><div class="presets" id="presets"></div></div>
+    <div class="field"><span class="lbl">Measurement outcomes</span><div class="presets"><button id="reroll" type="button">Re-roll (seed <span id="seedV" class="mono">1</span>)</button></div></div>
+    <div class="field"><span class="lbl">Circuit</span><div class="presets">
+      <label class="filebtn">Load your own .kmx<input id="fileIn" type="file" accept=".kmx,.txt,text/plain"></label>
+      <button id="backRef" type="button" hidden>Back to mrmeows' circuit</button></div></div>
+  </section>
+  <div class="notice" id="circuitNotice" hidden></div>
+
+  <section class="readouts" aria-label="Result for this x" id="readouts"></section>
+
+  <section class="instrument" aria-label="Qubits over the circuit">
+    <div class="inst-head">
+      <h2 id="viewTitle">The whole circuit</h2>
+      <div class="hint">Click a stage band to zoom in. <button id="zoomOut" type="button" hidden>Show whole circuit</button></div>
+    </div>
+    <div class="player">
+      <button id="playBtn" type="button" aria-pressed="false">▶ Play through the circuit</button>
+      <button id="sweepBtn" type="button" aria-pressed="false">⟳ Sweep x from 1 to max</button>
+      <label class="speed" for="speed">Speed <input id="speed" type="range" min="1" max="10" value="4"></label>
+      <button id="hueBtn" type="button" aria-pressed="true">Colour bits by phase</button>
+      <button id="envBtn" type="button" aria-pressed="true">Show qubit lifetimes</button>
+      <span class="status mono" id="playStatus" aria-live="polite"></span>
+    </div>
+    <div class="canvas-box"><canvas id="ribbon" aria-label="Stages along the circuit"></canvas></div>
+    <div class="canvas-box"><canvas id="tracks" aria-label="Toffolis, measurements and skipped conditional ops"></canvas></div>
+    <div class="canvas-box"><canvas id="raster" aria-label="Qubit values over the circuit"></canvas><div class="tip" id="tip" hidden></div></div>
+    <div class="canvas-box"><canvas id="occ" aria-label="Scratch qubits in use"></canvas></div>
+    <div class="axis"><span id="axL">op 0</span><span>operation index →</span><span id="axR">op 46,610</span></div>
+    <div class="legend">
+      <span id="legHue"><i class="wheel" style="width:80px"></i>1, coloured by the phase so far (0 → 1 turn)</span>
+      <span id="legX"><i class="sw" style="background:var(--one-x)"></i>1 in the x register</span>
+      <span id="legO"><i class="sw" style="background:var(--one)"></i>1 in another qubit</span>
+      <span><i class="sw" style="background:var(--zero)"></i>0</span>
+      <span><i class="sw" style="background:var(--env)"></i>0 here, but 1 for some other x (lifetime)</span>
+      <span><i class="sw" style="background:var(--tof)"></i>Toffoli-class gates run</span>
+      <span><i class="sw" style="background:var(--meas)"></i>measurement-based clean-ups (HMR/R)</span>
+      <span><i class="sw" style="background:var(--skip)"></i>conditional ops skipped for this x</span>
+      <span><i class="wheel" style="width:40px"></i>gates that changed the phase</span>
+    </div>
+    <p class="small" id="occNote">Bottom track: how many non-x qubits hold a 1 for this x; the faint red band is the maximum over 3,000 sampled x, with red ticks where it peaks (35 of 41). Holding a 1 is only a lower bound on being in use: a qubit carrying data can read 0. Q = 63 because all 41 scratch qubits are needed at some point and their lifetimes overlap in a staggered way (the darker background in the raster), so saving a qubit means shortening or re-packing those lifetimes, not just lowering the peak.</p>
+    <div class="phasehead"><canvas id="dial" aria-label="Phase dial"></canvas><div style="display:grid;gap:4px"><h3>Accumulated phase</h3><p class="small" id="dialNote">The dial shows the phase as an angle: coloured hand = phase so far, black tick = target 1/√x.</p></div></div>
+    <div class="canvas-box"><canvas id="phaseTrack" aria-label="Accumulated phase over the circuit"></canvas></div>
+    <div class="legend">
+      <span><i class="sw" style="background:var(--phase)"></i>phase so far, in turns</span>
+      <span><i class="sw" style="background:var(--target)"></i>target 1/√x (mod 1)</span>
+      <span>Mid-circuit the phase also carries measurement kickback that later stages repair, so only the end has to hit the target.</span>
+    </div>
+  </section>
+
+  <section class="detail">
+    <div class="card" id="stageCard"></div>
+    <div class="card">
+      <h3>Qubit groups</h3>
+      <div class="tablebox"><table id="groupTable"><thead><tr><th>Group</th><th>Qubits</th><th>Role</th></tr></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+
+  <section class="card" id="precision">
+    <h2>Precision across every x</h2>
+    <div class="twocol">
+      <div class="canvas-box"><canvas id="tolCurve" aria-label="Error as a fraction of tolerance for every x"></canvas><div class="tip" id="tip2" hidden></div>
+        <div class="axis"><span>x = 1</span><span>x, log scale →</span><span>3,133,452</span></div></div>
+      <div style="display:grid;gap:10px">
+        <p class="small" id="precNote">Error ÷ tolerance for all 3,133,452 inputs, computed with kickmix. Each column shows the range within a slice of x. Inside ±1 passes. Click the curve to load that x.</p>
+        <dl class="kv" id="precStats"></dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 id="stagesTitle">The 17 stages</h2>
+    <p class="small">Toffolis run and net phase change are for the current x; the bar shows run against the static count.</p>
+    <div class="tablebox"><table id="stageTable">
+      <thead><tr><th>Stage</th><th class="num">Ops</th><th class="num">Toffolis</th><th class="num">Run for x</th><th style="width:16%"></th><th class="num">Measurements</th><th class="num">Net phase (turns)</th><th>Evidence</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </section>
+
+  <footer class="foot">
+    <p><b>Circuit</b>: mrmeows' 63-qubit hybrid invsqrt build (public dataset <a href="https://www.kaggle.com/datasets/mrmeows/qcc-1375-open-circuits">qcc-1375-open-circuits</a>, Apache-2.0; .kmb SHA-256 <span class="mono">0766a111…07d67d6</span>), on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Simulator and verifier: Google Quantum AI's kickmix.</p>
+    <p><b>How this page computes</b>: a bit-level tracer runs the circuit in your browser for one basis state. Each measurement draws an outcome from a seeded generator, and the phase is kept exactly in units of 2⁻¹²⁸ turn. On mrmeows' circuit the tracer matched kickmix exactly (all qubits, all classical bits and the phase, on 2,299 inputs with outcome-matched replay checks). The precision curve and the occupancy maximum were computed offline with kickmix and the same tracer.</p>
+    <p><b>Your own circuit</b>: a loaded .kmx file stays in your browser and is not uploaded anywhere. The page is a viewer, not a verifier: the official verifier is the referee. Convert a .kmb with <span class="mono">kickmix.Circuit.from_file("c.kmb").to_file("c.kmx", format="kmx")</span>. Circuits much larger than invsqrt (about 50,000 ops) may be slow in a browser.</p>
+    <p><b>Stage names</b>: stages tagged <span style="color:var(--doc)">documented</span> follow mrmeows' published README and proofs; those tagged <span style="color:var(--inf)">inferred</span> are read from the op stream, with boundaries good to about ±100 ops. Built with AI assistance (Claude) for manwithacat.</p>
+  </footer>
+</div>
+
+<script src="tracer.js"></script>
+<script src="kmx.js"></script>
+<script>
+(async function () {
+  const T = window.InvsqrtTracer;
+  const $ = (id) => document.getElementById(id);
+  const css = () => getComputedStyle(document.documentElement);
+  const col = (n) => css().getPropertyValue(n).trim();
+  const fmt = (n) => Math.round(n).toLocaleString('en-GB');
+  const optional = (u) => fetch(u).then(r => r.ok ? r.json() : null).catch(() => null);
+  const [opsData, meta, errcurve, livepeak] = await Promise.all([
+    fetch('ops.json').then(r => r.json()), fetch('stages.json').then(r => r.json()), optional('errcurve.json'), optional('livepeak.json')]);
+
+  // ---- offline data (computed with kickmix and the validated tracer)
+  if (errcurve) {
+    errcurve.binsN = errcurve.bins.map(([x0, x1, mn, mx]) => ({ x0, x1: x1 + 1, min: mn, max: mx }));
+    errcurve.worst = errcurve.top100 || [];
+  }
+  const lifetimes = livepeak && livepeak.lifetimes ? Object.entries(livepeak.lifetimes).map(([k, v]) => [+k.slice(1), typeof v === 'string' ? JSON.parse(v) : v]) : [];
+
+  // ---- circuits
+  function makeCircuit(data, opts) {
+    const P = T.prepare(data);
+    const xq = data.x_qubits, xset = new Set(xq);
+    const opq = data.ops.map(o => { const c = o[0];
+      if (c === 15 || c === 16 || c === 10 || c >= 12) return [];
+      if (c === 11 || c === 9) return [o[1]];
+      return o.slice(1, o.length - 1); });
+    const opStage = new Int16Array(P.n).fill(-1);
+    opts.stages.forEach((s, j) => { for (let i = s.start; i < s.end; i++) opStage[i] = j; });
+    const isMeas = data.ops.map(o => o[0] === 8 || o[0] === 9);
+    const other = []; for (let k = 0; k < P.nq; k++) if (!xset.has(k)) other.push(k);
+    return { P, data, xq, xset, opq, opStage, isMeas, other, maxx: Math.min(2 ** xq.length - 1, opts.maxx || Infinity), ...opts };
+  }
+  const REF = makeCircuit(opsData, { name: "mrmeows' invsqrt circuit", ref: true, stages: meta.stages, groups: meta.groups, maxx: 3133452 });
+  let C = REF;
+
+  function segmentStages(n) {
+    const k = Math.min(16, Math.max(1, Math.ceil(n / 3000))), out = [];
+    for (let j = 0; j < k; j++) { const a = Math.floor(j * n / k), b = Math.floor((j + 1) * n / k);
+      out.push({ id: 'seg' + j, start: a, end: b, title: `Ops ${fmt(a)}–${fmt(b)}`, desc: 'An equal-width slice of your circuit (no stage map is known for uploaded circuits).', tof: 0, tof_mean: null, ev: ['segment'], n_zpow: 0, n_hmr: 0 }); }
+    return out;
+  }
+  function staticCounts(c) {
+    for (const s of c.stages) { let tof = 0, h = 0, z = 0;
+      for (let i = s.start; i < s.end; i++) { const k = c.data.ops[i][0]; if (k === 2 || k === 5 || k === 7) tof++; if (k === 9) h++; if (k === 11) z++; }
+      s.tof = tof; s.n_hmr = h; s.n_zpow = z; }
+  }
+
+  const state = { x: 161, seed: 1, view: null, res: null, reveal: null };
+
+  // ---- presets and controls
+  function buildPresets() {
+    $('presets').innerHTML = '';
+    const M = C.maxx;
+    const list = C.ref ? [[1, '1'], [2, '2'], [161, '161 · tightest'], [1024, '2¹⁰'], [65536, '2¹⁶'], [1234567, '1,234,567'], [M, 'max']]
+                       : [[1, '1'], [2, '2'], [Math.min(M, 1024), String(Math.min(M, 1024))], [M, 'max']];
+    for (const [v, label] of list) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.dataset.x = v; b.addEventListener('click', () => setX(v)); $('presets').appendChild(b); }
+    const rb = document.createElement('button'); rb.type = 'button'; rb.textContent = 'random';
+    rb.addEventListener('click', () => setX(1 + Math.floor(Math.random() * C.maxx))); $('presets').appendChild(rb);
+    $('xIn').max = C.maxx;
+  }
+  $('xIn').addEventListener('change', () => setX(+$('xIn').value));
+  $('xLog').addEventListener('input', () => setX(Math.round(Math.exp(+$('xLog').value / 1000 * Math.log(C.maxx)))));
+  $('reroll').addEventListener('click', () => { state.seed = (state.seed * 48271) % 2147483647; $('seedV').textContent = state.seed; compute(); });
+  $('zoomOut').addEventListener('click', () => setView(null));
+
+  function setX(v) {
+    v = Math.max(1, Math.min(C.maxx, Math.round(v || 1)));
+    state.x = v; $('xIn').value = v;
+    $('xLog').value = Math.round(Math.log(v) / Math.log(Math.max(2, C.maxx)) * 1000);
+    for (const b of $('presets').children) b.setAttribute('aria-pressed', String(+b.dataset.x === v));
+    compute();
+  }
+  function setView(st) {
+    state.view = st;
+    try { history.replaceState(null, '', st && C.ref ? '#' + st.id : location.pathname); } catch (e) {}
+    compute();
+  }
+
+  // ---- loading a user's circuit
+  $('fileIn').addEventListener('change', async (e) => {
+    const f = e.target.files[0]; if (!f) return;
+    const note = $('circuitNotice'); note.hidden = false; note.className = 'notice';
+    note.textContent = `Reading ${f.name} (${(f.size / 1e6).toFixed(1)} MB)…`;
+    try {
+      if (f.size > 200e6) throw new Error('that file is over 200 MB; use the local tool for circuits this size');
+      const text = await f.text();
+      const data = KmxParser.parse(text);
+      if (!data.x_qubits.length) throw new Error('no input register found (the circuit needs APPEND_TO_REGISTER lines; a register named "x" is used if present)');
+      const stages = segmentStages(data.ops.length);
+      const groups = [{ name: 'x', qubits: data.x_qubits, role: 'input register', evidence: 'from the file' },
+        ...data.registers.filter(r => r.qubits !== data.x_qubits).map(r => ({ name: r.name || 'r' + r.r, qubits: r.qubits, role: 'register in the file', evidence: 'from the file' }))];
+      const c = makeCircuit(data, { name: f.name, ref: false, stages, groups, maxx: Infinity });
+      staticCounts(c);
+      C = c; state.view = null; stopAnim();
+      note.textContent = `Loaded ${f.name}: ${fmt(data.ops.length)} ops on ${data.n_qubits} qubits, input register of ${data.x_qubits.length} qubits. Error is shown against 1/√x, the invsqrt target; for other tasks read the phase directly.`;
+      $('backRef').hidden = false; onCircuitChange();
+    } catch (err) { note.className = 'notice err'; note.textContent = `Could not load ${f.name}: ${err.message}`; }
+    e.target.value = '';
+  });
+  $('backRef').addEventListener('click', () => { C = REF; state.view = null; stopAnim(); $('backRef').hidden = true; $('circuitNotice').hidden = true; onCircuitChange(); });
+
+  function onCircuitChange() {
+    $('lede').hidden = !C.ref;
+    $('stagesTitle').textContent = C.ref ? 'The 17 stages' : `${C.stages.length} equal slices of ${C.name}`;
+    $('precision').hidden = !C.ref || !errcurve;
+    buildPresets(); renderTables();
+    setX(C.ref ? 161 : Math.min(C.maxx, 161));
+  }
+
+  // ---- tracing into columns
+  function compute() {
+    const a = state.view ? state.view.start : 0, b = state.view ? state.view.end : C.P.n;
+    const W = Math.max(200, Math.floor($('raster').getBoundingClientRect().width * Math.min(2, devicePixelRatio || 1)));
+    const span = b - a, cols = Math.max(1, Math.min(W, span)), NQ = C.P.nq;
+    const bits = new Uint8Array(cols * NQ), tof = new Uint16Array(cols), meas = new Uint16Array(cols), skip = new Uint16Array(cols);
+    const ph = new Float64Array(cols), occ = new Uint16Array(cols), pchg = new Uint16Array(cols);
+    let lastP = 0n;
+    const nS = C.stages.length, sTof = new Int32Array(nS), sPhase = new Array(nS).fill(null), sMeas = new Int32Array(nS);
+    const snaps = new Map(), want = new Set(); for (const s of C.stages) { want.add(s.start); want.add(s.end); }
+    const mirror = new Uint8Array(NQ); for (let k = 0; k < C.xq.length; k++) mirror[C.xq[k]] = Math.floor(state.x / 2 ** k) % 2;
+    let live = 0, peak = 0, peakOp = 0, cur = -1;
+    const snap = (q, phase) => ({ x: C.xq.reduce((acc, k, j) => acc + q[k] * 2 ** j, 0), live, phase: T.turns(phase) });
+    snaps.set(0, snap(mirror, 0n));
+    const r = T.run(C.P, state.x, state.seed, (i, q, phase, t, ran) => {
+      for (const k of C.opq[i]) if (q[k] !== mirror[k]) { if (!C.xset.has(k)) live += q[k] ? 1 : -1; mirror[k] = q[k]; }
+      if (live > peak) { peak = live; peakOp = i; }
+      const si = C.opStage[i];
+      if (si >= 0) { sTof[si] += t; if (ran && C.isMeas[i]) sMeas[si]++; }
+      if (want.has(i + 1)) snaps.set(i + 1, snap(q, phase));
+      if (i < a || i >= b) { lastP = phase; return; }
+      const c = Math.min(cols - 1, Math.floor((i - a) * cols / span));
+      if (c !== cur) { bits.set(q, c * NQ); cur = c; }
+      else for (const k of C.opq[i]) bits[c * NQ + k] |= q[k];
+      tof[c] += t; if (ran && C.isMeas[i]) meas[c]++; if (!ran) skip[c]++;
+      if (phase !== lastP) { pchg[c]++; lastP = phase; }
+      if (live > occ[c]) occ[c] = live; ph[c] = T.turns(phase);
+    });
+    C.stages.forEach((s, j) => { const p0 = snaps.get(s.start), p1 = snaps.get(s.end); if (p0 && p1) sPhase[j] = ((p1.phase - p0.phase) % 1 + 1.5) % 1 - 0.5; });
+    state.res = { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, r, snaps, sTof, sPhase, sMeas, peak, peakOp };
+    draw(); renderReadouts(); renderStageCard(); updateStageRows();
+  }
+
+  // ---- drawing helpers
+  function sizeCanvas(cv, cssH) {
+    const dpr = Math.min(2, devicePixelRatio || 1), w = cv.getBoundingClientRect().width;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(cssH * dpr); cv.style.height = cssH + 'px';
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0); return { g, w, h: cssH };
+  }
+  let HS = '72%', HL = '46%';
+  const hueOf = (t) => `hsl(${(((t % 1) + 1) % 1 * 360).toFixed(1)} ${HS} ${HL})`;
+  state.hue = true;
+  $('hueBtn').addEventListener('click', () => { state.hue = !state.hue; $('hueBtn').setAttribute('aria-pressed', String(state.hue)); $('legHue').hidden = !state.hue; $('legX').hidden = $('legO').hidden = state.hue; draw(); });
+  $('legX').hidden = $('legO').hidden = true;
+  state.env = true;
+  $('envBtn').addEventListener('click', () => { state.env = !state.env; $('envBtn').setAttribute('aria-pressed', String(state.env)); draw(); });
+  const rowH = () => { const n = C.P.nq; const base = window.innerWidth < 600 ? 3 : 5; return Math.max(1, Math.min(base, Math.floor(420 / n))); };
+
+  function draw() {
+    const R = state.res; if (!R) return;
+    HS = col('--hue-s'); HL = col('--hue-l');
+    const { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg } = R;
+    const reveal = state.reveal == null ? cols : state.reveal;
+    $('axL').textContent = 'op ' + fmt(a); $('axR').textContent = 'op ' + fmt(b);
+    $('viewTitle').textContent = state.view ? state.view.title : (C.ref ? 'The whole circuit' : C.name);
+    $('zoomOut').hidden = !state.view;
+    const fadeAfter = (g, c) => { g.globalAlpha = c < reveal ? 1 : 0.12; };
+    const playhead = (g, w, h) => { if (state.reveal != null) { g.globalAlpha = 1; g.fillStyle = col('--phase'); g.fillRect(Math.min(reveal, cols - 1) * w / cols, 0, 2, h); } };
+
+    { const { g, w, h } = sizeCanvas($('ribbon'), 44);
+      g.font = '500 11px ' + col('--font-body');
+      C.stages.forEach((s, j) => {
+        const x0 = (Math.max(s.start, a) - a) / (b - a) * w, x1 = (Math.min(s.end, b) - a) / (b - a) * w;
+        if (x1 <= x0) return;
+        const isSel = state.view && state.view.id === s.id;
+        g.fillStyle = s.ev.includes('documented') ? col('--doc') : s.ev.includes('inferred') ? col('--inf') : col('--muted');
+        g.globalAlpha = isSel ? 0.35 : 0.16 + 0.14 * (j % 2); g.fillRect(x0, 0, x1 - x0 - 1, h); g.globalAlpha = 1;
+        g.fillStyle = col('--ink'); const label = s.title.replace(/\s*\(.*\)/, '');
+        if (x1 - x0 > g.measureText(label).width + 8) g.fillText(label, x0 + 4, 16);
+        else if (x1 - x0 > 26) g.fillText(label.slice(0, Math.floor((x1 - x0 - 8) / 6)) + '…', x0 + 4, 16);
+        g.fillStyle = col('--muted'); if (x1 - x0 > 60) g.fillText(fmt(s.tof) + ' Tof', x0 + 4, 34);
+      });
+    }
+    { const { g, w, h } = sizeCanvas($('tracks'), 72), rows = [[tof, '--tof', 'Toffolis'], [meas, '--meas', 'measure'], [skip, '--skip', 'skipped'], [pchg, null, 'phase']];
+      const rh = h / 4; g.font = '10px ' + col('--font-mono');
+      rows.forEach(([arr, c, label], j) => {
+        let mx = 1; for (const v of arr) mx = Math.max(mx, v);
+        g.fillStyle = c ? col(c) : '';
+        for (let k = 0; k < cols; k++) if (arr[k]) { fadeAfter(g, k); if (!c) g.fillStyle = hueOf(ph[k]); const hh = Math.max(1.5, arr[k] / mx * (rh - 3)); g.fillRect(k * w / cols, (j + 1) * rh - 1 - hh, Math.max(1, w / cols), hh); }
+        g.globalAlpha = 1; g.fillStyle = col('--muted'); g.fillText(label, 2, j * rh + 9);
+      });
+      playhead(g, w, h);
+    }
+    { const rh = rowH(), H = NQ * rh, { g, w } = sizeCanvas($('raster'), H);
+      const one = col('--one'), onex = col('--one-x');
+      g.fillStyle = col('--zero'); g.fillRect(0, 0, w, H);
+      g.fillStyle = col('--zero-x'); for (const k of C.xq) g.fillRect(0, H - (k + 1) * rh, w, rh);
+      if (C.ref && state.env) { g.fillStyle = col('--env');      // ops where the qubit is 1 for at least one sampled x
+        for (const [k, iv] of lifetimes) for (const [o0, o1] of iv) { if (o1 < a || o0 >= b) continue;
+          const x0 = (Math.max(o0, a) - a) / (b - a) * w, x1 = (Math.min(o1 + 1, b) - a) / (b - a) * w; g.fillRect(x0, H - (k + 1) * rh, Math.max(0.75, x1 - x0), rh - (rh > 3 ? 1 : 0)); } }
+      const cw = w / cols;
+      for (let c = 0; c < cols; c++) { fadeAfter(g, c); const x0 = c * cw;
+        const hc = state.hue ? hueOf(ph[c]) : null;
+        for (let k = 0; k < NQ; k++) if (bits[c * NQ + k]) { g.fillStyle = hc || (C.xset.has(k) ? onex : one); g.fillRect(x0, H - (k + 1) * rh, Math.max(cw, 0.75), rh - (rh > 3 ? 1 : 0)); } }
+      g.globalAlpha = 1;
+      if (C.ref) { g.fillStyle = col('--muted'); g.fillRect(0, H - 22 * rh - 1, w, 1); }
+      playhead(g, w, H); R.rh = rh;
+    }
+    { const { g, w, h } = sizeCanvas($('occ'), 64), nOther = C.other.length, pad = 4, y = (v) => h - pad - v / nOther * (h - 2 * pad);
+      g.strokeStyle = col('--rule'); g.beginPath(); g.moveTo(0, y(nOther)); g.lineTo(w, y(nOther)); g.stroke();
+      if (C.ref && livepeak && livepeak.max_downsampled) {   // offline maximum over sampled x
+        const mxs = livepeak.max_downsampled, ed = livepeak.col_edges; g.fillStyle = col('--peak'); g.globalAlpha = 0.2;
+        for (let j = 0; j < mxs.length; j++) { const o0 = ed[j], o1 = ed[j + 1] ?? C.P.n; if (o1 <= a || o0 >= b) continue;
+          const x0 = (Math.max(o0, a) - a) / (b - a) * w, x1 = (Math.min(o1, b) - a) / (b - a) * w; g.fillRect(x0, y(mxs[j]), Math.max(1, x1 - x0), h - pad - y(mxs[j])); }
+        g.globalAlpha = 1;
+        for (const op of livepeak.ops_at_global_max || []) if (op >= a && op < b) { g.fillStyle = col('--peak'); g.fillRect((op - a) / (b - a) * w - 0.5, y(livepeak.global_max) - 4, 1.5, 4); }
+      }
+      g.fillStyle = col('--one');
+      for (let c = 0; c < cols; c++) { fadeAfter(g, c); g.fillRect(c * w / cols, y(occ[c]), Math.max(1, w / cols), h - pad - y(occ[c])); }
+      g.globalAlpha = 1;
+      const pk = R.peak; if (R.peakOp >= a && R.peakOp < b) { const px = (R.peakOp - a) / (b - a) * w; g.fillStyle = col('--peak'); g.fillRect(px - 1, 0, 2, h); }
+      g.fillStyle = col('--muted'); g.font = '10px ' + col('--font-mono');
+      g.fillText(`${nOther} non-x qubits`, 2, y(nOther) - 2 < 10 ? 10 : y(nOther) - 2);
+      g.fillText(`peak for this x: ${pk} at op ${fmt(R.peakOp)}`, Math.max(2, w - 230), h - 6);
+      playhead(g, w, h);
+    }
+    { const { g, w, h } = sizeCanvas($('phaseTrack'), 120), pad = 4, y = (t) => pad + (1 - t) * (h - 2 * pad);
+      g.strokeStyle = col('--rule'); g.lineWidth = 1;
+      for (const t of [0, 0.25, 0.5, 0.75, 1]) { g.beginPath(); g.moveTo(0, y(t)); g.lineTo(w, y(t)); g.stroke(); }
+      g.fillStyle = col('--muted'); g.font = '10px ' + col('--font-mono');
+      g.fillText('1 turn', 2, y(1) + 10); g.fillText('0', 2, y(0) - 2); g.fillText('½', 2, y(0.5) - 2);
+      const tgt = ((1 / Math.sqrt(state.x)) % 1 + 1) % 1;
+      g.strokeStyle = col('--target'); g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, y(tgt)); g.lineTo(w, y(tgt)); g.stroke(); g.setLineDash([]);
+      g.lineWidth = 2;
+      const lastC = state.reveal == null ? cols : Math.min(cols, state.reveal + 1);
+      for (let c = 1; c < lastC; c++) { const x0 = (c - 0.5) * w / cols, x1 = (c + 0.5) * w / cols;
+        g.strokeStyle = hueOf(ph[c]); g.beginPath();
+        if (Math.abs(ph[c] - ph[c - 1]) > 0.5) { g.moveTo(x1, y(ph[c])); g.lineTo(x1 + 0.01, y(ph[c])); }
+        else { g.moveTo(x0, y(ph[c - 1])); g.lineTo(x1, y(ph[c])); }
+        g.stroke(); }
+      playhead(g, w, h);
+    }
+    drawDial(state.reveal == null ? T.turns(R.r.phase) : ph[Math.min(state.reveal, cols - 1)]);
+    drawTol();
+  }
+  function drawDial(t) {
+    const { g, w, h } = sizeCanvas($('dial'), 96), cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 6;
+    for (let d = 0; d < 360; d += 3) { g.strokeStyle = hueOf(d / 360); g.lineWidth = 5; g.beginPath(); g.arc(cx, cy, r, (d - 90) * Math.PI / 180, (d + 3.5 - 90) * Math.PI / 180); g.stroke(); }
+    const ang = (u) => (u % 1) * 2 * Math.PI - Math.PI / 2;
+    const tg = ang(1 / Math.sqrt(state.x)); g.strokeStyle = col('--target'); g.lineWidth = 2; g.beginPath(); g.moveTo(cx + (r - 9) * Math.cos(tg), cy + (r - 9) * Math.sin(tg)); g.lineTo(cx + (r + 3) * Math.cos(tg), cy + (r + 3) * Math.sin(tg)); g.stroke();
+    const a = ang(t); g.strokeStyle = hueOf(t); g.lineWidth = 3; g.lineCap = 'round'; g.beginPath(); g.moveTo(cx, cy); g.lineTo(cx + (r - 10) * Math.cos(a), cy + (r - 10) * Math.sin(a)); g.stroke();
+    g.fillStyle = col('--ink'); g.beginPath(); g.arc(cx, cy, 3, 0, 7); g.fill();
+  }
+
+  // ---- precision curve (offline data)
+  function drawTol() {
+    if (!C.ref || !errcurve) return;
+    const { g, w, h } = sizeCanvas($('tolCurve'), 220), pad = 18, M = 3133452;
+    const xpx = (x) => Math.log(x) / Math.log(M) * w, y = (v) => h / 2 - v * (h / 2 - pad);
+    g.strokeStyle = col('--rule'); g.lineWidth = 1;
+    for (const v of [-1, -0.5, 0, 0.5, 1]) { g.beginPath(); g.moveTo(0, y(v)); g.lineTo(w, y(v)); g.stroke(); }
+    g.fillStyle = col('--muted'); g.font = '10px ' + col('--font-mono');
+    g.fillText('+1 tolerance', 4, y(1) - 3); g.fillText('−1', 4, y(-1) + 11); g.fillText('0', 4, y(0) - 3);
+    for (let p = 1; p <= 6; p++) { const px = xpx(10 ** p); g.fillText('10' + '⁰¹²³⁴⁵⁶'[p], px + 2, h - 3); g.fillRect(px, h - 14, 1, 4); }
+    g.fillStyle = col('--phase'); g.globalAlpha = 0.85;
+    for (const bn of errcurve.binsN) { const x0 = xpx(Math.max(1, bn.x0)), x1 = Math.max(x0 + 1, xpx(bn.x1)); g.fillRect(x0, y(bn.max), x1 - x0, Math.max(1, y(bn.min) - y(bn.max))); }
+    g.globalAlpha = 1; g.fillStyle = col('--tof');
+    for (const [x, v] of (errcurve.worst || []).slice(0, 25)) { g.beginPath(); g.arc(xpx(x), y(v), 2.5, 0, 7); g.fill(); }
+    const cx = xpx(state.x); g.fillStyle = col('--ink'); g.fillRect(cx - 1, pad / 2, 2, h - pad);
+  }
+  $('tolCurve').addEventListener('click', (e) => { const r = e.currentTarget.getBoundingClientRect(); setX(Math.exp((e.clientX - r.left) / r.width * Math.log(3133452))); });
+  $('tolCurve').addEventListener('mousemove', (e) => {
+    if (!errcurve) return; const r = e.currentTarget.getBoundingClientRect(), x = Math.exp((e.clientX - r.left) / r.width * Math.log(3133452));
+    const bn = errcurve.binsN.find(b => x >= b.x0 && x < b.x1); const t2 = $('tip2'); if (!bn) { t2.hidden = true; return; }
+    t2.innerHTML = `x ${fmt(bn.x0)}–${fmt(bn.x1 - 1)}<br>error/tol ${bn.min.toFixed(3)} … ${bn.max.toFixed(3)}`;
+    t2.style.left = Math.min(Math.max(e.clientX - r.left, 110), r.width - 110) + 'px'; t2.style.top = (e.clientY - r.top) + 'px'; t2.hidden = false;
+  });
+  $('tolCurve').addEventListener('mouseleave', () => { $('tip2').hidden = true; });
+  function renderPrecStats() {
+    if (!errcurve) return; const s = errcurve.summary || {};
+    const rows = [['Worst x', `${fmt(s.worst_x)} (${(+s.worst_err_over_tol).toFixed(5)})`],
+      ['Largest positive', (+s.max_pos).toFixed(5)],
+      ['Mean |error| ÷ tol', (+s.mean_abs).toFixed(3)],
+      ['|error| > 0.5 tol', (100 * s.frac_gt_0p5).toFixed(2) + '% of x'],
+      ['|error| > 0.9 tol', `${fmt(s.n_gt_0p9)} x (${(100 * s.frac_gt_0p9).toFixed(4)}%)`],
+      ['|error| > 0.99 tol', (100 * s.frac_gt_0p99).toFixed(5) + '% of x'],
+      ['Inputs checked', fmt(errcurve.max_x) + ', all of them']];
+    $('precStats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  }
+
+  // ---- raster tooltip and ribbon click
+  $('ribbon').addEventListener('click', (e) => {
+    const R = state.res, rect = e.currentTarget.getBoundingClientRect(), op = R.a + (e.clientX - rect.left) / rect.width * (R.b - R.a);
+    const s = C.stages.find(s => op >= s.start && op < s.end); if (s) setView(state.view && state.view.id === s.id ? null : s);
+  });
+  const tip = $('tip');
+  $('raster').addEventListener('mousemove', (e) => {
+    const R = state.res, rect = e.currentTarget.getBoundingClientRect();
+    const c = Math.min(R.cols - 1, Math.floor((e.clientX - rect.left) / rect.width * R.cols)), k = R.NQ - 1 - Math.floor((e.clientY - rect.top) / R.rh);
+    if (k < 0 || k >= R.NQ) { tip.hidden = true; return; }
+    const op = Math.floor(R.a + c * (R.b - R.a) / R.cols), si = C.opStage[op], s = si >= 0 ? C.stages[si] : null;
+    const gs = C.groups.filter(g => g.qubits.includes(k) && g.name !== 'scratch').map(g => g.name).join(', ') || (C.xset.has(k) ? 'x' : 'scratch');
+    tip.innerHTML = `q${k} = ${R.bits[c * R.NQ + k]} · ${gs}<br>op ${fmt(op)} ${C.data.kinds[C.data.ops[op][0]]} · ${s ? s.title : ''}`;
+    tip.style.left = Math.min(Math.max(e.clientX - rect.left, 120), rect.width - 120) + 'px'; tip.style.top = (e.clientY - rect.top) + 'px'; tip.hidden = false;
+  });
+  $('raster').addEventListener('mouseleave', () => { tip.hidden = true; });
+
+  // ---- readouts
+  function renderReadouts() {
+    const { r, peak } = state.res, x = state.x;
+    const tgt = 1 / Math.sqrt(x), tol = 2 ** -24 / Math.sqrt(x), fin = T.turns(r.phase);
+    const err = ((fin - (tgt % 1)) % 1 + 1.5) % 1 - 0.5, rel = err / tol;
+    const xBack = C.xq.reduce((acc, k, j) => acc + r.q[k] * 2 ** j, 0);
+    const clean = !C.other.some(k => r.q[k]);
+    const pos = Math.max(0, Math.min(100, 50 + rel * 50));
+    const nTof = C.data.ops.reduce((n, o) => n + (o[0] === 2 || o[0] === 5 || o[0] === 7 ? 1 : 0), 0);
+    $('readouts').innerHTML = `
+      <div class="ro"><span class="k">Target phase 1/√x</span><span class="v">${tgt.toPrecision(12)}</span><span class="s">turns</span></div>
+      <div class="ro"><span class="k">Phase the circuit applied</span><span class="v">${fin.toPrecision(12)}</span><span class="s">turns, exact to 2⁻¹²⁸</span></div>
+      <div class="ro"><span class="k">Error ÷ tolerance</span><span class="v ${Math.abs(rel) <= 1 ? 'ok' : 'bad'}">${Math.abs(rel) < 1e6 ? rel.toFixed(4) : rel.toExponential(2)}</span>
+        <div class="tolbar" title="−1 … +1 is inside tolerance"><i style="left:calc(${pos}% - 1.5px)"></i></div></div>
+      <div class="ro"><span class="k">x handed back</span><span class="v ${xBack === x ? 'ok' : 'bad'}">${xBack === x ? 'yes' : 'no'}</span><span class="s">other qubits back to zero: <b class="${clean ? 'ok' : 'bad'}">${clean ? 'yes' : 'no'}</b></span></div>
+      <div class="ro"><span class="k">Toffoli-class gates run</span><span class="v">${fmt(r.tof)}</span><span class="s">of ${fmt(nTof)} in the circuit; branches skip some</span></div>
+      <div class="ro"><span class="k">Most qubits holding 1 at once</span><span class="v">${peak} / ${C.other.length}</span><span class="s">for this x${C.ref && livepeak ? `; at most ${livepeak.global_max} over ${fmt(livepeak.n_x)} sampled x` : ''}</span></div>`;
+  }
+
+  // ---- stage card and tables
+  function renderStageCard() {
+    const s = state.view, R = state.res, card = $('stageCard');
+    if (!s) {
+      card.innerHTML = `<h3>Pick a stage</h3><p class="small">Click a band above the raster, or a row in the stage table, to zoom into that part of the circuit and see what this x looks like on the way in and the way out.</p>
+        <div class="facts">
+          <div class="fact"><div class="k">Operations</div><div class="v">${fmt(C.P.n)}</div></div>
+          <div class="fact"><div class="k">Qubits</div><div class="v">${C.P.nq}</div></div>
+          <div class="fact"><div class="k">Rotations</div><div class="v">${C.data.ops.filter(o => o[0] === 11).length}</div></div>
+          <div class="fact"><div class="k">Measurements</div><div class="v">${fmt(C.data.ops.filter(o => o[0] === 9 || o[0] === 8).length)}</div></div>
+        </div>`;
+      return;
+    }
+    const j = C.stages.indexOf(s), sin = R.snaps.get(s.start), sout = R.snaps.get(s.end);
+    const row = (k, f) => `<tr><td>${k}</td><td class="num">${sin ? f(sin) : '–'}</td><td class="num">${sout ? f(sout) : '–'}</td></tr>`;
+    card.innerHTML = `<div class="eyebrow">Ops ${fmt(s.start)}–${fmt(s.end)}</div><h3>${s.title}</h3>
+      <div class="tags">${s.ev.map(e => `<span class="tag ${e}">${e}</span>`).join('')}</div><p>${s.desc}</p>
+      <div class="facts">
+        <div class="fact"><div class="k">Toffolis (static)</div><div class="v">${s.tof}</div></div>
+        <div class="fact"><div class="k">Run for this x</div><div class="v">${R.sTof[j]}</div></div>
+        <div class="fact"><div class="k">Measurements run</div><div class="v">${R.sMeas[j]}</div></div>
+        <div class="fact"><div class="k">Rotations</div><div class="v">${s.n_zpow}</div></div>
+      </div>
+      <div class="tablebox"><table><thead><tr><th>For x = ${fmt(state.x)}</th><th class="num">entering</th><th class="num">leaving</th></tr></thead><tbody>
+        ${row('x register', v => fmt(v.x))}
+        ${row('non-x qubits at 1', v => v.live + ' / ' + C.other.length)}
+        ${row('phase so far (turns)', v => v.phase.toFixed(9))}
+      </tbody></table></div>`;
+  }
+  function renderTables() {
+    const tb = $('stageTable').querySelector('tbody');
+    tb.innerHTML = C.stages.map(s => `<tr class="stage-row" data-id="${s.id}" tabindex="0">
+      <td>${s.title}</td><td class="num">${fmt(s.end - s.start)}</td><td class="num">${s.tof}</td><td class="num" data-k="run">–</td>
+      <td><div class="bar"><i data-k="bar" style="width:0"></i></div></td><td class="num" data-k="meas">–</td><td class="num" data-k="ph">–</td>
+      <td><div class="tags">${s.ev.map(e => `<span class="tag ${e}">${e}</span>`).join('')}</div></td></tr>`).join('');
+    for (const tr of tb.children) {
+      const go = () => { const s = C.stages.find(s => s.id === tr.dataset.id); setView(state.view && state.view.id === s.id ? null : s); $('viewTitle').scrollIntoView({ block: 'nearest' }); };
+      tr.addEventListener('click', go);
+      tr.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    }
+    const rng = (qs) => { const s = [...qs].sort((a, b) => a - b), parts = []; let i = 0;
+      while (i < s.length) { let j = i; while (j + 1 < s.length && s[j + 1] === s[j] + 1) j++; parts.push(i === j ? 'q' + s[i] : `q${s[i]}–q${s[j]}`); i = j + 1; } return parts.join(', '); };
+    $('groupTable').querySelector('tbody').innerHTML = C.groups.map(g => `<tr><td class="mono">${g.name}</td><td class="mono">${rng(g.qubits)}</td><td>${g.role}</td></tr>`).join('');
+  }
+  function updateStageRows() {
+    const R = state.res, mx = Math.max(1, ...C.stages.map(s => s.tof));
+    [...$('stageTable').querySelectorAll('tr.stage-row')].forEach((tr, j) => {
+      const s = C.stages[j];
+      tr.setAttribute('aria-current', String(!!state.view && state.view.id === s.id));
+      tr.querySelector('[data-k=run]').textContent = R.sTof[j];
+      tr.querySelector('[data-k=meas]').textContent = R.sMeas[j];
+      tr.querySelector('[data-k=ph]').textContent = R.sPhase[j] == null ? '–' : R.sPhase[j].toFixed(6);
+      tr.querySelector('.bar').style.width = (s.tof / mx * 100) + '%';
+      tr.querySelector('[data-k=bar]').style.width = s.tof ? (R.sTof[j] / s.tof * 100) + '%' : '0';
+    });
+  }
+
+  // ---- animation: play through the circuit, or sweep x over its range
+  let anim = null;
+  function stopAnim() {
+    if (anim) cancelAnimationFrame(anim.raf);
+    anim = null; state.reveal = null;
+    $('playBtn').setAttribute('aria-pressed', 'false'); $('playBtn').textContent = '▶ Play through the circuit';
+    $('sweepBtn').setAttribute('aria-pressed', 'false'); $('sweepBtn').textContent = '⟳ Sweep x from 1 to max';
+    $('playStatus').textContent = ''; if (state.res) draw();
+  }
+  function playStep(ts) {
+    const R = state.res; if (!anim.t0) anim.t0 = ts;
+    const secs = 32 / +$('speed').value, c = Math.floor((ts - anim.t0) / 1000 / secs * R.cols);
+    if (c >= R.cols) { stopAnim(); return; }
+    state.reveal = c; draw();
+    const op = Math.floor(R.a + c * (R.b - R.a) / R.cols), si = C.opStage[op];
+    $('playStatus').textContent = `op ${fmt(op)} · ${si >= 0 ? C.stages[si].title : ''} · non-x qubits at 1: ${R.occ[c]}/${C.other.length} · phase ${R.ph[c].toFixed(6)}`;
+    anim.raf = requestAnimationFrame(playStep);
+  }
+  function sweepStep(ts) {
+    if (!anim.t0) anim.t0 = ts;
+    const f = (ts - anim.t0) / 1000 / (120 / +$('speed').value);
+    if (f >= 1) { setX(C.maxx); stopAnim(); return; }
+    setX(Math.round(Math.exp(f * Math.log(C.maxx))));
+    $('playStatus').textContent = `x = ${fmt(state.x)} · ${C.xq.length - Math.floor(Math.log2(state.x)) - 1} leading zeros`;
+    anim.raf = requestAnimationFrame(sweepStep);
+  }
+  $('playBtn').addEventListener('click', () => {
+    if (anim && anim.kind === 'play') return stopAnim();
+    stopAnim(); anim = { kind: 'play', t0: 0 }; $('playBtn').setAttribute('aria-pressed', 'true'); $('playBtn').textContent = '■ Stop';
+    anim.raf = requestAnimationFrame(playStep);
+  });
+  $('sweepBtn').addEventListener('click', () => {
+    if (anim && anim.kind === 'sweep') return stopAnim();
+    stopAnim(); anim = { kind: 'sweep', t0: 0 }; $('sweepBtn').setAttribute('aria-pressed', 'true'); $('sweepBtn').textContent = '■ Stop sweep';
+    anim.raf = requestAnimationFrame(sweepStep);
+  });
+
+  // ---- start
+  renderPrecStats();
+  const h = (location.hash || '').slice(1);
+  onCircuitChange();
+  const st = C.stages.find(s => s.id === h); if (st) setView(st);
+  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(compute, 150); });
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+})();
+</script>

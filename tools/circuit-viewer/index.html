@@ -127,6 +127,18 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
 .phasehead { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; }
 #dial { width: 96px; height: 96px; flex: none; }
 .wheel { width: 160px; height: 10px; border-radius: 5px; background: linear-gradient(90deg, hsl(0 72% 50%), hsl(60 72% 50%), hsl(120 72% 50%), hsl(180 72% 50%), hsl(240 72% 50%), hsl(300 72% 50%), hsl(360 72% 50%)); }
+.price { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; align-items: start; }
+@media (max-width: 760px) { .price { grid-template-columns: 1fr; } }
+.knob { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 12px; align-items: center; }
+.knob label { font-size: 13px; }
+.knob output { font-family: var(--font-mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+.knob input { grid-column: 1 / -1; width: 100%; }
+.knob .why { grid-column: 1 / -1; font-size: 12px; color: var(--muted); }
+.bigprice { font-family: var(--font-display); font-weight: 700; font-size: clamp(34px, 6vw, 56px); line-height: 1; letter-spacing: -0.02em; }
+.scale { display: grid; gap: 6px; font-size: 12px; }
+.scale .row { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) auto; gap: 8px; align-items: center; }
+.scale .row i { display: block; height: 10px; border-radius: 2px; background: var(--muted); min-width: 1px; }
+.scale .row.need i { background: var(--tof); }
 .foot { font-size: 13px; color: var(--muted); max-width: 90ch; display: grid; gap: 6px; }
 .foot a, .small a { color: var(--phase); }
 </style>
@@ -207,6 +219,31 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <div style="display:grid;gap:10px">
         <p class="small" id="precNote">Error ÷ tolerance for all 3,133,452 inputs, computed with kickmix. Each column shows the range within a slice of x. Inside ±1 passes. Click the curve to load that x.</p>
         <dl class="kv" id="precStats"></dl>
+      </div>
+    </div>
+  </section>
+
+  <section class="card" id="priceCard">
+    <h2>What would it cost to build?</h2>
+    <p class="small">For fun, and very roughly. This circuit is tiny by quantum-algorithm standards, but running it on real hardware needs error correction, and that multiplies everything. Move the sliders; every number below is an assumption, not a quote.</p>
+    <div class="price">
+      <div style="display:grid;gap:14px">
+        <div class="knob"><label for="pd">Code distance d (surface code)</label><output id="pdV"></output><input id="pd" type="range" min="9" max="27" step="2" value="15">
+          <span class="why">Physical qubits per logical qubit ≈ 2d². Higher d means fewer errors and more qubits.</span></div>
+        <div class="knob"><label for="pr">Routing overhead</label><output id="prV"></output><input id="pr" type="range" min="1" max="3" step="0.1" value="1.5">
+          <span class="why">Extra space for moving logical qubits around (lattice surgery).</span></div>
+        <div class="knob"><label for="pf">Magic-state factories</label><output id="pfV"></output><input id="pf" type="range" min="1" max="8" step="1" value="2">
+          <span class="why">Each one makes the resource states Toffoli gates consume, one Toffoli's worth per d rounds; about 3,000 physical qubits apiece assumed. More factories, faster shots.</span></div>
+        <div class="knob"><label for="pp">Price per physical qubit</label><output id="ppV"></output><input id="pp" type="range" min="0" max="100" step="1" value="50">
+          <span class="why">A rough 2026 order of magnitude for a superconducting system with cryogenics and control electronics, $10k to $200k (log scale).</span></div>
+        <div class="knob"><label for="pc">Error-correction cycle</label><output id="pcV"></output><input id="pc" type="range" min="0" max="100" step="1" value="0">
+          <span class="why">One surface-code round: about 1 µs for superconducting qubits, about 1 ms for neutral atoms. Shot time ≈ Toffolis ÷ factories × d rounds.</span></div>
+      </div>
+      <div style="display:grid;gap:14px;align-content:start">
+        <div><div class="eyebrow">Capital cost, roughly</div><div class="bigprice" id="pTotal">–</div><div class="small" id="pQubits"></div></div>
+        <div class="scale" id="pScale"></div>
+        <dl class="kv" id="pRun"></dl>
+        <p class="small">Reference points, approximate: Google's Willow chip has 105 physical qubits (2024), IBM's Condor 1,121 (2023), and a 2025 Caltech neutral-atom array held about 6,100 atoms. None runs error-corrected logic at this scale yet. Meanwhile kickmix checks every input on a laptop in about 75 seconds.</p>
       </div>
     </div>
   </section>
@@ -335,6 +372,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     $('lede').hidden = !C.ref;
     $('stagesTitle').textContent = C.ref ? 'The 17 stages' : `${C.stages.length} equal slices of ${C.name}`;
     $('precision').hidden = !C.ref || !errcurve;
+    $('priceCard').hidden = !C.ref;
     buildPresets(); renderTables();
     setX(C.ref ? 161 : Math.min(C.maxx, 161));
   }
@@ -648,6 +686,30 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     stopAnim(); anim = { kind: 'sweep', t0: 0 }; $('sweepBtn').setAttribute('aria-pressed', 'true'); $('sweepBtn').textContent = '■ Stop sweep';
     anim.raf = requestAnimationFrame(sweepStep);
   });
+
+  // ---- the whimsical price tag
+  function renderPrice() {
+    const d = +$('pd').value, ro = +$('pr').value, nf = +$('pf').value;
+    const price = Math.round(10000 * Math.pow(20, +$('pp').value / 100) / 1000) * 1000;      // $10k .. $200k, log scale
+    const cycle = 1e-6 * Math.pow(1000, +$('pc').value / 100);                               // 1 us .. 1 ms, log scale
+    const logical = 63, perLogical = 2 * d * d, phys = Math.round(logical * perLogical * ro + nf * 3000);
+    const capex = phys * price;
+    const tof = 1349.05, shot = tof * d * cycle / nf, shots = 200540928;                       // each factory delivers one Toffoli per d rounds
+    const money = (v) => v >= 1e9 ? '$' + (v / 1e9).toFixed(1) + ' billion' : v >= 1e6 ? '$' + (v / 1e6).toFixed(0) + ' million' : '$' + fmt(v);
+    const dur = (s) => s < 1 ? (s * 1000).toFixed(1) + ' ms' : s < 120 ? s.toFixed(1) + ' s' : s < 7200 ? (s / 60).toFixed(0) + ' min' : s < 172800 ? (s / 3600).toFixed(1) + ' hours' : s < 2 * 31557600 ? (s / 86400).toFixed(0) + ' days' : (s / 31557600).toFixed(1) + ' years';
+    $('pdV').textContent = `${d} → ${fmt(perLogical)} per logical`; $('prV').textContent = '×' + ro.toFixed(1); $('pfV').textContent = nf;
+    $('ppV').textContent = '$' + fmt(price); $('pcV').textContent = cycle < 1e-3 ? (cycle * 1e6).toFixed(cycle < 1e-5 ? 1 : 0) + ' µs' : (cycle * 1e3).toFixed(1) + ' ms';
+    $('pTotal').textContent = money(capex);
+    $('pQubits').textContent = `${fmt(phys)} physical qubits for ${logical} logical ones`;
+    const ref = [['Willow (2024)', 105], ['Condor (2023)', 1121], ['Atom array (2025)', 6100], ['This circuit', phys]];
+    const mx = Math.max(...ref.map(r => r[1]));
+    $('pScale').innerHTML = ref.map(([n, v], j) => `<div class="row${j === 3 ? ' need' : ''}"><span>${n}</span><i style="width:${Math.max(0.3, v / mx * 100)}%"></i><span class="num">${fmt(v)}</span></div>`).join('');
+    $('pRun').innerHTML = [['One shot (one x)', dur(shot)], ['The verifier\'s full check', `${dur(shot * shots)} for 200,540,928 shots`],
+      ['Capital per Toffoli in one shot', money(capex / tof)], ['Times the largest array today', '×' + (phys / 6100).toFixed(1)]]
+      .map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
+  }
+  for (const id of ['pd', 'pr', 'pf', 'pp', 'pc']) $(id).addEventListener('input', renderPrice);
+  renderPrice();
 
   // ---- start
   renderPrecStats();

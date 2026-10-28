@@ -1,0 +1,20 @@
+{
+  "id": "manwithacat/kickmix-quickstart",
+  "title": "kickmix quickstart",
+  "code_file": "kaggle-quickstart.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": false,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": [],
+  "dataset_sources": [
+    "manwithacat/kickmix-fork-wheels",
+    "manwithacat/kickmix-engine-wheels",
+    "manwithacat/vqcc-apache-public-circuits"
+  ],
+  "kernel_sources": ["manwithacat/kickmix-tools"],
+  "competition_sources": ["google-verifiable-quantum-circuit-compilation"],
+  "model_sources": []
+}

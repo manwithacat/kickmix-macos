@@ -1,0 +1,75 @@
+name: kaggle-quickstart
+# Push notebooks/kaggle-quickstart.ipynb as a new version of the public Kaggle notebook
+# manwithacat/kickmix-quickstart (metadata: kaggle/quickstart/kernel-metadata.json). Called by release.yml
+# after the release has been mirrored to Kaggle (the notebook needs the new kickmix_tools); can also be
+# run by hand from any branch or tag (dry_run builds, checks and authenticates without pushing).
+on:
+  workflow_call:
+    inputs:
+      dry_run: { type: boolean, default: false }
+    secrets:
+      KAGGLE_API_TOKEN: { required: true }
+  workflow_dispatch:
+    inputs:
+      dry_run: { description: "check and authenticate only", type: boolean, default: true }
+permissions:
+  contents: read
+
+jobs:
+  quickstart:
+    runs-on: ubuntu-24.04
+    env:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+      KERNEL: manwithacat/kickmix-quickstart
+      TOOLS: manwithacat/kickmix-tools
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: The committed notebook matches its builder
+        run: python kaggle/quickstart/build.py --check
+      - name: Stage the notebook and its metadata
+        run: |
+          set -euo pipefail
+          stage=stage/quickstart && mkdir -p "$stage"
+          cp kaggle/quickstart/kernel-metadata.json "$stage/"
+          cp notebooks/kaggle-quickstart.ipynb "$stage/"
+          python - <<'EOF'
+          import ast, json
+          meta = json.load(open("stage/quickstart/kernel-metadata.json"))
+          nb = json.load(open(f"stage/quickstart/{meta['code_file']}"))
+          assert meta["id"] == "manwithacat/kickmix-quickstart" and meta["is_private"] is False
+          for cell in nb["cells"]:
+              if cell["cell_type"] == "code":
+                  ast.parse("".join(cell["source"]))
+          print(meta["id"], len(nb["cells"]), "cells; inputs:", meta["competition_sources"],
+                meta["dataset_sources"], meta["kernel_sources"])
+          EOF
+          ls -la "$stage"
+      - run: python -m pip install "kaggle>=1.7.4.5"
+      - name: Check the token is set and accepted
+        run: |
+          test -n "$KAGGLE_API_TOKEN" || { echo "::error::secret KAGGLE_API_TOKEN is not set"; exit 1; }
+          kaggle datasets files manwithacat/kickmix-fork-wheels > /dev/null
+      - name: Wait until the kickmix_tools utility script has finished its latest run
+        # A release pushes a new kickmix_tools version just before this job; the notebook would otherwise
+        # start against the previous one. Give up after 20 minutes.
+        if: ${{ !inputs.dry_run }}
+        run: |
+          for i in $(seq 1 40); do
+            status=$(kaggle kernels status "$TOOLS" 2>&1 || true)
+            echo "$status"
+            case "$status" in
+              *complete*|*COMPLETE*) exit 0 ;;
+              *error*|*ERROR*|*cancel*|*CANCEL*) echo "::error::$TOOLS did not complete"; exit 1 ;;
+            esac
+            sleep 30
+          done
+          echo "::error::timed out waiting for $TOOLS"; exit 1
+      - name: Push to Kaggle
+        if: ${{ !inputs.dry_run }}
+        run: |
+          out=$(kaggle kernels push -p stage/quickstart 2>&1) || { echo "$out"; exit 1; }
+          echo "$out"
+          echo "$out" | grep -qi "successfully pushed" || { echo "::error::push not confirmed"; exit 1; }

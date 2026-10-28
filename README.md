@@ -30,10 +30,44 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 [kickmix-engine](https://github.com/manwithacat/kickmix-engine) is a separate, independent Rust re-implementation of
 kickmix's simulation semantics, checked shot for shot against kickmix, with a `kickmix-engine verify` command for the
 invsqrt and DQI tasks that runs the official verifier logic and can `--cross-check` every field against it. On full DQI
-verification it measured about 2x this fork and 6-7x kickmix 1.0.0, at a fraction of the memory (Apple M2 Pro and
+verification it measured about 2-2.8x this fork and 6-10x kickmix 1.0.0, at a fraction of the memory (Apple M2 Pro and
 Kaggle CPU notebooks; details and caveats in its README). It needs a `kickmix` installed alongside (this fork or the
 official one), because the official verifier modules import it. This fork stays what it is: upstream kickmix plus a
 small list of patches, for anyone who wants the official simulator, faster.
+
+## Open in Kaggle
+
+[![Open in Kaggle](https://kaggle.com/static/images/open-in-kaggle.svg)](https://kaggle.com/kernels/welcome?src=https://github.com/manwithacat/kickmix-macos/blob/main/notebooks/kaggle-quickstart.ipynb)
+
+`notebooks/kaggle-quickstart.ipynb` is a short notebook for competitors. On a Kaggle CPU notebook it runs the
+competition's unchanged official invsqrt and DQI verifiers with three builds (the organisers' `kickmix`, this
+fork, and [kickmix-engine](https://github.com/manwithacat/kickmix-engine)), shows wall time and peak memory
+for each and checks that every result field is identical, then lets you verify your own circuit. With the
+default settings it is sized for roughly 15-25 minutes; a `RUN_LONG` flag adds the slow official runs. Two ways
+to get it:
+
+1. **Copy & Edit** the public Kaggle notebook
+   [manwithacat/kickmix-quickstart](https://www.kaggle.com/code/manwithacat/kickmix-quickstart). Its inputs are
+   already attached and it runs with the internet off. A new version is pushed with each release of this
+   repository.
+2. **Import from GitHub**: use the badge above, or in a Kaggle notebook *File -> Import Notebook -> GitHub* with
+   this repository's `notebooks/kaggle-quickstart.ipynb`. Then attach the inputs (Input panel -> *+ Add Input*):
+   - required: the competition data, *Google Quantum AI - Verifiable Quantum Circuit Compilation* (you must have
+     joined the competition; the data cannot be downloaded from inside a notebook);
+   - for an offline install: the datasets
+     [`manwithacat/kickmix-fork-wheels`](https://www.kaggle.com/datasets/manwithacat/kickmix-fork-wheels) and
+     [`manwithacat/kickmix-engine-wheels`](https://www.kaggle.com/datasets/manwithacat/kickmix-engine-wheels) and
+     the utility script [`manwithacat/kickmix-tools`](https://www.kaggle.com/code/manwithacat/kickmix-tools).
+     With the internet turned on, whichever of these is missing is downloaded from the GitHub releases instead;
+   - optional: the dataset
+     [`manwithacat/vqcc-apache-public-circuits`](https://www.kaggle.com/datasets/manwithacat/vqcc-apache-public-circuits)
+     to also verify the best public DQI circuit.
+
+   The first code cell lists anything that is missing and the exact fix, and stops before installing.
+
+The notebook is generated from [`kaggle/quickstart/build.py`](kaggle/quickstart/build.py) (edit that, then run
+it). Like the rest of this repository it was written by an AI model (Claude) under the owner's direction. It
+will be retired after the competition closes.
 
 ## Why this fork exists
 
@@ -137,7 +171,12 @@ aarch64) and Windows hosted runners; the `ci` workflow runs the tests.
 fork into an isolated directory and runs the unchanged official verifiers with either the shipped
 `kickmix.so` or the fork in a subprocess: `install()`, `verify(task, circuit, build=...)` (result plus wall
 time and peak memory of the process tree), `compare(task, circuit)` (field-by-field equality, time,
-memory) and `angle_strict_check(...)`. Memory is PSS on Linux and `phys_footprint` (Activity Monitor's
+memory) and `angle_strict_check(...)`. Since 0.3.0 it also drives
+[kickmix-engine](https://github.com/manwithacat/kickmix-engine): `install_engine()` (wheel from an attached
+dataset, else the GitHub release, checked against `SHA256SUMS.txt` and `release-manifest.json`),
+`verify(task, circuit, build="engine")` with the same result shape plus the engine version and simulator kernel in
+`provenance`, optional `cross_check=True`, `engine_doctor()`, and `compare_builds(task, circuit, builds)` for any
+set of builds. Memory is PSS on Linux and `phys_footprint` (Activity Monitor's
 "Memory") on macOS, read through `proc_pid_rusage`; RSS is the fallback. `examples/hello_world.ipynb` is a five-minute tour of the Python API
 (CI executes it).
 
@@ -345,7 +384,8 @@ parent transient of about 5 GB (local profiling, 2026-10-26).
   upstream's `testdata` only. Hosted runners are shared machines; read ratios within one
   job, not across jobs.
 - `release`: tag-triggered wheels (macOS arm64/Intel, Linux x86-64/aarch64, Windows x86-64)
-  and sdist to GitHub Releases.
+  and sdist to GitHub Releases, then the Kaggle mirrors (`kaggle-publish`) and a new version of the public
+  quickstart notebook (`kaggle-quickstart`, also runnable by hand with a dry-run option).
 - `upstream-sync`: weekly, looks for new Qualtran commits touching `kickmix/`, tries the
   sync, build, tests and parity in a throwaway checkout, and opens or updates a single
   issue with the outcome. It never opens pull requests or pushes.
@@ -392,6 +432,8 @@ tools/ab_bench.sh/.py    upstream-vs-fork parity + alternating benchmarks
 tools/verify_parity.sh/.py  official verifiers under two builds, field-by-field diff (local data)
 tools/cpp_word_type_tests.sh  C++ unit tests (simd/ChaCha/popcount + fast-path equivalence), no Bazel
 tools/lib.sh, tools/report_word_types.py
+tools/kickmix_tools.py   Kaggle helper: install/verify/compare the official build, the fork and kickmix-engine
+kaggle/                  Kaggle mirror metadata; quickstart/build.py generates notebooks/kaggle-quickstart.ipynb
 tests/smoke_neon_build.py, tests/parity_dump.py, tests/cpp/pop_counter_fastpath.test.cc
 bench/sim_bench.py       throughput benchmark (--counting mimics the verifiers)
 .github/workflows/       ci, perf, release, upstream-sync

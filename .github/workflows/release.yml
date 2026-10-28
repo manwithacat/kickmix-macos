@@ -82,3 +82,13 @@ jobs:
       tag: ${{ github.ref_name }}
     secrets:
       KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}
+
+  kaggle-quickstart:
+    # New version of the public notebook manwithacat/kickmix-quickstart, after the mirror above (it uses the
+    # kickmix_tools version that job pushes).
+    needs: [kaggle]
+    uses: ./.github/workflows/kaggle-quickstart.yml
+    with:
+      dry_run: false
+    secrets:
+      KAGGLE_API_TOKEN: ${{ secrets.KAGGLE_API_TOKEN }}

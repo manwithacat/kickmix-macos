@@ -20,7 +20,7 @@ jobs:
           - { os: ubuntu-24.04-arm, build: "cp312-manylinux_aarch64 cp313-manylinux_aarch64" }  # native, NEON word types
           # Windows x86-64 (MSVC). Never built before this entry was added: expect the first run
           # to need fixes. Its failure does not block the other wheels or the release.
-          - { os: windows-latest, build: "cp312-win_amd64 cp313-win_amd64", experimental: true }
+          - { os: windows-latest, build: "cp312-win_amd64 cp313-win_amd64" }
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

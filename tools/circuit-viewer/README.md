@@ -6,7 +6,7 @@ skipped, qubit occupancy and lifetimes, and the phase building up to its target.
 63-qubit invsqrt circuit from the Google Quantum AI Verifiable Quantum Circuit Compilation competition,
 and can load any `.kmx` circuit you give it.
 
-Hosted copy: https://claude.ai/artifact/VQMERNoGu4nUUZo6NjrnY5
+Hosted copy: https://manwithacat.github.io/kickmix-macos/viewer/
 
 ## Run locally
 

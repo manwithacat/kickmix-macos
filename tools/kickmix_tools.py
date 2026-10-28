@@ -123,6 +123,35 @@ def _pip_install(target: Path, spec: str) -> None:
         raise RuntimeError(f"pip install failed ({spec}):\n{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
 
 
+def _parse_sha256sums(text: str) -> dict[str, str]:
+    """Map file name -> hex digest from `sha256sum`-style lines ("<hex>  <name>" or "<hex> *<name>")."""
+    listed = {}
+    for line in text.splitlines():
+        parts = line.split(None, 1)
+        if len(parts) == 2:
+            listed[parts[1].strip().lstrip("*").rsplit("/", 1)[-1]] = parts[0].lower()
+    return listed
+
+
+def _check_local_wheel(wheel: Path) -> str:
+    """Check a local wheel against a SHA256SUMS file next to it, if there is one.
+
+    Raises RuntimeError on a mismatch or when the file does not list the wheel; returns a short
+    description of what was (or was not) checked, recorded in _STATE["fork_how"].
+    """
+    sums = wheel.with_name("SHA256SUMS")
+    if not sums.is_file():
+        return "no SHA256SUMS next to the wheel; hash not checked"
+    digest = hashlib.sha256(wheel.read_bytes()).hexdigest()
+    listed = _parse_sha256sums(sums.read_text()).get(wheel.name)
+    if listed is None:
+        raise RuntimeError(f"{sums} does not list {wheel.name}; refusing to install an unlisted wheel "
+                           f"(sha256 {digest})")
+    if listed != digest:
+        raise RuntimeError(f"SHA-256 mismatch for {wheel.name}: got {digest}, {sums.name} lists {listed}")
+    return "SHA-256 matches SHA256SUMS"
+
+
 def _install_wheel(target: Path, tag: str, repo: str) -> str:
     api = json.loads(_http_get(f"https://api.github.com/repos/{repo}/releases/tags/{tag}"))
     urls = {a["name"]: a["browser_download_url"] for a in api["assets"]}
@@ -187,8 +216,9 @@ def install(source: str = "auto", *, target: str | os.PathLike | None = None, ta
                 old.unlink()
     target.mkdir(parents=True, exist_ok=True)
     if source.endswith(".whl") and src_path.is_file():
+        checked = _check_local_wheel(src_path)
         _pip_install(target, str(src_path))
-        how = f"local wheel {src_path.name}"
+        how = f"local wheel {src_path.name} ({checked})"
     elif source == "wheel":
         how = _install_wheel(target, tag, repo)
     elif source == "source":
@@ -254,7 +284,51 @@ def _sample_linux(root: int) -> tuple[float, float | None]:
     return rss, (pss if have_pss else None)
 
 
+_PROC_RUSAGE_V2 = 2          # RUSAGE_INFO_V2 flavour of proc_pid_rusage (macOS)
+_PHYS_FOOTPRINT_OFFSET = 72  # rusage_info_v2: ri_uuid[16] + seven uint64 fields precede ri_phys_footprint
+_libproc = None
+
+
+def _macos_footprint_fn():
+    """Return f(pid) -> phys_footprint in MB (None if unreadable), or None if libproc is unusable.
+
+    phys_footprint is the figure Activity Monitor calls "Memory": it counts compressed pages and
+    excludes clean file-backed pages, so it is much closer to what limits a Mac than RSS. It is read
+    in-process through proc_pid_rusage (libproc, via ctypes), which is cheap (no subprocess per
+    sample). The `footprint` CLI was rejected: it needs a subprocess per pid per sample and is slow
+    on large process trees. The probe below must succeed on this process before it is trusted.
+    """
+    global _libproc
+    if sys.platform != "darwin":
+        return None
+    try:
+        import ctypes
+        import ctypes.util
+        if _libproc is None:
+            _libproc = ctypes.CDLL(ctypes.util.find_library("proc") or "/usr/lib/libproc.dylib", use_errno=True)
+            _libproc.proc_pid_rusage.argtypes = [ctypes.c_int, ctypes.c_int, ctypes.c_void_p]
+            _libproc.proc_pid_rusage.restype = ctypes.c_int
+        lib = _libproc
+
+        def footprint_mb(pid: int):
+            buf = ctypes.create_string_buffer(512)
+            if lib.proc_pid_rusage(pid, _PROC_RUSAGE_V2, buf) != 0:
+                return None
+            return int.from_bytes(buf.raw[_PHYS_FOOTPRINT_OFFSET:_PHYS_FOOTPRINT_OFFSET + 8], "little") / (1024 * 1024)
+
+        mine = footprint_mb(os.getpid())
+        return footprint_mb if mine is not None and mine > 1 else None
+    except Exception:  # noqa: BLE001 - fall back to RSS
+        return None
+
+
 def _sample_ps(root: int) -> tuple[float, float | None]:
+    """Tree memory on macOS and other non-/proc systems: (RSS sum in MB, footprint sum in MB or None).
+
+    The second value is phys_footprint where proc_pid_rusage works (macOS), reported in the
+    `peak_pss_sum_mb` slot because, like PSS, it is the per-process cost that avoids double
+    counting shared pages. `memory_kind` labels it "footprint".
+    """
     out = subprocess.run(["ps", "-axo", "pid=,ppid=,rss="], capture_output=True, text=True).stdout
     rows = {}
     for line in out.splitlines():
@@ -268,7 +342,12 @@ def _sample_ps(root: int) -> tuple[float, float | None]:
             if ppid in tree and pid not in tree:
                 tree.add(pid)
                 grew = True
-    return sum(rows[p][1] for p in tree if p in rows) / 1024, None
+    rss = sum(rows[p][1] for p in tree if p in rows) / 1024
+    fp_fn = _macos_footprint_fn()
+    if fp_fn is None:
+        return rss, None
+    vals = [fp_fn(p) for p in tree]
+    return rss, sum(v for v in vals if v is not None)
 
 
 class _PeakSampler(threading.Thread):
@@ -380,7 +459,9 @@ def verify(task: str, circuit, build: str = "fork", workers: int | None = None, 
     Returns {"task", "build", "result" (the verifier's own dict), "wall_seconds",
     "peak_rss_sum_mb", "peak_pss_sum_mb" (Linux), "max_single_process_mb", "kickmix_module",
     "workers"}. Memory is the peak, over a 0.2 s sampling of the whole process tree, of the
-    summed resident set; PSS counts pages shared by forked workers once.
+    summed resident set; PSS counts pages shared by forked workers once. On macOS
+    "peak_pss_sum_mb" holds the summed phys_footprint instead (Activity Monitor's "Memory"), when
+    available; Linux PSS is unchanged.
     """
     if task not in TASKS:
         raise ValueError(f"task must be one of {TASKS}")
@@ -463,7 +544,9 @@ def _mem(run: dict) -> float:
 
 
 def memory_kind(run: dict) -> str:
-    return "PSS" if run["peak_pss_sum_mb"] is not None else "RSS"
+    if run["peak_pss_sum_mb"] is None:
+        return "RSS"
+    return "footprint" if sys.platform == "darwin" else "PSS"
 
 
 def format_compare(c: dict, max_rows: int = 12) -> str:

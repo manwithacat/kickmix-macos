@@ -6,6 +6,16 @@
   (streamed `reaction_depth`, packed shot I/O, `read_shot_phase` reduction, PopCounter fast path and
   deferred counting, CX runs). v0.1.0 (2026-10-25) had the NEON patch only.
 
+## Tooling changes
+
+- 2026-10-27, `tools/kickmix_tools.py` (no change to kickmix itself): `install()` given a local `.whl` now
+  checks it against a `SHA256SUMS` file in the same directory when one exists, raising on a mismatch or if
+  the file does not list the wheel; whether it was checked is recorded in the install description
+  (`_STATE["fork_how"]`). On macOS, process-tree memory is sampled as `phys_footprint` via `proc_pid_rusage`
+  (ctypes, no subprocess) when it works, falling back to RSS; reported in the `peak_pss_sum_mb` slot and labelled
+  "footprint" by `memory_kind`. Linux PSS is unchanged. README gains "Installing alongside other kickmix builds"
+  (PyPI `kickmix` 0.1.dev0 vs this fork's 0.2.0; offline Kaggle wheels dataset).
+
 ## Vendored upstream
 
 - UPSTREAM_COMMIT: `638777fac4379bc62e2a1e4a52cf1a1753895d48` (quantumlib/Qualtran `main`,

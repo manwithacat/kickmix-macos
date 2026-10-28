@@ -2,9 +2,27 @@ name: ci
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - "**/*.md"
+      - "site/**"
+      - "tools/circuit-viewer/**"
+      - "kaggle/**"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/kaggle-publish.yml"
   pull_request:
+    paths-ignore:
+      - "**/*.md"
+      - "site/**"
+      - "tools/circuit-viewer/**"
+      - "kaggle/**"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/kaggle-publish.yml"
 permissions:
   contents: read
+# A newer push to the same pull request cancels the run in progress; runs on main always finish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build_and_test:
@@ -18,21 +36,29 @@ jobs:
         shell: bash
     strategy:
       fail-fast: false
+      # macos-15 = Apple Silicon (NEON word types), macos-15-intel = SSE/AVX, ubuntu-24.04 = upstream x86-64
+      # path, ubuntu-24.04-arm = NEON on Linux, windows-latest = MSVC. Python 3.12 on macOS runs on main only:
+      # it differs from 3.13 only in the bindings, and macOS runners are the scarce ones on pull requests.
       matrix:
-        include:
-          - { os: macos-15, python: "3.13" }        # Apple Silicon: NEON word types
-          - { os: macos-15, python: "3.12" }
-          - { os: macos-15-intel, python: "3.13" }  # Intel Mac: SSE/AVX word types
-          - { os: ubuntu-24.04, python: "3.13" }    # Linux x86-64: upstream path, no behaviour change
-          - { os: ubuntu-24.04-arm, python: "3.13" }  # Linux aarch64: NEON word types
-          - { os: windows-latest, python: "3.13" }    # Windows: MSVC
+        include: ${{ fromJSON(github.event_name == 'push'
+          && '[{"os":"macos-15","python":"3.13"},{"os":"macos-15","python":"3.12"},{"os":"macos-15-intel","python":"3.13"},{"os":"ubuntu-24.04","python":"3.13"},{"os":"ubuntu-24.04-arm","python":"3.13"},{"os":"windows-latest","python":"3.13"}]'
+          || '[{"os":"macos-15","python":"3.13"},{"os":"macos-15-intel","python":"3.13"},{"os":"ubuntu-24.04","python":"3.13"},{"os":"ubuntu-24.04-arm","python":"3.13"},{"os":"windows-latest","python":"3.13"}]') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      - name: Compiler cache (not used by MSVC)
+        if: runner.os != 'Windows'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: build-${{ matrix.os }}-py${{ matrix.python }}
+          max-size: 500M
       - name: Build, run upstream tests and smoke
         run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv"
+        env:
+          CC: ${{ runner.os == 'macOS' && 'ccache clang' || runner.os == 'Linux' && 'ccache gcc' || '' }}
+          CXX: ${{ runner.os == 'macOS' && 'ccache clang++' || runner.os == 'Linux' && 'ccache g++' || '' }}
       - name: Report which word types were compiled in
         run: python tools/report_word_types.py
       - name: tools/verify_parallel.py matches a serial run (spawn workers; stand-in verifier)
@@ -70,8 +96,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
+      - name: Compiler cache (not used by MSVC)
+        if: runner.os != 'Windows'
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: neon-parity-macos-15
+          max-size: 500M
       - run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv-neon"
+        env: { CC: ccache clang, CXX: ccache clang++ }
       - run: PYTHON=python tools/build.sh "$RUNNER_TEMP/venv-noneon" --disable-neon
+        env: { CC: ccache clang, CXX: ccache clang++ }
       - name: Same simulation results from both builds
         run: |
           "$RUNNER_TEMP/venv-neon/bin/python" tests/parity_dump.py > neon.txt
@@ -118,6 +152,8 @@ jobs:
 
   wheels:
     name: macOS arm64 wheel artifact
+    # main only: release.yml builds every wheel for tags, so pull requests skip this macOS job.
+    if: github.event_name == 'push'
     runs-on: macos-15
     steps:
       - uses: actions/checkout@v4

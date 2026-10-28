@@ -8,12 +8,24 @@
 # runners are shared machines, so treat ratios as indicative and compare within one job only.
 name: perf
 on:
+  # Pull requests only when they touch what the benchmark measures; the weekly run and manual runs cover the rest.
   pull_request:
+    paths:
+      - "kickmix/**"
+      - "patches/**"
+      - "bench/**"
+      - "tools/ab_bench.sh"
+      - "tools/build.sh"
+      - "tools/lib.sh"
+      - ".github/workflows/perf.yml"
   workflow_dispatch:
   schedule:
     - cron: "17 5 * * 1"   # Mondays 05:17 UTC
 permissions:
   contents: read
+concurrency:
+  group: perf-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   ab:

@@ -70,7 +70,7 @@
       }
       if (onStep) onStep(i, q, phase, t, ran);
     }
-    return { q, phase, tof, dirty };
+    return { q, b, phase, tof, dirty };
   }
 
   const turns = (p) => Number(p >> 64n) / 2 ** 64; // phase as a float in [0, 1)

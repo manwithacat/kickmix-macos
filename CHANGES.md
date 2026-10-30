@@ -15,6 +15,16 @@
 
 ## Tooling changes
 
+- 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself, `tracer.js` unchanged): two playback polish fixes.
+  The status line under the transport buttons (op, gate, stage name) wrapped when long, so the diagram jumped up and
+  down during play; it is now one line of fixed height with an ellipsis, the full text in its title and in the
+  snapshot panel. The zoom label, the Follow state and the Highlight status get the same single-line treatment with
+  reserved widths, and live digits are tabular. The scrubber thumb stepped because it was set only from the snapshot
+  refresh (throttled to 100 ms while playing) and to whole ops; it now spans the visible window in fractional ops
+  (`step="any"`), the whole circuit when not zoomed, and is set every frame from the same fractional position as the
+  playhead line, so the two move together. Dragging it seeks to the op under the thumb; the URL is still written only
+  when paused. Node test for the scrubber mapping. Written with AI assistance (Claude, Anthropic) under the
+  repository owner's direction, from the owner's feedback.
 - 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself, `tracer.js` unchanged): DAW-style follow modes for
   the playhead when zoomed in. Continuous (the new default) keeps the playhead 30% of the way across and slides the
   trace under it every frame, stopping at op 0 and the last op so the playhead moves near the ends; Page turns a page

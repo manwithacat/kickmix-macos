@@ -3,6 +3,7 @@
 //   high zoom), zooming about an anchor op, panning, clamping, pinch maths and wheel handling, and `&view=a-b`.
 // - Gesture: a small reducer for pointers on the diagram: one pointer drags (pans), two pointers pinch (zoom and pan).
 // - Follow: where the window goes while the playhead plays or steps (continuous, page or off; `&follow=c|p|off`).
+// - Scrub: the range input under the diagram (the visible window, the playhead's fractional position).
 // - Pins: the highlighted qubits (`&hl=14,51`), at most Pins.MAX of them.
 // Tested under Node (tests/viewer/view.test.js). Written with AI assistance (Claude, Anthropic) under the repository
 // owner's direction.
@@ -91,6 +92,19 @@
       const ia = Math.max(0, Math.floor(v.a)), ib = Math.min(n, Math.ceil(v.b)), span = Math.max(1, ib - ia);
       return { ia, ib, cols: Math.max(1, Math.min(Math.max(1, Math.floor(w)), span)) };
     },
+  };
+
+  // ---- the scrubber under the diagram: a native range input that spans the visible window [a, b] (the whole circuit
+  // when not zoomed), in fractional ops, like the playhead line. Its value is the playhead's centre, pos + 0.5, where
+  // pos is the fractional position while playing, so the thumb moves every frame exactly as the line does (step="any";
+  // only the op it seeks to is rounded).
+  const Scrub = {
+    range(v) { return { min: v.a, max: v.b }; },
+    value(v, pos) { return clampNum(pos + 0.5, v.a, v.b); },
+    // Where the thumb sits as a fraction of the track (0 at min, 1 at max); the line is at pxOf(v, pos + 0.5, w) / w.
+    frac(v, pos) { return (Scrub.value(v, pos) - v.a) / Math.max(1e-9, v.b - v.a); },
+    // The op a dragged value seeks to.
+    op(value, n) { return clampNum(Math.floor(value), 0, Math.max(0, n - 1)); },
   };
 
   // ---- pointers on the diagram
@@ -272,5 +286,5 @@
     },
   };
 
-  root.CircuitView = { View, Gesture, Pins, Trace, Follow };
+  root.CircuitView = { View, Gesture, Pins, Trace, Follow, Scrub };
 })(typeof window !== 'undefined' ? window : globalThis);

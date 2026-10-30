@@ -274,3 +274,24 @@ test('re-binning the stored trace gives the same columns as a fresh tracer pass'
     assert.equal(tr.snaps.get(P.n).x, x);                           // x handed back
   }
 });
+
+test('the scrubber spans the visible window and its thumb tracks the playhead line', () => {
+  const { Scrub } = globalThis.CircuitView;
+  for (const v of [View.full(N), { a: 5000.25, b: 5041.75 }, { a: 0, b: 300 }]) {
+    assert.deepEqual(Scrub.range(v), { min: v.a, max: v.b });
+    for (const pos of [v.a + 1, v.a + 1.37, (v.a + v.b) / 2 + 0.6, v.b - 2.2]) {
+      // the thumb's fraction of the track is where the line is drawn (at the op's centre), fractional positions included
+      assert.ok(near(Scrub.frac(v, pos), View.pxOf(v, pos + 0.5, W) / W));
+    }
+    assert.equal(Scrub.value(v, v.a - 100), v.a);                 // off the window: pinned to its ends
+    assert.equal(Scrub.value(v, v.b + 100), v.b);
+  }
+  // smooth: positions a fraction of an op apart give distinct values, not one integer step
+  const v = { a: 1000, b: 1040 };
+  assert.ok(Scrub.value(v, 1010.25) < Scrub.value(v, 1010.5));
+  // a dragged value seeks to the op under it, kept inside the circuit
+  assert.equal(Scrub.op(1010.9, N), 1010);
+  assert.equal(Scrub.op(Scrub.value(v, 1010), N), 1010);
+  assert.equal(Scrub.op(N, N), N - 1);
+  assert.equal(Scrub.op(-3, N), 0);
+});

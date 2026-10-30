@@ -18,6 +18,7 @@
   --tof: #b3263e; --meas: #b8860b; --skip: #6b7c93; --phase: #0f6f78; --target: #17202b;
   --peak: #b3263e; --env: #cdd5de; --doc: #2f6b3f; --inf: #7a5aa6; --sel: rgba(15, 111, 120, 0.14);
   --hue-s: 72%; --hue-l: 46%;
+  --hl1: #0b5cad; --hl2: #a8327d; --hl3: #0b7a55; --hl4: #6a4bc4;      /* pinned qubits: distinct, >= 3:1 on --zero and --panel */
   --font-display: "Bricolage Grotesque", "IBM Plex Sans", system-ui, sans-serif;
   --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
@@ -27,14 +28,14 @@
     --bg: #11161c; --panel: #171e26; --ink: #e6ebf1; --muted: #9aa7b6; --rule: #2a3440;
     --one: #e58a35; --one-x: #f2b36b; --zero: #1d252e; --zero-x: #25303b; --tof: #ff6b81; --meas: #e3b341; --skip: #8fa1b8;
     --phase: #48c1c9; --target: #e6ebf1; --peak: #ff6b81; --env: #2b3540; --doc: #7cc68c; --inf: #b49be0; --sel: rgba(72, 193, 201, 0.16);
-    --hue-s: 70%; --hue-l: 62%; color-scheme: dark;
+    --hue-s: 70%; --hue-l: 62%; --hl1: #6cb6ff; --hl2: #f08cc8; --hl3: #5fd3a6; --hl4: #b9a2ff; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #11161c; --panel: #171e26; --ink: #e6ebf1; --muted: #9aa7b6; --rule: #2a3440;
   --one: #e58a35; --one-x: #f2b36b; --zero: #1d252e; --zero-x: #25303b; --tof: #ff6b81; --meas: #e3b341; --skip: #8fa1b8;
   --phase: #48c1c9; --target: #e6ebf1; --peak: #ff6b81; --env: #2b3540; --doc: #7cc68c; --inf: #b49be0; --sel: rgba(72, 193, 201, 0.16);
-  --hue-s: 70%; --hue-l: 62%; color-scheme: dark;
+  --hue-s: 70%; --hue-l: 62%; --hl1: #6cb6ff; --hl2: #f08cc8; --hl3: #5fd3a6; --hl4: #b9a2ff; color-scheme: dark;
 }
 * { box-sizing: border-box; }
 body {
@@ -155,6 +156,21 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
 .bits b { color: var(--tof); background: var(--sel); font-weight: 700; border-radius: 2px; }
 .pill { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; }
 .pill.ran { color: var(--doc); } .pill.skip { color: var(--skip); } .pill.kick { color: var(--meas); }
+/* the diagram: one-finger vertical swipes still scroll the page; horizontal drags and pinches are ours */
+#diagram { touch-action: pan-y; -webkit-user-select: none; user-select: none; display: grid; gap: 10px; }
+#diagram.zoomed #raster, #diagram.zoomed #tracks, #diagram.zoomed #occ { cursor: grab; }
+#diagram.dragging, #diagram.dragging canvas { cursor: grabbing !important; }
+#phaseTrack { touch-action: pan-y; }
+#overview { cursor: pointer; touch-action: none; border-radius: 4px; }
+#overview:focus-visible { outline: 2px solid var(--phase); outline-offset: 2px; }
+.zoomctl { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.zoomctl button.sq { min-width: 34px; padding-inline: 8px; font-family: var(--font-mono); }
+button:disabled { opacity: 0.45; cursor: default; }
+button:disabled:hover { border-color: var(--rule); }
+.pins { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; }
+.pins input[type=number] { font-size: 14px; width: 7ch; padding: 4px 6px; }
+.pins .chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); }
+.pins .chip i, .hlsw { width: 14px; height: 10px; border: 2px solid; border-radius: 2px; display: inline-block; flex: none; }
 .foot { font-size: 13px; color: var(--muted); max-width: 90ch; display: grid; gap: 6px; }
 .foot a, .small a { color: var(--phase); }
 </style>
@@ -184,7 +200,13 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   <section class="instrument" aria-label="Qubits over the circuit">
     <div class="inst-head">
       <h2 id="viewTitle">The whole circuit</h2>
-      <div class="hint">Click a stage band to zoom in. <button id="zoomOut" type="button" hidden>Show whole circuit</button></div>
+      <div class="zoomctl" role="group" aria-label="Zoom the diagram">
+        <button id="zOut" class="sq" type="button" aria-label="Zoom out" aria-keyshortcuts="-" title="Zoom out (−)">−</button>
+        <button id="zIn" class="sq" type="button" aria-label="Zoom in" aria-keyshortcuts="+" title="Zoom in (+)">+</button>
+        <button id="zoomOut" type="button" aria-keyshortcuts="0" title="Show the whole circuit (0)">Whole circuit</button>
+        <button id="laneBtn" type="button" aria-pressed="false">Taller lanes</button>
+        <span class="status mono" id="zoomStatus" aria-live="polite"></span>
+      </div>
     </div>
     <div class="player" role="group" aria-label="Playhead">
       <button id="playBtn" type="button" aria-pressed="false" aria-keyshortcuts="Space">▶ Play</button>
@@ -205,12 +227,20 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <button id="envBtn" type="button" aria-pressed="true">Show qubit lifetimes</button>
       <span class="status mono" id="playStatus" aria-live="polite"></span>
     </div>
+    <p class="small" id="zoomHelp">Zoom: pinch, <kbd>Ctrl</kbd> or <kbd>⌘</kbd> + scroll, the buttons, or <kbd>+</kbd> <kbd>−</kbd> (<kbd>0</kbd> for the whole circuit). Pan: drag, scroll sideways or <kbd>Shift</kbd> + scroll, or move the window in the overview strip. Click a stage band to zoom to that stage; click or tap a qubit's lane to highlight it.</p>
+    <div class="canvas-box"><canvas id="overview" tabindex="0" role="slider" aria-label="Visible part of the circuit (overview)" aria-describedby="zoomHelp"></canvas></div>
+    <div id="diagram">
     <div class="canvas-box"><canvas id="ribbon" aria-label="Stages along the circuit"></canvas></div>
     <div class="canvas-box"><canvas id="tracks" aria-label="Toffolis, measurements and skipped conditional ops"></canvas></div>
-    <div class="canvas-box"><canvas id="raster" aria-label="Qubit values over the circuit"></canvas><div class="tip" id="tip" hidden></div></div>
+    <div class="canvas-box"><canvas id="raster" aria-label="Qubit values over the circuit; click a lane to highlight its qubit"></canvas><div class="tip" id="tip" hidden></div></div>
     <div class="canvas-box"><canvas id="occ" aria-label="Scratch qubits in use"></canvas></div>
+    </div>
     <div class="scrub"><input id="scrub" type="range" min="0" max="47247" step="1" value="0" aria-label="Playhead: operation index"></div>
     <div class="axis"><span id="axL">op 0</span><span>operation index →</span><span id="axR">op 47,248</span></div>
+    <div class="pins" role="group" aria-label="Highlighted qubits">
+      <label for="hlIn">Highlight qubit</label><input id="hlIn" type="number" min="0" step="1" placeholder="q"><button id="hlAdd" type="button">Pin</button>
+      <span id="hlList" class="presets"></span><span class="status" id="hlStatus" role="status"></span>
+    </div>
     <div class="legend">
       <span id="legHue"><i class="wheel" style="width:80px"></i>1, coloured by the phase so far (0 → 1 turn)</span>
       <span id="legX"><i class="sw" style="background:var(--one-x)"></i>1 in the x register</span>
@@ -221,7 +251,8 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <span><i class="sw" style="background:var(--meas)"></i>measurement-based clean-ups (HMR/R)</span>
       <span><i class="sw" style="background:var(--skip)"></i>conditional ops skipped for this x</span>
       <span><i class="wheel" style="width:40px"></i>gates that changed the phase</span>
-      <span><i class="sw" style="background:var(--phase)"></i>playhead; the current gate's wires are outlined</span>
+      <span><i class="sw" style="background:var(--phase)"></i>playhead; when paused, the gate's wires are marked</span>
+      <span><i class="hlsw" style="border-color:var(--hl1)"></i><i class="hlsw" style="border-color:var(--hl2)"></i><i class="hlsw" style="border-color:var(--hl3)"></i><i class="hlsw" style="border-color:var(--hl4)"></i>highlighted qubits (up to 4)</span>
     </div>
     <p class="small" id="occNote">Bottom track: how many non-x qubits hold a 1 for this x; the faint red band is the maximum over <span id="occNx">3,000</span> sampled x, with red ticks where it peaks (<span id="occPeak">34 of 40</span>). Holding a 1 is only a lower bound on being in use: a qubit carrying data can read 0. <span id="occWhy"></span></p>
     <div class="phasehead"><canvas id="dial" aria-label="Phase dial"></canvas><div style="display:grid;gap:4px"><h3>Accumulated phase</h3><p class="small" id="dialNote">The dial shows the phase as an angle: coloured hand = phase so far (at the playhead when it is paused), black tick = target 1/√x.</p></div>
@@ -240,7 +271,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   <section class="card" id="snapCard" aria-labelledby="snapTitle">
     <div class="inst-head"><h2 id="snapTitle">At the playhead</h2>
       <div class="presets"><button id="copySnap" type="button">Copy snapshot JSON</button><span class="status" id="copyStatus" role="status"></span></div></div>
-    <p class="keys">Keys: <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> one op · <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> Toffoli · <kbd>[</kbd> <kbd>]</kbd> stage · <kbd>M</kbd> next HMR. The address bar keeps this stop point (<span class="mono">?op=…&amp;x=…</span>). The state shown is after the op at the playhead has run; <span class="mono">render.py snapshot --op N --x X</span> gives the same JSON.</p>
+    <p class="keys">Keys: <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> one op · <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> Toffoli · <kbd>[</kbd> <kbd>]</kbd> stage · <kbd>M</kbd> next HMR · <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> zoom. The address bar keeps this stop point (<span class="mono">?op=…&amp;x=…</span>), the zoom window (<span class="mono">&amp;view=a-b</span>) and the highlighted qubits (<span class="mono">&amp;hl=…</span>). The state shown is after the op at the playhead has run; <span class="mono">render.py snapshot --op N --x X</span> gives the same JSON.</p>
     <div class="snap" id="snapBody"></div>
   </section>
 
@@ -309,9 +340,10 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
 <script src="tracer.js"></script>
 <script src="kmx.js"></script>
 <script src="snapshot.js"></script>
+<script src="view.js"></script>
 <script>
 (async function () {
-  const T = window.InvsqrtTracer, CS = window.CircuitSnapshot;
+  const T = window.InvsqrtTracer, CS = window.CircuitSnapshot, CV = window.CircuitView, V = CV.View, Pins = CV.Pins;
   const esc = (v) => String(v).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const $ = (id) => document.getElementById(id);
   const css = () => getComputedStyle(document.documentElement);
@@ -379,7 +411,9 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       s.tof = tof; s.n_hmr = h; s.n_zpow = z; }
   }
 
-  const state = { x: 161, seed: 1, view: null, res: null, reveal: null, kick: true, ph: CS.Playhead.init(), snap: null };
+  // view: the selected stage (or null); win: the visible op window {a, b}; winIsStage: win was set by picking that stage.
+  const state = { x: 161, seed: 1, view: null, win: null, winIsStage: false, res: null, reveal: null, kick: true, ph: CS.Playhead.init(), snap: null,
+                  pins: [], tall: false };
 
   // ---- presets and controls
   function buildPresets() {
@@ -404,11 +438,14 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     for (const b of $('presets').children) b.setAttribute('aria-pressed', String(+b.dataset.x === v));
     compute(); syncURL();
   }
+  // Pick a stage (or null for the whole circuit): the window becomes that stage.
   function setView(st) {
-    state.view = st;
-    compute(); syncURL();
+    state.view = st; state.winIsStage = !!st;
+    state.win = st ? V.clamp({ a: st.start, b: st.end }, C.P.n, minSpan()) : V.full(C.P.n);
+    layout(); renderStageCard(); updateStageRows(); syncURL();
   }
-  // The address bar holds the stop point: ?circuit=…&op=…&x=… (plus seed and kick=0 when not the defaults), #stage.
+  // The address bar holds the stop point: ?circuit=…&op=…&x=… (plus seed and kick=0 when not the defaults), #stage,
+  // the zoom window &view=a-b (when it is not a picked stage) and the highlighted qubits &hl=q,q.
   let urlTimer = null;
   function syncURL() {
     clearTimeout(urlTimer);
@@ -421,6 +458,9 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
         if (active || state.x !== 161) sp.set('x', state.x); else sp.delete('x');
         if (state.seed !== 1) sp.set('seed', state.seed); else sp.delete('seed');
         if (!state.kick) sp.set('kick', '0'); else sp.delete('kick');
+        const vf = state.winIsStage ? '' : V.format(state.win, C.P.n);
+        if (vf) sp.set('view', vf); else sp.delete('view');
+        if (state.pins.length) sp.set('hl', Pins.format(state.pins)); else sp.delete('hl');
         u.hash = state.view && C.ref ? state.view.id : '';
         history.replaceState(null, '', u);
       } catch (e) {}
@@ -442,7 +482,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
         ...data.registers.filter(r => r.qubits !== data.x_qubits).map(r => ({ name: r.name || 'r' + r.r, qubits: r.qubits, role: 'register in the file', evidence: 'from the file' }))];
       const c = makeCircuit(data, { name: f.name, ref: false, stages, groups, maxx: Infinity });
       staticCounts(c);
-      C = c; state.view = null; stopSweep();
+      C = c; stopSweep();
       note.textContent = `Loaded ${f.name}: ${fmt(data.ops.length)} ops on ${data.n_qubits} qubits, input register of ${data.x_qubits.length} qubits. Error is shown against 1/√x, the invsqrt target; for other tasks read the phase directly.`;
       $('backRef').hidden = false; onCircuitChange();
     } catch (err) { note.className = 'notice err'; note.textContent = `Could not load ${f.name}: ${err.message}`; }
@@ -453,7 +493,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     const note = $('circuitNotice');
     try { C = await loadRef(REFS[j]); note.hidden = true; }
     catch (err) { note.hidden = false; note.className = 'notice err'; note.textContent = `Could not load ${REFS[j].name}: ${err.message}`; return; }
-    state.view = null; $('backRef').hidden = true;
+    $('backRef').hidden = true;
     onCircuitChange();
   }
   $('refSel').addEventListener('change', () => showRef(+$('refSel').value));
@@ -470,50 +510,74 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       if (C.livepeak) { $('occNx').textContent = fmt(C.livepeak.n_x); $('occPeak').textContent = `${C.livepeak.global_max} of ${C.other.length}`; }
       renderPrecStats(); renderPrice();
     }
+    state.view = null; state.winIsStage = false; state.win = V.full(C.P.n);
+    state.pins = state.pins.filter(q => q < C.P.nq); renderPins();
+    $('hlIn').max = C.P.nq - 1;
     buildPresets(); renderTables();
     state.ph = CS.Playhead.reduce(state.ph, { type: 'stop' }, phCtx());
     setX(C.ref ? 161 : Math.min(C.maxx, 161));
   }
 
-  // ---- tracing into columns
-  function compute() {
-    const a = state.view ? state.view.start : 0, b = state.view ? state.view.end : C.P.n;
-    const W = Math.max(200, Math.floor($('raster').getBoundingClientRect().width * Math.min(2, devicePixelRatio || 1)));
-    const span = b - a, cols = Math.max(1, Math.min(W, span)), NQ = C.P.nq;
-    const bits = new Uint8Array(cols * NQ), tof = new Uint16Array(cols), meas = new Uint16Array(cols), skip = new Uint16Array(cols);
-    const ph = new Float64Array(cols), occ = new Uint16Array(cols), pchg = new Uint16Array(cols);
-    let lastP = 0n;
+  // ---- tracing (one pass per circuit, x, seed and outcome mode) and binning (once per window)
+  function retrace() {
+    const key = state.x + '|' + state.seed + '|' + state.kick;
+    if (C.trace && C.trace.key === key) return C.trace;
+    const n = C.P.n, want = new Set([0]); for (const s of C.stages) { want.add(s.start); want.add(s.end); }
+    const tr = CV.Trace.run(T, C.P, C.opq, C.xq, state.x, state.seed, state.kick ? undefined : CS.ZERO, want);
+    const kd = new Int32Array(n + 1), kc = new Uint16Array(n);          // open debts that kicked back for this x
+    if (state.kick) { const L = C.A.liab, kicked = tracks().trK.kicked;
+      for (let j = 0; j < L.op.length; j++) if (L.settle[j] >= 0 && kicked[L.op[j]]) { kd[L.op[j]]++; kd[L.settle[j]]--; } }
+    for (let i = 0, k = 0; i < n; i++) { k += kd[i]; kc[i] = k; }
     const nS = C.stages.length, sTof = new Int32Array(nS), sPhase = new Array(nS).fill(null), sMeas = new Int32Array(nS);
-    const snaps = new Map(), want = new Set(); for (const s of C.stages) { want.add(s.start); want.add(s.end); }
-    const mirror = new Uint8Array(NQ); for (let k = 0; k < C.xq.length; k++) mirror[C.xq[k]] = Math.floor(state.x / 2 ** k) % 2;
-    let live = 0, peak = 0, peakOp = 0, cur = -1;
-    const snap = (q, phase) => ({ x: C.xq.reduce((acc, k, j) => acc + q[k] * 2 ** j, 0), live, phase: T.turns(phase) });
-    snaps.set(0, snap(mirror, 0n));
-    const tr = tracks();
-    const dS = new Uint16Array(cols), dK = new Uint16Array(cols), kd = new Int32Array(C.P.n + 1);
-    if (state.kick) { const L = C.A.liab; for (let j = 0; j < L.op.length; j++) if (L.settle[j] >= 0 && tr.trK.kicked[L.op[j]]) { kd[L.op[j]]++; kd[L.settle[j]]--; } }
-    let kcur = 0;
-    for (let i = 0; i < C.P.n; i++) { kcur += kd[i]; if (i < a || i >= b) continue;
-      const c = Math.min(cols - 1, Math.floor((i - a) * cols / span));
-      if (C.A.openDebts[i] > dS[c]) dS[c] = C.A.openDebts[i]; if (kcur > dK[c]) dK[c] = kcur; }
-    const r = T.run(C.P, state.x, state.seed, (i, q, phase, t, ran) => {
-      for (const k of C.opq[i]) if (q[k] !== mirror[k]) { if (!C.xset.has(k)) live += q[k] ? 1 : -1; mirror[k] = q[k]; }
-      if (live > peak) { peak = live; peakOp = i; }
-      const si = C.opStage[i];
-      if (si >= 0) { sTof[si] += t; if (ran && C.isMeas[i]) sMeas[si]++; }
-      if (want.has(i + 1)) snaps.set(i + 1, snap(q, phase));
-      if (i < a || i >= b) { lastP = phase; return; }
-      const c = Math.min(cols - 1, Math.floor((i - a) * cols / span));
-      if (c !== cur) { bits.set(q, c * NQ); cur = c; }
-      else for (const k of C.opq[i]) bits[c * NQ + k] |= q[k];
-      tof[c] += t; if (ran && C.isMeas[i]) meas[c]++; if (!ran) skip[c]++;
-      if (phase !== lastP) { pchg[c]++; lastP = phase; }
-      if (live > occ[c]) occ[c] = live; ph[c] = T.turns(phase);
-    }, state.kick ? undefined : CS.ZERO);
-    C.stages.forEach((s, j) => { const p0 = snaps.get(s.start), p1 = snaps.get(s.end); if (p0 && p1) sPhase[j] = ((p1.phase - p0.phase) % 1 + 1.5) % 1 - 0.5; });
-    state.res = { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, r, snaps, sTof, sPhase, sMeas, peak, peakOp, dS, dK };
-    const sc = $('scrub'); sc.min = a; sc.max = b - 1;
-    renderSnap(); draw(); renderReadouts(); renderStageCard(); updateStageRows();
+    for (let i = 0; i < n; i++) { const si = C.opStage[i]; if (si >= 0) { sTof[si] += tr.tof[i]; if (tr.ran[i] && C.isMeas[i]) sMeas[si]++; } }
+    C.stages.forEach((s, j) => { const p0 = tr.snaps.get(s.start), p1 = tr.snaps.get(s.end); if (p0 && p1) sPhase[j] = ((p1.phase - p0.phase) % 1 + 1.5) % 1 - 0.5; });
+    Object.assign(tr, { key, kc, sTof, sPhase, sMeas, overview: null });
+    C.trace = tr;
+    return tr;
+  }
+  const diagramW = () => Math.max(1, $('raster').getBoundingClientRect().width);
+  const minSpan = () => V.minSpan(C.P.n, diagramW());
+  // Bin the trace for the visible window and draw. Cheap: no tracer run, only the ops in the window.
+  function layout() {
+    const tr = retrace(), n = C.P.n;
+    state.win = V.clamp(state.win || V.full(n), n, minSpan());
+    const W = Math.max(200, Math.floor(diagramW() * Math.min(2, devicePixelRatio || 1)));
+    const { ia, ib, cols } = V.columns(state.win, n, W);
+    const B = CV.Trace.bin(tr, C.opq, C.isMeas, ia, ib, cols, { openDebts: C.A.openDebts, kicked: tr.kc });
+    state.res = { ...B, a: state.win.a, b: state.win.b, r: tr.r, snaps: tr.snaps, peak: tr.peak, peakOp: tr.peakOp,
+                  sTof: tr.sTof, sPhase: tr.sPhase, sMeas: tr.sMeas, rh: state.res ? state.res.rh : 5 };
+    const sc = $('scrub'); sc.min = ia; sc.max = ib - 1;
+    $('diagram').classList.toggle('zoomed', !V.isFull(state.win, n));
+    draw(); drawOverview(); zoomUI();
+  }
+  let layoutRaf = 0;
+  function scheduleLayout() { if (!layoutRaf) layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; layout(); }); }
+  function compute() {
+    retrace(); layout();
+    renderSnap(); renderReadouts(); renderStageCard(); updateStageRows();
+  }
+  // A window chosen by zooming or panning (not by picking a stage).
+  function userWin(v) {
+    const n = C.P.n; v = V.clamp(v, n, minSpan());
+    if (state.win && v.a === state.win.a && v.b === state.win.b) return;
+    state.win = v; state.winIsStage = false;
+    if (state.view && !(v.b > state.view.start && v.a < state.view.end)) { state.view = null; renderStageCard(); updateStageRows(); }
+    scheduleLayout(); syncURL();
+  }
+  function zoomAnchor() {
+    const op = state.ph.op, w = state.win;
+    return state.ph.active && op >= w.a && op < w.b ? op + 0.5 : (w.a + w.b) / 2;
+  }
+  function zoomBy(f) { userWin(V.zoomAt(state.win, f, zoomAnchor(), C.P.n, minSpan())); }
+  function zoomUI() {
+    const w = state.win, n = C.P.n, full = V.isFull(w, n), ms = minSpan(), ppo = diagramW() / (w.b - w.a);
+    $('zoomOut').disabled = full && !state.view;
+    $('zOut').disabled = full; $('zIn').disabled = w.b - w.a <= ms + 1e-9;
+    $('zoomStatus').textContent = full ? `whole circuit · ${fmt(n)} ops` :
+      `ops ${fmt(w.a)}–${fmt(w.b)} · ${ppo >= 1 ? (ppo < 10 ? ppo.toFixed(1) : fmt(ppo)) + ' px per op' : fmt(1 / ppo) + ' ops per px'}`;
+    const ov = $('overview');
+    ov.setAttribute('aria-valuemin', 0); ov.setAttribute('aria-valuemax', n); ov.setAttribute('aria-valuenow', Math.round((w.a + w.b) / 2));
+    ov.setAttribute('aria-valuetext', `showing ops ${fmt(w.a)} to ${fmt(w.b)} of ${fmt(n)}`);
   }
   // Checkpointed tracers for this circuit, x and seed: one with seeded HMR outcomes, one with every outcome 0.
   function tracks() {
@@ -540,25 +604,35 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   $('legX').hidden = $('legO').hidden = true;
   state.env = true;
   $('envBtn').addEventListener('click', () => { state.env = !state.env; $('envBtn').setAttribute('aria-pressed', String(state.env)); draw(); });
-  const rowH = () => { const n = C.P.nq; const base = window.innerWidth < 600 ? 3 : 5; return Math.max(1, Math.min(base, Math.floor(420 / n))); };
+  const rowH = () => { const n = C.P.n, narrow = window.innerWidth < 600;
+    if (state.tall) return Math.max(2, Math.min(narrow ? 8 : 12, Math.floor(900 / C.P.nq)));
+    const base = narrow ? 3 : 5; return Math.max(1, Math.min(base, Math.floor(420 / C.P.nq))); };
+  $('laneBtn').addEventListener('click', () => { state.tall = !state.tall; $('laneBtn').setAttribute('aria-pressed', String(state.tall)); draw(); });
+  const hlCol = (j) => col('--hl' + (j + 1));
+  const isX = (c) => c === 0 || c === 1 || c === 2;          // X, CX, CCX: the last operand is the target
 
+  // Every track shares one x-axis: op -> pixel through the window {a, b}. Columns cover ops [ia, ib); with one op
+  // per column (zoomed in) a column is exactly one op wide.
   function draw() {
     const R = state.res; if (!R) return;
     HS = col('--hue-s'); HL = col('--hue-l');
-    const { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, dS, dK } = R;
-    const pOp = state.ph.op;
-    state.reveal = state.ph.active && pOp >= a && pOp < b ? Math.min(cols - 1, Math.floor((pOp - a) * cols / (b - a))) : null;
+    const { a, b, ia, ib, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, dS, dK } = R;
+    const spanI = Math.max(1, ib - ia), pOp = state.ph.op, playing = state.ph.playing;
+    state.reveal = state.ph.active && pOp >= ia && pOp < ib ? Math.min(cols - 1, Math.floor((pOp - ia) * cols / spanI)) : null;
     const reveal = state.reveal == null ? cols : state.reveal;
     $('axL').textContent = 'op ' + fmt(a); $('axR').textContent = 'op ' + fmt(b);
-    $('viewTitle').textContent = state.view ? state.view.title : (C.ref ? 'The whole circuit' : C.name);
-    $('zoomOut').hidden = !state.view;
+    const full = V.isFull(state.win, C.P.n);
+    $('viewTitle').textContent = state.view && state.winIsStage ? state.view.title : full ? (C.ref ? 'The whole circuit' : C.name) : `Ops ${fmt(a)}–${fmt(b)}`;
+    let w = 1, k = 1;                                          // canvas width (CSS px) and px per op
+    const setW = (ww) => { w = ww; k = ww / (b - a); };
+    const X = (op) => (op - a) * k, cx = (c) => X(ia + c * spanI / cols), cwOf = () => spanI / cols * k;
     const fadeAfter = (g, c) => { g.globalAlpha = c < reveal ? 1 : 0.12; };
-    const playhead = (g, w, h) => { if (state.reveal != null) { g.globalAlpha = 1; g.fillStyle = col('--phase'); g.fillRect(Math.min(reveal, cols - 1) * w / cols, 0, 2, h); } };
+    const playhead = (g, h) => { if (state.reveal != null) { g.globalAlpha = 1; g.fillStyle = col('--phase'); g.fillRect(X(pOp + 0.5) - 1, 0, 2, h); } };
 
-    { const { g, w, h } = sizeCanvas($('ribbon'), 44);
+    { const { g, w: ww, h } = sizeCanvas($('ribbon'), 44); setW(ww);
       g.font = '500 11px ' + col('--font-body');
       C.stages.forEach((s, j) => {
-        const x0 = (Math.max(s.start, a) - a) / (b - a) * w, x1 = (Math.min(s.end, b) - a) / (b - a) * w;
+        const x0 = Math.max(0, X(s.start)), x1 = Math.min(w, X(s.end));
         if (x1 <= x0) return;
         const isSel = state.view && state.view.id === s.id;
         g.fillStyle = s.ev.includes('documented') ? col('--doc') : s.ev.includes('inferred') ? col('--inf') : col('--muted');
@@ -569,81 +643,118 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
         g.fillStyle = col('--muted'); if (x1 - x0 > 60) g.fillText(fmt(s.tof) + ' Tof', x0 + 4, 34);
       });
     }
-    { const { g, w, h } = sizeCanvas($('tracks'), 72), rows = [[tof, '--tof', 'Toffolis'], [meas, '--meas', 'measure'], [skip, '--skip', 'skipped'], [pchg, null, 'phase']];
+    { const { g, w: ww, h } = sizeCanvas($('tracks'), 72), rows = [[tof, '--tof', 'Toffolis'], [meas, '--meas', 'measure'], [skip, '--skip', 'skipped'], [pchg, null, 'phase']];
+      setW(ww); const cw = Math.max(1, cwOf() - (cwOf() > 4 ? 1 : 0));
       const rh = h / 4; g.font = '10px ' + col('--font-mono');
       rows.forEach(([arr, c, label], j) => {
         let mx = 1; for (const v of arr) mx = Math.max(mx, v);
         g.fillStyle = c ? col(c) : '';
-        for (let k = 0; k < cols; k++) if (arr[k]) { fadeAfter(g, k); if (!c) g.fillStyle = hueOf(ph[k]); const hh = Math.max(1.5, arr[k] / mx * (rh - 3)); g.fillRect(k * w / cols, (j + 1) * rh - 1 - hh, Math.max(1, w / cols), hh); }
+        for (let q = 0; q < cols; q++) if (arr[q]) { fadeAfter(g, q); if (!c) g.fillStyle = hueOf(ph[q]); const hh = Math.max(1.5, arr[q] / mx * (rh - 3)); g.fillRect(cx(q), (j + 1) * rh - 1 - hh, cw, hh); }
         g.globalAlpha = 1; g.fillStyle = col('--muted'); g.fillText(label, 2, j * rh + 9);
       });
-      playhead(g, w, h);
+      playhead(g, h);
     }
-    { const rh = rowH(), H = NQ * rh, { g, w } = sizeCanvas($('raster'), H);
-      const one = col('--one'), onex = col('--one-x');
+    { const rh = rowH(), H = NQ * rh, { g, w: ww } = sizeCanvas($('raster'), H); setW(ww);
+      const one = col('--one'), onex = col('--one-x'), gap = rh > 3 ? 1 : 0, cw = cwOf(), cwd = Math.max(cw - (cw > 6 ? 1 : 0), 0.75);
+      const laneY = (q) => H - (q + 1) * rh;
       g.fillStyle = col('--zero'); g.fillRect(0, 0, w, H);
-      g.fillStyle = col('--zero-x'); for (const k of C.xq) g.fillRect(0, H - (k + 1) * rh, w, rh);
+      g.fillStyle = col('--zero-x'); for (const q of C.xq) g.fillRect(0, laneY(q), w, rh);
       if (C.ref && state.env) { g.fillStyle = col('--env');      // ops where the qubit is 1 for at least one sampled x
-        for (const [k, iv] of C.lifetimes) for (const [o0, o1] of iv) { if (o1 < a || o0 >= b) continue;
-          const x0 = (Math.max(o0, a) - a) / (b - a) * w, x1 = (Math.min(o1 + 1, b) - a) / (b - a) * w; g.fillRect(x0, H - (k + 1) * rh, Math.max(0.75, x1 - x0), rh - (rh > 3 ? 1 : 0)); } }
-      const cw = w / cols;
-      for (let c = 0; c < cols; c++) { fadeAfter(g, c); const x0 = c * cw;
+        for (const [q, iv] of C.lifetimes) for (const [o0, o1] of iv) { if (o1 < a || o0 >= b) continue;
+          const x0 = Math.max(0, X(o0)), x1 = Math.min(w, X(o1 + 1)); g.fillRect(x0, laneY(q), Math.max(0.75, x1 - x0), rh - gap); } }
+      for (let c = 0; c < cols; c++) { fadeAfter(g, c); const x0 = cx(c);
         const hc = state.hue ? hueOf(ph[c]) : null;
-        for (let k = 0; k < NQ; k++) if (bits[c * NQ + k]) { g.fillStyle = hc || (C.xset.has(k) ? onex : one); g.fillRect(x0, H - (k + 1) * rh, Math.max(cw, 0.75), rh - (rh > 3 ? 1 : 0)); } }
+        for (let q = 0; q < NQ; q++) if (bits[c * NQ + q]) { g.fillStyle = hc || (C.xset.has(q) ? onex : one); g.fillRect(x0, laneY(q), cwd, rh - gap); } }
       g.globalAlpha = 1;
       if (C.ref) { g.fillStyle = col('--muted'); g.fillRect(0, H - 22 * rh - 1, w, 1); }
-      playhead(g, w, H); R.rh = rh;
-      if (state.reveal != null) {                                  // the current gate's wires
-        const px = Math.min(state.reveal, cols - 1) * w / cols;
+      if (k >= 5) drawGlyphs(g, ia, ib, X, k, rh, laneY, reveal, cols, spanI);   // zoomed in far enough: one glyph per gate
+      playhead(g, H); R.rh = rh;
+      // The current gate's wires, only when paused or stepping: while playing, the playhead moves many ops per frame
+      // and the outlined wires would change every frame (a flicker with no information in it).
+      if (state.reveal != null && !playing) {
+        const px = X(pOp + 0.5), mw = Math.max(8, Math.min(k, 16));
         g.strokeStyle = col('--phase'); g.lineWidth = 1;
-        for (const k of C.opq[pOp]) { const y0 = H - (k + 1) * rh;
-          g.globalAlpha = 0.45; g.strokeRect(0.5, y0 - 0.5, w - 1, rh + 1);
-          g.globalAlpha = 1; g.fillStyle = col('--ink'); g.fillRect(px - 4, y0 - 1, 10, rh + 2); g.fillStyle = col('--phase'); g.fillRect(px - 3, y0, 8, rh); }
+        for (const q of C.opq[pOp]) { const y0 = laneY(q);
+          g.globalAlpha = 0.35; g.strokeRect(0.5, y0 - 0.5, w - 1, rh + 1);
+          g.globalAlpha = 1; g.fillStyle = col('--ink'); g.fillRect(px - mw / 2 - 1, y0 - 1, mw + 2, rh + 2); g.fillStyle = col('--phase'); g.fillRect(px - mw / 2, y0, mw, rh); }
         g.globalAlpha = 1;
       }
+      // Pinned qubits: a steady outline in its accent colour, and its name at the left edge.
+      g.font = '600 10px ' + col('--font-mono'); g.textBaseline = 'middle';
+      state.pins.forEach((q, j) => { if (q >= NQ) return; const y0 = laneY(q), c = hlCol(j);
+        g.strokeStyle = c; g.lineWidth = 2; g.strokeRect(1, y0 - 1, w - 2, rh + 2);
+        const label = 'q' + q, tw = g.measureText(label).width + 8, ly = Math.min(Math.max(y0 + rh / 2, 7), H - 7);
+        g.fillStyle = col('--panel'); g.fillRect(2, ly - 7, tw, 14); g.strokeStyle = c; g.lineWidth = 1.5; g.strokeRect(2.5, ly - 6.5, tw - 1, 13);
+        g.fillStyle = c; g.fillText(label, 6, ly + 0.5); });
+      g.textBaseline = 'alphabetic';
     }
-    { const { g, w, h } = sizeCanvas($('occ'), 64), nOther = C.other.length, pad = 4, y = (v) => h - pad - v / nOther * (h - 2 * pad);
+    { const { g, w: ww, h } = sizeCanvas($('occ'), 64), nOther = C.other.length, pad = 4, y = (v) => h - pad - v / nOther * (h - 2 * pad);
+      setW(ww); const cw = Math.max(1, cwOf());
       g.strokeStyle = col('--rule'); g.beginPath(); g.moveTo(0, y(nOther)); g.lineTo(w, y(nOther)); g.stroke();
       if (C.ref && C.livepeak && C.livepeak.max_downsampled) {   // offline maximum over sampled x
         const mxs = C.livepeak.max_downsampled, ed = C.livepeak.col_edges; g.fillStyle = col('--peak'); g.globalAlpha = 0.2;
         for (let j = 0; j < mxs.length; j++) { const o0 = ed[j], o1 = ed[j + 1] ?? C.P.n; if (o1 <= a || o0 >= b) continue;
-          const x0 = (Math.max(o0, a) - a) / (b - a) * w, x1 = (Math.min(o1, b) - a) / (b - a) * w; g.fillRect(x0, y(mxs[j]), Math.max(1, x1 - x0), h - pad - y(mxs[j])); }
+          const x0 = Math.max(0, X(o0)), x1 = Math.min(w, X(o1)); g.fillRect(x0, y(mxs[j]), Math.max(1, x1 - x0), h - pad - y(mxs[j])); }
         g.globalAlpha = 1;
-        for (const op of C.livepeak.ops_at_global_max || []) if (op >= a && op < b) { g.fillStyle = col('--peak'); g.fillRect((op - a) / (b - a) * w - 0.5, y(C.livepeak.global_max) - 4, 1.5, 4); }
+        for (const op of C.livepeak.ops_at_global_max || []) if (op >= a && op < b) { g.fillStyle = col('--peak'); g.fillRect(X(op + 0.5) - 0.75, y(C.livepeak.global_max) - 4, 1.5, 4); }
       }
       g.fillStyle = col('--one');
-      for (let c = 0; c < cols; c++) { fadeAfter(g, c); g.fillRect(c * w / cols, y(occ[c]), Math.max(1, w / cols), h - pad - y(occ[c])); }
+      for (let c = 0; c < cols; c++) { fadeAfter(g, c); g.fillRect(cx(c), y(occ[c]), cw, h - pad - y(occ[c])); }
       g.globalAlpha = 1;
-      const pk = R.peak; if (R.peakOp >= a && R.peakOp < b) { const px = (R.peakOp - a) / (b - a) * w; g.fillStyle = col('--peak'); g.fillRect(px - 1, 0, 2, h); }
+      const pk = R.peak; if (R.peakOp >= a && R.peakOp < b) { g.fillStyle = col('--peak'); g.fillRect(X(R.peakOp + 0.5) - 1, 0, 2, h); }
       g.fillStyle = col('--muted'); g.font = '10px ' + col('--font-mono');
       g.fillText(`${nOther} non-x qubits`, 2, y(nOther) - 2 < 10 ? 10 : y(nOther) - 2);
       g.fillText(`peak for this x: ${pk} at op ${fmt(R.peakOp)}`, Math.max(2, w - 230), h - 6);
-      playhead(g, w, h);
+      playhead(g, h);
     }
-    { const { g, w, h } = sizeCanvas($('phaseTrack'), 120), pad = 4, y = (t) => pad + (1 - t) * (h - 2 * pad);
+    { const { g, w: ww, h } = sizeCanvas($('phaseTrack'), 120), pad = 4, y = (t) => pad + (1 - t) * (h - 2 * pad);
+      setW(ww); const cw = cwOf(), mid = (c) => cx(c) + cw / 2;
       g.strokeStyle = col('--rule'); g.lineWidth = 1;
       for (const t of [0, 0.25, 0.5, 0.75, 1]) { g.beginPath(); g.moveTo(0, y(t)); g.lineTo(w, y(t)); g.stroke(); }
       g.fillStyle = col('--muted'); g.font = '10px ' + col('--font-mono');
       g.fillText('1 turn', 2, y(1) + 10); g.fillText('0', 2, y(0) - 2); g.fillText('½', 2, y(0.5) - 2);
       { let mx = 1; for (const v of dS) mx = Math.max(mx, v);        // open phase debts, as a band along the bottom
         const bh = 26; g.fillStyle = col('--meas');
-        for (let c = 0; c < cols; c++) { const x0 = c * w / cols, cw = Math.max(1, w / cols);
-          if (dS[c]) { g.globalAlpha = 0.3; const hh = dS[c] / mx * bh; g.fillRect(x0, h - hh, cw, hh); }
-          if (dK[c]) { g.globalAlpha = 0.9; const hh = dK[c] / mx * bh; g.fillRect(x0, h - hh, cw, hh); } }
+        for (let c = 0; c < cols; c++) { const x0 = cx(c), cwd = Math.max(1, cw);
+          if (dS[c]) { g.globalAlpha = 0.3; const hh = dS[c] / mx * bh; g.fillRect(x0, h - hh, cwd, hh); }
+          if (dK[c]) { g.globalAlpha = 0.9; const hh = dK[c] / mx * bh; g.fillRect(x0, h - hh, cwd, hh); } }
         g.globalAlpha = 1; g.fillStyle = col('--muted'); g.fillText('open debts (max ' + mx + ')', Math.max(2, w - 120), h - bh - 3); }
       const tgt = ((1 / Math.sqrt(state.x)) % 1 + 1) % 1;
       g.strokeStyle = col('--target'); g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, y(tgt)); g.lineTo(w, y(tgt)); g.stroke(); g.setLineDash([]);
       g.lineWidth = 2;
       const lastC = state.reveal == null ? cols : Math.min(cols, state.reveal + 1);
-      for (let c = 1; c < lastC; c++) { const x0 = (c - 0.5) * w / cols, x1 = (c + 0.5) * w / cols;
+      for (let c = 1; c < lastC; c++) { const x0 = mid(c - 1), x1 = mid(c);
         g.strokeStyle = hueOf(ph[c]); g.beginPath();
         if (Math.abs(ph[c] - ph[c - 1]) > 0.5) { g.moveTo(x1, y(ph[c])); g.lineTo(x1 + 0.01, y(ph[c])); }
         else { g.moveTo(x0, y(ph[c - 1])); g.lineTo(x1, y(ph[c])); }
         g.stroke(); }
-      playhead(g, w, h);
+      playhead(g, h);
     }
     drawDial(state.ph.active && state.snap ? state.snap.phase.turns : T.turns(R.r.phase));
     drawTol();
+  }
+  // One glyph per gate when there are at least 5 px per op: a line across its wires, dots on controls (and on
+  // every wire of a Z-type gate), a ring on an X target, crosses on swapped wires, a square on R/HMR, a diamond on
+  // a rotation. Toffoli-class in red, measurement-based in gold, skipped (condition false) in grey.
+  function drawGlyphs(g, ia, ib, X, k, rh, laneY, reveal, cols, spanI) {
+    const ink = col('--ink'), tofC = col('--tof'), measC = col('--meas'), skipC = col('--skip'), phC = col('--phase');
+    const tr = C.trace, r = Math.max(1.5, Math.min(rh, k) / 2 - 0.5);
+    for (let i = ia; i < ib; i++) {
+      const qs = C.opq[i]; if (!qs.length) continue;
+      const c = C.data.ops[i][0], ran = tr.ran[i];
+      const colr = !ran ? skipC : (c === 2 || c === 5 || c === 7) ? tofC : (c === 8 || c === 9) ? measC : c === 11 ? phC : ink;
+      g.globalAlpha = Math.min(cols - 1, Math.floor((i - ia) * cols / spanI)) < reveal ? 1 : 0.3;
+      const x = X(i + 0.5), ys = qs.map(q => laneY(q) + rh / 2);
+      g.strokeStyle = colr; g.fillStyle = colr; g.lineWidth = 1;
+      if (qs.length > 1) { g.beginPath(); g.moveTo(x, Math.min(...ys)); g.lineTo(x, Math.max(...ys)); g.stroke(); }
+      qs.forEach((q, j) => { const y = ys[j], last = j === qs.length - 1;
+        if (isX(c) && last) { g.beginPath(); g.arc(x, y, r + 0.5, 0, 7); g.fillStyle = col('--panel'); g.fill(); g.stroke(); g.fillStyle = colr; }
+        else if (c === 6 || (c === 7 && j > 0)) { g.beginPath(); g.moveTo(x - r, y - r); g.lineTo(x + r, y + r); g.moveTo(x + r, y - r); g.lineTo(x - r, y + r); g.stroke(); }
+        else if (c === 8 || c === 9) g.fillRect(x - r, y - r, 2 * r, 2 * r);
+        else if (c === 11) { g.beginPath(); g.moveTo(x, y - r - 0.5); g.lineTo(x + r + 0.5, y); g.lineTo(x, y + r + 0.5); g.lineTo(x - r - 0.5, y); g.closePath(); g.fill(); }
+        else { g.beginPath(); g.arc(x, y, Math.max(1.2, r * 0.75), 0, 7); g.fill(); } });
+    }
+    g.globalAlpha = 1;
   }
   function drawDial(t) {
     const { g, w, h } = sizeCanvas($('dial'), 96), cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 6;
@@ -690,22 +801,126 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     $('precStats').innerHTML = rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('');
   }
 
-  // ---- raster tooltip and ribbon click
+  // ---- raster tooltip, lane pinning and ribbon click
   $('ribbon').addEventListener('click', (e) => {
-    const R = state.res, rect = e.currentTarget.getBoundingClientRect(), op = R.a + (e.clientX - rect.left) / rect.width * (R.b - R.a);
-    const s = C.stages.find(s => op >= s.start && op < s.end); if (s) setView(state.view && state.view.id === s.id ? null : s);
+    const rect = e.currentTarget.getBoundingClientRect(), op = V.opAt(state.win, e.clientX - rect.left, rect.width);
+    const s = C.stages.find(s => op >= s.start && op < s.end); if (s) setView(state.view && state.view.id === s.id && state.winIsStage ? null : s);
   });
   const tip = $('tip');
+  function laneAt(e) {
+    const R = state.res, rect = $('raster').getBoundingClientRect(), q = R.NQ - 1 - Math.floor((e.clientY - rect.top) / R.rh);
+    const op = Math.max(R.ia, Math.min(R.ib - 1, Math.floor(V.opAt(state.win, e.clientX - rect.left, rect.width))));
+    return { q, op, c: Math.min(R.cols - 1, Math.floor((op - R.ia) * R.cols / Math.max(1, R.ib - R.ia))), rect };
+  }
   $('raster').addEventListener('mousemove', (e) => {
-    const R = state.res, rect = e.currentTarget.getBoundingClientRect();
-    const c = Math.min(R.cols - 1, Math.floor((e.clientX - rect.left) / rect.width * R.cols)), k = R.NQ - 1 - Math.floor((e.clientY - rect.top) / R.rh);
-    if (k < 0 || k >= R.NQ) { tip.hidden = true; return; }
-    const op = Math.floor(R.a + c * (R.b - R.a) / R.cols), si = C.opStage[op], s = si >= 0 ? C.stages[si] : null;
-    const gs = C.groups.filter(g => g.qubits.includes(k) && g.name !== 'scratch').map(g => g.name).join(', ') || (C.xset.has(k) ? 'x' : 'scratch');
-    tip.innerHTML = `q${k} = ${R.bits[c * R.NQ + k]} · ${gs}<br>op ${fmt(op)} ${C.data.kinds[C.data.ops[op][0]]} · ${s ? s.title : ''}`;
+    const R = state.res, { q, op, c, rect } = laneAt(e);
+    if (q < 0 || q >= R.NQ) { tip.hidden = true; return; }
+    const si = C.opStage[op], s = si >= 0 ? C.stages[si] : null;
+    const gs = C.groups.filter(g => g.qubits.includes(q) && g.name !== 'scratch').map(g => g.name).join(', ') || (C.xset.has(q) ? 'x' : 'scratch');
+    const opBits = C.opq[op].length ? ' ' + C.opq[op].map(k => 'q' + k).join(' ') : '';
+    tip.innerHTML = `q${q} = ${R.bits[c * R.NQ + q]} · ${esc(gs)}${state.pins.includes(q) ? ' · highlighted' : ''}<br>op ${fmt(op)} ${C.data.kinds[C.data.ops[op][0]]}${opBits} · ${s ? esc(s.title) : ''}`;
     tip.style.left = Math.min(Math.max(e.clientX - rect.left, 120), rect.width - 120) + 'px'; tip.style.top = (e.clientY - rect.top) + 'px'; tip.hidden = false;
   });
   $('raster').addEventListener('mouseleave', () => { tip.hidden = true; });
+  $('raster').addEventListener('click', (e) => { const { q } = laneAt(e); if (q >= 0 && q < state.res.NQ) togglePin(q); });
+
+  // ---- highlighted (pinned) qubits
+  function togglePin(q) {
+    const before = state.pins, after = Pins.toggle(before, q);
+    state.pins = after;
+    const dropped = before.filter(k => k !== q && !after.includes(k));
+    $('hlStatus').textContent = before.includes(q) ? `q${q} no longer highlighted` :
+      `q${q} highlighted${dropped.length ? `; q${dropped.join(', q')} unpinned (at most ${Pins.MAX})` : ''}`;
+    renderPins(); draw(); renderSnap(); syncURL();
+  }
+  function renderPins() {
+    const box = $('hlList');
+    box.innerHTML = state.pins.map((q, j) => `<button type="button" class="chip" data-q="${q}" aria-label="Stop highlighting qubit ${q}" title="Stop highlighting q${q}"><i style="border-color:var(--hl${j + 1})"></i>q${q} ×</button>`).join('');
+    for (const bt of box.children) bt.addEventListener('click', () => { const q = +bt.dataset.q, j = state.pins.indexOf(q); togglePin(q);
+      const nx = box.children[Math.min(j, box.children.length - 1)]; (nx || $('hlIn')).focus(); });
+  }
+  function pinFromInput() {
+    const v = $('hlIn').value.trim(), q = Number(v);
+    if (v === '' || !Number.isInteger(q) || q < 0 || q >= C.P.nq) { $('hlStatus').textContent = `Enter a qubit from 0 to ${C.P.nq - 1}`; return; }
+    if (!state.pins.includes(q)) togglePin(q); else $('hlStatus').textContent = `q${q} is already highlighted`;
+    $('hlIn').value = '';
+  }
+  $('hlAdd').addEventListener('click', pinFromInput);
+  $('hlIn').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); pinFromInput(); } });
+
+  // ---- zoom and pan: buttons, wheel, pointers (drag and pinch) and the overview strip
+  $('zIn').addEventListener('click', () => zoomBy(V.STEP));
+  $('zOut').addEventListener('click', () => zoomBy(1 / V.STEP));
+  function onWheel(e) {
+    const rect = $('raster').getBoundingClientRect();
+    const res = V.wheel(state.win, e, e.clientX - rect.left, rect.width, C.P.n, minSpan());
+    if (res.consumed) e.preventDefault();
+    if (res.view !== state.win) userWin(res.view);
+  }
+  let G = CV.Gesture.init(), dragged = false;
+  function attachGestures(el) {
+    const pos = (e) => { const r = $('raster').getBoundingClientRect(); return [e.clientX - r.left, e.clientY - r.top]; };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    el.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      if (e.pointerType === 'mouse' || !G.ptrs.size) { G = CV.Gesture.init(); dragged = false; }
+      const [x, y] = pos(e); G = CV.Gesture.down(G, e.pointerId, x, y, state.win);
+    });
+    el.addEventListener('pointermove', (e) => {
+      if (!G.ptrs.has(e.pointerId)) return;
+      const [x, y] = pos(e), m = CV.Gesture.move(G, e.pointerId, x, y, { w: diagramW(), n: C.P.n, minSpan: minSpan() });
+      G = m.g;
+      if (G.dragging) { dragged = true; tip.hidden = true; el.classList.add('dragging'); try { el.setPointerCapture(e.pointerId); } catch (err) {} }
+      if (m.view) userWin(m.view);
+    });
+    const end = (e) => {
+      if (!G.ptrs.has(e.pointerId)) return;
+      G = CV.Gesture.up(G, e.pointerId, state.win).g;
+      if (!G.ptrs.size) { el.classList.remove('dragging'); setTimeout(() => { if (!G.ptrs.size) dragged = false; }, 0); }   // after the click it suppresses
+    };
+    el.addEventListener('pointerup', end); el.addEventListener('pointercancel', end);
+    el.addEventListener('click', (e) => { if (dragged) { e.stopPropagation(); e.preventDefault(); dragged = false; } }, true);   // a drag is not a click
+  }
+  attachGestures($('diagram')); attachGestures($('phaseTrack'));
+
+  // The overview strip: the whole circuit (stages and qubits holding 1 for this x) with the visible window boxed.
+  function drawOverview() {
+    const tr = C.trace; if (!tr) return;
+    const { g, w, h } = sizeCanvas($('overview'), 26), n = C.P.n, X = (op) => op / n * w;
+    g.fillStyle = col('--zero'); g.fillRect(0, 0, w, h);
+    C.stages.forEach((s, j) => { g.fillStyle = s.ev.includes('documented') ? col('--doc') : s.ev.includes('inferred') ? col('--inf') : col('--muted');
+      g.globalAlpha = 0.12 + 0.12 * (j % 2); g.fillRect(X(s.start), 0, X(s.end) - X(s.start), h); });
+    const cols = Math.max(1, Math.floor(w));
+    if (!tr.overview || tr.overview.length !== cols) {           // per pixel: most qubits holding 1
+      const o = new Uint16Array(cols); for (let i = 0; i < n; i++) { const c = Math.min(cols - 1, Math.floor(i * cols / n)); if (tr.live[i] > o[c]) o[c] = tr.live[i]; }
+      tr.overview = o; }
+    const mx = Math.max(1, C.other.length); g.fillStyle = col('--one'); g.globalAlpha = 0.55;
+    for (let c = 0; c < cols; c++) if (tr.overview[c]) { const hh = tr.overview[c] / mx * (h - 4); g.fillRect(c, h - 2 - hh, 1, hh); }
+    g.globalAlpha = 1;
+    const wa = X(state.win.a), wb = X(state.win.b), ww = Math.max(4, wb - wa), x0 = Math.min(wa, w - ww);
+    if (!V.isFull(state.win, n)) { g.fillStyle = col('--bg'); g.globalAlpha = 0.6; g.fillRect(0, 0, x0, h); g.fillRect(x0 + ww, 0, w - x0 - ww, h); g.globalAlpha = 1; }
+    g.strokeStyle = col('--phase'); g.lineWidth = 2; g.strokeRect(x0 + 1, 1, ww - 2, h - 2);
+    if (state.ph.active) { g.fillStyle = col('--ink'); g.fillRect(X(state.ph.op) - 0.5, 0, 1.5, h); }
+  }
+  { const ov = $('overview'); let grab = null;
+    const opOf = (e) => { const r = ov.getBoundingClientRect(); return (e.clientX - r.left) / r.width * C.P.n; };
+    ov.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'mouse' && e.button !== 0) return;
+      const op = opOf(e), w = state.win, s = w.b - w.a;
+      grab = op >= w.a && op <= w.b ? op - w.a : s / 2;               // grab the box where it was pressed, or centre it here
+      try { ov.setPointerCapture(e.pointerId); } catch (err) {}
+      userWin({ a: op - grab, b: op - grab + s }); e.preventDefault();
+    });
+    ov.addEventListener('pointermove', (e) => { if (grab == null) return; const op = opOf(e), s = state.win.b - state.win.a; userWin({ a: op - grab, b: op - grab + s }); });
+    const done = () => { grab = null; }; ov.addEventListener('pointerup', done); ov.addEventListener('pointercancel', done);
+    ov.addEventListener('wheel', onWheel, { passive: false });
+    ov.addEventListener('keydown', (e) => {
+      const w = state.win, s = w.b - w.a, n = C.P.n;
+      const d = { ArrowLeft: -s / 10, ArrowRight: s / 10, PageUp: -s, PageDown: s, Home: -n, End: n }[e.key];
+      if (d == null || e.ctrlKey || e.metaKey || e.altKey) return;
+      e.preventDefault(); userWin(V.pan(w, e.shiftKey ? Math.sign(d) * s : d, n));
+    });
+  }
 
   // ---- readouts
   function renderReadouts() {
@@ -784,9 +999,10 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   }
 
   // ---- playhead: (op, playing, speed). Play and Pause keep the position; Stop is the only rewind.
+  // Play runs over the visible window (a picked stage, or wherever the diagram is zoomed to).
   function phCtx() {
-    const n = C.P.n, v = state.view;
-    return { n, lo: v ? v.start : 0, hi: v ? v.end : n, tof: C.A.tof, meas: C.A.meas, stages: C.A.stageStarts, loop: state.loop };
+    const n = C.P.n, w = state.win || V.full(n);
+    return { n, lo: Math.max(0, Math.floor(w.a)), hi: Math.min(n, Math.ceil(w.b)), tof: C.A.tof, meas: C.A.meas, stages: C.A.stageStarts, loop: state.loop };
   }
   let raf = null, lastTs = 0, snapAt = 0;
   function dispatch(action) {
@@ -797,10 +1013,21 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     if (ph.playing && !prev.playing) { stopSweep(); lastTs = 0; raf = requestAnimationFrame(frame); }
     $('playBtn').setAttribute('aria-pressed', String(ph.playing)); $('playBtn').textContent = ph.playing ? '❚❚ Pause' : '▶ Play';
     $('playStatus').setAttribute('aria-live', ph.playing ? 'off' : 'polite');
-    if (state.view && ph.active && (ph.op < state.view.start || ph.op >= state.view.end)) { setView(null); return; }   // jumped out of the zoomed stage
+    let relayout = false;                                  // a step or jump out of the window moves the window
+    if (ph.active && (ph.op < state.win.a || ph.op + 1 > state.win.b)) {
+      if (state.view && state.winIsStage) {                // a picked stage: follow into the stage the playhead is now in
+        const s = C.stages.find(s => ph.op >= s.start && ph.op < s.end) || null;
+        state.view = s; state.winIsStage = !!s; state.win = s ? V.clamp({ a: s.start, b: s.end }, C.P.n, minSpan()) : V.full(C.P.n);
+        renderStageCard(); updateStageRows();
+      } else {
+        state.win = V.reveal(state.win, ph.op, C.P.n);
+        if (state.view && !(state.win.b > state.view.start && state.win.a < state.view.end)) { state.view = null; renderStageCard(); updateStageRows(); }
+      }
+      relayout = true;
+    }
     const now = performance.now();
     if (!ph.playing || now - snapAt > 100) { renderSnap(); snapAt = now; }
-    draw();
+    if (relayout) layout(); else { draw(); drawOverview(); }
     if (!ph.playing) syncURL();
   }
   function frame(ts) {
@@ -824,6 +1051,9 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     const t = e.target, tag = t && t.tagName, scrub = t === $('scrub');
     const typing = (tag === 'INPUT' && !scrub) || tag === 'SELECT' || tag === 'TEXTAREA' || (t && t.isContentEditable);
     if (typing) return;
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomBy(V.STEP); return; }
+    if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomBy(1 / V.STEP); return; }
+    if (e.key === '0') { e.preventDefault(); setView(null); return; }
     let act = null;
     if (e.key === ' ') { if (tag === 'BUTTON' || tag === 'A' || tag === 'TR') return; act = { type: 'toggle' }; }
     else if (e.key === 'ArrowLeft') act = e.shiftKey ? NAV.prevTof : NAV.back;
@@ -884,7 +1114,36 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <div class="blk wide"><h3>Registers for x = ${fmt(state.x)}</h3><div class="tablebox"><table><thead><tr><th>Group</th><th class="num">Value</th><th>Bits (the gate's changes in red)</th></tr></thead><tbody>${regRows}</tbody></table></div></div>
       <div class="blk"><h3>Open values${L.open_values.length > 8 ? ` (first 8 of ${L.open_values.length})` : ''}</h3><div class="tablebox"><table><thead><tr><th>Wire</th><th class="num">opened</th><th class="num">closes</th><th>settled by</th></tr></thead><tbody>${ov || '<tr><td colspan="4">none</td></tr>'}</tbody></table></div></div>
       <div class="blk"><h3>Open phase debts${L.open_debts.length > 8 ? ` (first 8 of ${L.open_debts.length})` : ''}</h3><div class="tablebox"><table><thead><tr><th>Wire</th><th class="num">HMR</th><th class="num">repaid at</th><th>this x</th></tr></thead><tbody>${od || '<tr><td colspan="4">none</td></tr>'}</tbody></table></div></div>
-      <div class="blk"><h3>Idle wires</h3><p class="small">Live, but untouched for the next ${fmt(S.idle.k)} ops: ${idle}.</p></div>`;
+      <div class="blk"><h3>Idle wires</h3><p class="small">Live, but untouched for the next ${fmt(S.idle.k)} ops: ${idle}.</p></div>
+      ${pinnedBlock(op, g)}`;
+  }
+  // Highlighted qubits at the stop point: value after this op, its lifetime (render.py width semantics) and touches.
+  const SETTLE = ['contra', 'accrual', 'dead-tail'];
+  function lifeAt(q, op) {
+    const A = C.A, V_ = A.values, vs = A.byWire[q] || [];
+    if (A.isReg[q]) return { live: true, text: 'register: live throughout' };
+    let prev = null, next = null;
+    for (const v of vs) {
+      if (V_.a[v] <= op && op <= V_.b[v]) return { live: true, text: `live, ops ${fmt(V_.a[v])}–${fmt(V_.b[v])} (${fmt(V_.b[v] - V_.a[v] + 1)} ops; closes by ${SETTLE[V_.kind[v]]})` };
+      if (V_.b[v] < op) prev = v; else if (next == null) next = v;
+    }
+    if (prev == null && next == null) return { live: false, text: 'never used' };
+    return { live: false, text: 'free' + (prev != null ? `; last lifetime ended at op ${fmt(V_.b[prev])}` : '') + (next != null ? `; next starts at op ${fmt(V_.a[next])}` : '') };
+  }
+  function pinnedBlock(op, g) {
+    if (!state.pins.length) return `<div class="blk"><h3>Highlighted qubits</h3><p class="small">Click or tap a lane in the raster, or use "Highlight qubit", to follow up to ${Pins.MAX} qubits here.</p></div>`;
+    const tr = C.trace, A = C.A;
+    const rows = state.pins.map((q, j) => {
+      const tl = A.touches[q] || [], lo = (() => { let l = 0, h = tl.length; while (l < h) { const m = (l + h) >> 1; if (tl[m] <= op) l = m + 1; else h = m; } return l; })();
+      const last = lo > 0 ? tl[lo - 1] : null, nxt = lo < tl.length ? tl[lo] : null, L = lifeAt(q, op);
+      const grp = C.groups.filter(gr => gr.qubits.includes(q) && gr.name !== 'scratch').map(gr => gr.name).join(', ') || (C.xset.has(q) ? 'x' : 'scratch');
+      const val = tr && op < tr.n ? CV.Trace.bit(tr, op, q) : '–', here = g.qubits.includes(q);
+      return `<tr><td class="mono"><i class="hlsw" style="border-color:var(--hl${j + 1});vertical-align:-1px"></i> q${q}</td><td>${esc(grp)}</td>
+        <td class="num">${here && g.changed_qubits.includes(q) ? `<b class="bad">${val}</b>` : val}</td><td>${L.text}</td>
+        <td class="num">${last == null ? '–' : fmt(last)}${here ? ' (this gate)' : ''}</td><td class="num">${nxt == null ? '–' : fmt(nxt)}</td></tr>`;
+    }).join('');
+    return `<div class="blk wide"><h3>Highlighted qubits</h3><div class="tablebox"><table><thead><tr><th>Qubit</th><th>Group</th><th class="num">Value</th><th>Lifetime at this op</th><th class="num">Last touched</th><th class="num">Next touch</th></tr></thead><tbody>${rows}</tbody></table></div>
+      <p class="small">Value after op ${fmt(op)} for x = ${fmt(state.x)} (red when this gate changed it). Lifetimes as <span class="mono">render.py width</span> counts them.</p></div>`;
   }
   async function copySnap() {
     if (!state.snap) renderSnap();
@@ -963,9 +1222,13 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   onCircuitChange();
   const xP = parseInt(URLP.get('x'), 10); if (xP >= 1) setX(xP);
   const st = C.stages.find(s => s.id === h); if (st) setView(st);
+  const vP = V.parse(URLP.get('view'), C.P.n, minSpan());
+  if (vP) { state.win = vP; state.winIsStage = false; if (state.view && !(vP.b > state.view.start && vP.a < state.view.end)) state.view = null; layout(); renderStageCard(); updateStageRows(); }
+  state.pins = Pins.parse(URLP.get('hl'), C.P.nq); if (state.pins.length) { renderPins(); draw(); renderSnap(); }
   const opP = parseInt(URLP.get('op'), 10); if (opP >= 0) dispatch({ type: 'seek', op: opP });
-  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(compute, 150); });
-  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
-  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(layout, 150); });
+  const redraw = () => { draw(); drawOverview(); };
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
+  new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 })();
 </script>

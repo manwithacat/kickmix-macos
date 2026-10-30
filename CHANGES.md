@@ -15,6 +15,18 @@
 
 ## Tooling changes
 
+- 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself, `tracer.js` unchanged): zoom, pan and highlighted
+  qubits. The diagram zooms on the op axis with pinch, Ctrl/⌘ + scroll at the cursor, −/+ buttons and the + − 0 keys,
+  and pans by dragging, sideways or Shift + scroll, or an overview strip with the visible window boxed. Each window is
+  redrawn at full resolution from a stored per-op trace (the tracer runs once per x), with a glyph per gate from about
+  5 pixels per op. Stage clicks set the window, play stays inside it, and `&view=a-b` keeps it in the address bar.
+  Clicking or tapping a lane pins a highlight on that qubit (up to four, distinct outline colours in both themes, also
+  from a "Highlight qubit" field, kept as `&hl=…`), and the snapshot panel shows each pinned qubit's value, lifetime
+  and touches at the stop point. The current gate's wire outlines are now drawn only when paused or stepping; during
+  play they changed every frame and flickered. "Taller lanes" doubles the lane height. New `view.js` and Node tests
+  `tests/viewer/view.test.js` (zoom maths, clamping, pinch and wheel handling, gestures, highlight state, URL
+  round-trips, and re-binning against a fresh tracer pass). Written with AI assistance (Claude, Anthropic) under the
+  repository owner's direction, from the owner's feedback.
 - 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself): a playhead and a snapshot of the stop point.
   Play and Pause keep the position and only Stop rewinds (Play then Stop used to reset to the start). New controls
   step one op, jump to the previous or next Toffoli, stage boundary or measurement (also on the keyboard: Space,

@@ -574,5 +574,8 @@ def test_cli_snapshot_contract(tmp_path):
 
 @needs_node
 def test_viewer_playhead_node():
-    r = subprocess.run([NODE, "--test", str(ROOT / "tests" / "viewer")], capture_output=True, text=True, timeout=300)
+    # Name the test files: older Node (as on CI runners) treats a directory argument to --test as a module path.
+    files = sorted(str(p) for p in (ROOT / "tests" / "viewer").glob("*.test.js"))
+    assert files, "no viewer tests found"
+    r = subprocess.run([NODE, "--test", *files], capture_output=True, text=True, timeout=300)
     assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-2000:]

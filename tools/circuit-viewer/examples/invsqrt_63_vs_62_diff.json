@@ -1,0 +1,1349 @@
+{
+ "verb": "diff",
+ "circuits": [
+  {
+   "path": "circuits/9a8627c81283.kmb",
+   "sha12": "9a8627c81283",
+   "ops": 45576,
+   "qubits": 63
+  },
+  {
+   "path": "circuits/6dbb98b34c3b.kmb",
+   "sha12": "6dbb98b34c3b",
+   "ops": 47201,
+   "qubits": 62
+  }
+ ],
+ "facts": {
+  "stages": "rot",
+  "alignment": "whole-circuit op alignment",
+  "stages_same": 0,
+  "stages_changed": 5,
+  "edits": 65,
+  "ops": [
+   45576,
+   47201
+  ],
+  "toffoli_static": [
+   1397,
+   1501
+  ],
+  "certified_width": [
+   63,
+   62
+  ],
+  "header_qubits": [
+   63,
+   62
+  ]
+ },
+ "stages": [
+  {
+   "stage": "pre",
+   "status": "changed",
+   "level": "op",
+   "ops": [
+    16698,
+    15253
+   ],
+   "toffoli": [
+    253,
+    258
+   ],
+   "edits": 20
+  },
+  {
+   "stage": "rot1",
+   "status": "changed",
+   "level": "op",
+   "ops": [
+    360,
+    321
+   ],
+   "toffoli": [
+    55,
+    57
+   ],
+   "edits": 1
+  },
+  {
+   "stage": "mid1",
+   "status": "changed",
+   "level": "op",
+   "ops": [
+    9897,
+    10056
+   ],
+   "toffoli": [
+    408,
+    411
+   ],
+   "edits": 9
+  },
+  {
+   "stage": "rot2",
+   "status": "changed",
+   "level": "op",
+   "ops": [
+    256,
+    241
+   ],
+   "toffoli": [
+    90,
+    91
+   ],
+   "edits": 5
+  },
+  {
+   "stage": "post",
+   "status": "changed",
+   "level": "op",
+   "ops": [
+    18365,
+    21330
+   ],
+   "toffoli": [
+    591,
+    684
+   ],
+   "edits": 33
+  }
+ ],
+ "edits": [
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    4140,
+    4441
+   ],
+   "b": [
+    4140,
+    6988
+   ],
+   "ops": [
+    301,
+    2848
+   ],
+   "d_toffoli": 29,
+   "d_hmr": 0
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    4465,
+    4720
+   ],
+   "b": [
+    7012,
+    7080
+   ],
+   "ops": [
+    255,
+    68
+   ],
+   "d_toffoli": -1,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    4741,
+    4815
+   ],
+   "b": [
+    7101,
+    7696
+   ],
+   "ops": [
+    74,
+    595
+   ],
+   "d_toffoli": 6,
+   "d_hmr": 0
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    4838,
+    6237
+   ],
+   "b": [
+    7719,
+    7933
+   ],
+   "ops": [
+    1399,
+    214
+   ],
+   "d_toffoli": -10,
+   "d_hmr": -3
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    6256,
+    6994
+   ],
+   "b": [
+    7952,
+    8033
+   ],
+   "ops": [
+    738,
+    81
+   ],
+   "d_toffoli": -5,
+   "d_hmr": -2
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    7012,
+    7638
+   ],
+   "b": [
+    8051,
+    8202
+   ],
+   "ops": [
+    626,
+    151
+   ],
+   "d_toffoli": -4,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    7659,
+    7815
+   ],
+   "b": [
+    8223,
+    8909
+   ],
+   "ops": [
+    156,
+    686
+   ],
+   "d_toffoli": 7,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    7834,
+    8518
+   ],
+   "b": [
+    8928,
+    8989
+   ],
+   "ops": [
+    684,
+    61
+   ],
+   "d_toffoli": -6,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    8543,
+    8939
+   ],
+   "b": [
+    9014,
+    9448
+   ],
+   "ops": [
+    396,
+    434
+   ],
+   "d_toffoli": 1,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    8961,
+    9272
+   ],
+   "b": [
+    9470,
+    9822
+   ],
+   "ops": [
+    311,
+    352
+   ],
+   "d_toffoli": 1,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    9291,
+    10143
+   ],
+   "b": [
+    9841,
+    9911
+   ],
+   "ops": [
+    852,
+    70
+   ],
+   "d_toffoli": -7,
+   "d_hmr": -2
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    10160,
+    11513
+   ],
+   "b": [
+    9928,
+    10078
+   ],
+   "ops": [
+    1353,
+    150
+   ],
+   "d_toffoli": -11,
+   "d_hmr": -3
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    11537,
+    13465
+   ],
+   "b": [
+    10102,
+    10275
+   ],
+   "ops": [
+    1928,
+    173
+   ],
+   "d_toffoli": -16,
+   "d_hmr": -5
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    13487,
+    13635
+   ],
+   "b": [
+    10297,
+    10550
+   ],
+   "ops": [
+    148,
+    253
+   ],
+   "d_toffoli": 1,
+   "d_hmr": 0
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    13652,
+    14430
+   ],
+   "b": [
+    10567,
+    11089
+   ],
+   "ops": [
+    778,
+    522
+   ],
+   "d_toffoli": -1,
+   "d_hmr": -2
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    14452,
+    15586
+   ],
+   "b": [
+    11111,
+    11704
+   ],
+   "ops": [
+    1134,
+    593
+   ],
+   "d_toffoli": -4,
+   "d_hmr": -3
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    15607,
+    15672
+   ],
+   "b": [
+    11725,
+    12167
+   ],
+   "ops": [
+    65,
+    442
+   ],
+   "d_toffoli": 4,
+   "d_hmr": 0
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    15693,
+    16177
+   ],
+   "b": [
+    12188,
+    12442
+   ],
+   "ops": [
+    484,
+    254
+   ],
+   "d_toffoli": -2,
+   "d_hmr": -1
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    16197,
+    16660
+   ],
+   "b": [
+    12462,
+    15217
+   ],
+   "ops": [
+    463,
+    2755
+   ],
+   "d_toffoli": 23,
+   "d_hmr": 0
+  },
+  {
+   "stage": "pre",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    16686,
+    17071
+   ],
+   "b": [
+    15243,
+    15587
+   ],
+   "ops": [
+    385,
+    344
+   ],
+   "d_toffoli": 2,
+   "d_hmr": -5
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    17169,
+    17302
+   ],
+   "b": [
+    15685,
+    16041
+   ],
+   "ops": [
+    133,
+    356
+   ],
+   "d_toffoli": 12,
+   "d_hmr": -2
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    17350,
+    17369
+   ],
+   "b": [
+    16089,
+    16106
+   ],
+   "ops": [
+    19,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    17403,
+    17429
+   ],
+   "b": [
+    16140,
+    16166
+   ],
+   "ops": [
+    26,
+    26
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    22456,
+    22979
+   ],
+   "b": [
+    21193,
+    21620
+   ],
+   "ops": [
+    523,
+    427
+   ],
+   "d_toffoli": -15,
+   "d_hmr": -15
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    26464,
+    26483
+   ],
+   "b": [
+    25105,
+    25128
+   ],
+   "ops": [
+    19,
+    23
+   ],
+   "d_toffoli": 3,
+   "d_hmr": 0
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    26518,
+    26589
+   ],
+   "b": [
+    25163,
+    25241
+   ],
+   "ops": [
+    71,
+    78
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 1
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    26626,
+    26848
+   ],
+   "b": [
+    25278,
+    25521
+   ],
+   "ops": [
+    222,
+    243
+   ],
+   "d_toffoli": -2,
+   "d_hmr": 1
+  },
+  {
+   "stage": "mid1",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    26911,
+    26993
+   ],
+   "b": [
+    25584,
+    25666
+   ],
+   "ops": [
+    82,
+    82
+   ],
+   "d_toffoli": 1,
+   "d_hmr": 0
+  },
+  {
+   "stage": "rot2",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    27015,
+    27035
+   ],
+   "b": [
+    25688,
+    25717
+   ],
+   "ops": [
+    20,
+    29
+   ],
+   "d_toffoli": 4,
+   "d_hmr": 1
+  },
+  {
+   "stage": "rot2",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    27059,
+    27087
+   ],
+   "b": [
+    25741,
+    25754
+   ],
+   "ops": [
+    28,
+    13
+   ],
+   "d_toffoli": -4,
+   "d_hmr": -1
+  },
+  {
+   "stage": "rot2",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    27113,
+    27135
+   ],
+   "b": [
+    25780,
+    25789
+   ],
+   "ops": [
+    22,
+    9
+   ],
+   "d_toffoli": -4,
+   "d_hmr": -1
+  },
+  {
+   "stage": "rot2",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    27157,
+    27198
+   ],
+   "b": [
+    25811,
+    25858
+   ],
+   "ops": [
+    41,
+    47
+   ],
+   "d_toffoli": 5,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    27777,
+    28121
+   ],
+   "b": [
+    26437,
+    28757
+   ],
+   "ops": [
+    344,
+    2320
+   ],
+   "d_toffoli": 72,
+   "d_hmr": -3
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    28266,
+    28323
+   ],
+   "b": [
+    28902,
+    28965
+   ],
+   "ops": [
+    57,
+    63
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    28381,
+    28408
+   ],
+   "b": [
+    29023,
+    29053
+   ],
+   "ops": [
+    27,
+    30
+   ],
+   "d_toffoli": 1,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    28450,
+    28476
+   ],
+   "b": [
+    29095,
+    29125
+   ],
+   "ops": [
+    26,
+    30
+   ],
+   "d_toffoli": 0,
+   "d_hmr": -1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    28592,
+    28617
+   ],
+   "b": [
+    29241,
+    29269
+   ],
+   "ops": [
+    25,
+    28
+   ],
+   "d_toffoli": 0,
+   "d_hmr": -1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    28749,
+    28773
+   ],
+   "b": [
+    29401,
+    29428
+   ],
+   "ops": [
+    24,
+    27
+   ],
+   "d_toffoli": 0,
+   "d_hmr": -1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    28823,
+    28842
+   ],
+   "b": [
+    29478,
+    29501
+   ],
+   "ops": [
+    19,
+    23
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    30399,
+    30420
+   ],
+   "b": [
+    31058,
+    31087
+   ],
+   "ops": [
+    21,
+    29
+   ],
+   "d_toffoli": -1,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    35119,
+    35163
+   ],
+   "b": [
+    35786,
+    35838
+   ],
+   "ops": [
+    44,
+    52
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    35269,
+    35302
+   ],
+   "b": [
+    35944,
+    35982
+   ],
+   "ops": [
+    33,
+    38
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    35419,
+    35452
+   ],
+   "b": [
+    36099,
+    36139
+   ],
+   "ops": [
+    33,
+    40
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    35577,
+    35606
+   ],
+   "b": [
+    36264,
+    36297
+   ],
+   "ops": [
+    29,
+    33
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    35740,
+    35770
+   ],
+   "b": [
+    36431,
+    36467
+   ],
+   "ops": [
+    30,
+    36
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    35909,
+    35935
+   ],
+   "b": [
+    36606,
+    36634
+   ],
+   "ops": [
+    26,
+    28
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    43478,
+    43478
+   ],
+   "b": [
+    44177,
+    44261
+   ],
+   "ops": [
+    0,
+    84
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    43533,
+    43556
+   ],
+   "b": [
+    44311,
+    44335
+   ],
+   "ops": [
+    23,
+    24
+   ],
+   "d_toffoli": 0,
+   "d_hmr": -1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    43666,
+    43690
+   ],
+   "b": [
+    44445,
+    44552
+   ],
+   "ops": [
+    24,
+    107
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    43792,
+    43819
+   ],
+   "b": [
+    44654,
+    44766
+   ],
+   "ops": [
+    27,
+    112
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    43925,
+    43951
+   ],
+   "b": [
+    44872,
+    44985
+   ],
+   "ops": [
+    26,
+    113
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44052,
+    44073
+   ],
+   "b": [
+    45086,
+    45196
+   ],
+   "ops": [
+    21,
+    110
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44163,
+    44185
+   ],
+   "b": [
+    45286,
+    45399
+   ],
+   "ops": [
+    22,
+    113
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44306,
+    44328
+   ],
+   "b": [
+    45520,
+    45635
+   ],
+   "ops": [
+    22,
+    115
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44444,
+    44463
+   ],
+   "b": [
+    45751,
+    45865
+   ],
+   "ops": [
+    19,
+    114
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44566,
+    44587
+   ],
+   "b": [
+    45968,
+    46086
+   ],
+   "ops": [
+    21,
+    118
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44696,
+    44723
+   ],
+   "b": [
+    46195,
+    46321
+   ],
+   "ops": [
+    27,
+    126
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44813,
+    44867
+   ],
+   "b": [
+    46411,
+    46468
+   ],
+   "ops": [
+    54,
+    57
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    44893,
+    44919
+   ],
+   "b": [
+    46494,
+    46521
+   ],
+   "ops": [
+    26,
+    27
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45099,
+    45136
+   ],
+   "b": [
+    46701,
+    46754
+   ],
+   "ops": [
+    37,
+    53
+   ],
+   "d_toffoli": 2,
+   "d_hmr": 1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45175,
+    45248
+   ],
+   "b": [
+    46793,
+    46874
+   ],
+   "ops": [
+    73,
+    81
+   ],
+   "d_toffoli": -2,
+   "d_hmr": 1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45277,
+    45301
+   ],
+   "b": [
+    46903,
+    46925
+   ],
+   "ops": [
+    24,
+    22
+   ],
+   "d_toffoli": 1,
+   "d_hmr": -1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45340,
+    45371
+   ],
+   "b": [
+    46964,
+    46994
+   ],
+   "ops": [
+    31,
+    30
+   ],
+   "d_toffoli": -1,
+   "d_hmr": 0
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45398,
+    45421
+   ],
+   "b": [
+    47021,
+    47042
+   ],
+   "ops": [
+    23,
+    21
+   ],
+   "d_toffoli": 1,
+   "d_hmr": -1
+  },
+  {
+   "stage": "post",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45525,
+    45571
+   ],
+   "b": [
+    47146,
+    47201
+   ],
+   "ops": [
+    46,
+    55
+   ],
+   "d_toffoli": 0,
+   "d_hmr": -1
+  }
+ ]
+}

@@ -1,0 +1,4066 @@
+{
+ "verb": "ledger",
+ "circuits": [
+  {
+   "path": "circuits/9a8627c81283.kmb",
+   "sha12": "9a8627c81283",
+   "ops": 45576,
+   "qubits": 63
+  }
+ ],
+ "summary": {
+  "task": "invsqrt",
+  "Q": 63,
+  "width": 63,
+  "rate": 25.17,
+  "rate_basis": "(Toffolis + T/4) / Q: cost = Q \u00d7 (Toffolis + T/4)",
+  "values": {
+   "contra": 26,
+   "accrual": 592,
+   "dead-tail": 3
+  },
+  "liabilities": 951,
+  "fixups": 12147,
+  "registers": 22,
+  "capital_charged": 1586.0,
+  "capital_used": 1452.4,
+  "utilisation": 0.9158,
+  "model": {
+   "task": "invsqrt",
+   "Q": 63,
+   "toffoli_static": 1397,
+   "toffoli_used": 1329.5,
+   "toffoli_basis": "caller-supplied mean (--mean-toffolis)",
+   "t_angles": 1,
+   "rotations": 41,
+   "rot_t": 25.0,
+   "toffoli_equiv": 1586.0,
+   "formula": "Q \u00d7 (Toffolis + (T + rotations \u00d7 rot_t) / 4)",
+   "cost": 99917.97,
+   "reference_cost": 2076774.23,
+   "score_ratio": 20.78479
+  }
+ },
+ "facts": {
+  "task": "invsqrt",
+  "width": 63,
+  "Q": 63,
+  "rate_teq_per_qubit": 25.17,
+  "values": {
+   "contra": 26,
+   "accrual": 592,
+   "dead-tail": 3
+  },
+  "liabilities": 951,
+  "fixups": 12147,
+  "utilisation": 0.9158,
+  "aged_top": "q56 idle 17k ops (38%, 5,216 at full width) post\u2192post, contra",
+  "debts_carried": "102 across stages; most mid1\u2192post (61)",
+  "paying_twice": {
+   "tier": "exact-all-x",
+   "groups": 300,
+   "recomputed": 317,
+   "toffoli_per_shot": 317.0
+  },
+  "close": {
+   "tier": "exact-all-x",
+   "balanced": true,
+   "lines": 0
+  }
+ },
+ "trial_balance": [
+  {
+   "stage": "pre",
+   "ops": 16698,
+   "peak": 63,
+   "live": 63,
+   "open": 41,
+   "debts": 2,
+   "opened": 99,
+   "contra": 0,
+   "accrual": 58,
+   "dead-tail": 0,
+   "accum": 36,
+   "hmr": 60,
+   "fixups": 63,
+   "batch": [
+    24,
+    88,
+    21
+   ],
+   "toffoli": 253,
+   "toffoli_mean": 253.0,
+   "capital": 552.1
+  },
+  {
+   "stage": "rot1",
+   "ops": 360,
+   "peak": 63,
+   "live": 62,
+   "open": 40,
+   "debts": 16,
+   "opened": 18,
+   "contra": 0,
+   "accrual": 19,
+   "dead-tail": 0,
+   "accum": 14,
+   "hmr": 19,
+   "fixups": 9,
+   "batch": [
+    9,
+    16767,
+    5
+   ],
+   "toffoli": 55,
+   "toffoli_mean": 55.0,
+   "capital": 12.4
+  },
+  {
+   "stage": "mid1",
+   "ops": 9897,
+   "peak": 63,
+   "live": 59,
+   "open": 37,
+   "debts": 61,
+   "opened": 213,
+   "contra": 0,
+   "accrual": 214,
+   "dead-tail": 2,
+   "accum": 15,
+   "hmr": 329,
+   "fixups": 2320,
+   "batch": [
+    455,
+    20246,
+    3
+   ],
+   "toffoli": 408,
+   "toffoli_mean": 408.0,
+   "capital": 326.3
+  },
+  {
+   "stage": "rot2",
+   "ops": 256,
+   "peak": 63,
+   "live": 59,
+   "open": 37,
+   "debts": 86,
+   "opened": 29,
+   "contra": 0,
+   "accrual": 29,
+   "dead-tail": 0,
+   "accum": 25,
+   "hmr": 29,
+   "fixups": 6,
+   "batch": [
+    6,
+    26957,
+    5
+   ],
+   "toffoli": 90,
+   "toffoli_mean": 90.0,
+   "capital": 8.7
+  },
+  {
+   "stage": "post",
+   "ops": 18365,
+   "peak": 63,
+   "live": 23,
+   "open": 0,
+   "debts": 0,
+   "opened": 262,
+   "contra": 26,
+   "accrual": 272,
+   "dead-tail": 1,
+   "accum": 31,
+   "hmr": 514,
+   "fixups": 9749,
+   "batch": [
+    455,
+    36323,
+    3
+   ],
+   "toffoli": 591,
+   "toffoli_mean": 523.5,
+   "capital": 552.9
+  }
+ ],
+ "aged_values": [
+  {
+   "wire": "q56",
+   "open": 16678,
+   "close": 45313,
+   "span": 28636,
+   "idle": 17133,
+   "idle_from": 28016,
+   "idle_to": 45149,
+   "idle_at_peak": 5216,
+   "settle": "contra",
+   "toffoli_entries": 1,
+   "capital": 15.8,
+   "idle_capital": 9.5,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q23",
+   "open": 23,
+   "close": 17411,
+   "span": 17389,
+   "idle": 16439,
+   "idle_from": 225,
+   "idle_to": 16664,
+   "idle_at_peak": 9857,
+   "settle": "accrual",
+   "toffoli_entries": 1,
+   "capital": 9.6,
+   "idle_capital": 9.1,
+   "stages": "pre\u2192mid1"
+  },
+  {
+   "wire": "q23",
+   "open": 28678,
+   "close": 45110,
+   "span": 16433,
+   "idle": 16415,
+   "idle_from": 28690,
+   "idle_to": 45105,
+   "idle_at_peak": 2389,
+   "settle": "dead-tail",
+   "toffoli_entries": 1,
+   "capital": 9.1,
+   "idle_capital": 9.1,
+   "stages": "post\u2192post"
+  },
+  {
+   "wire": "q23",
+   "open": 17417,
+   "close": 26568,
+   "span": 9152,
+   "idle": 9137,
+   "idle_from": 17428,
+   "idle_to": 26565,
+   "idle_at_peak": 2201,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 5.1,
+   "idle_capital": 5.0,
+   "stages": "mid1\u2192mid1"
+  },
+  {
+   "wire": "q45",
+   "open": 6916,
+   "close": 43538,
+   "span": 36623,
+   "idle": 5085,
+   "idle_from": 25458,
+   "idle_to": 30543,
+   "idle_at_peak": 12442,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 20.2,
+   "idle_capital": 2.8,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q27",
+   "open": 14242,
+   "close": 43670,
+   "span": 29429,
+   "idle": 4639,
+   "idle_from": 25632,
+   "idle_to": 30271,
+   "idle_at_peak": 6837,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 16.3,
+   "idle_capital": 2.6,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q28",
+   "open": 13793,
+   "close": 43796,
+   "span": 30004,
+   "idle": 4175,
+   "idle_from": 25796,
+   "idle_to": 29971,
+   "idle_at_peak": 7217,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 16.6,
+   "idle_capital": 2.3,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q29",
+   "open": 13377,
+   "close": 43929,
+   "span": 30553,
+   "idle": 3708,
+   "idle_from": 25962,
+   "idle_to": 29670,
+   "idle_at_peak": 7530,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 16.9,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q34",
+   "open": 11222,
+   "close": 44700,
+   "span": 33479,
+   "idle": 3631,
+   "idle_from": 31470,
+   "idle_to": 35101,
+   "idle_at_peak": 9203,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 18.5,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q33",
+   "open": 11681,
+   "close": 44448,
+   "span": 32768,
+   "idle": 3628,
+   "idle_from": 31472,
+   "idle_to": 35100,
+   "idle_at_peak": 8836,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 18.1,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q32",
+   "open": 12090,
+   "close": 44570,
+   "span": 32481,
+   "idle": 3622,
+   "idle_from": 31477,
+   "idle_to": 35099,
+   "idle_at_peak": 8542,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 17.9,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q31",
+   "open": 12530,
+   "close": 44310,
+   "span": 31781,
+   "idle": 3600,
+   "idle_from": 31498,
+   "idle_to": 35098,
+   "idle_at_peak": 8209,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 17.6,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q30",
+   "open": 12941,
+   "close": 44167,
+   "span": 31227,
+   "idle": 3597,
+   "idle_from": 31500,
+   "idle_to": 35097,
+   "idle_at_peak": 7869,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 17.2,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q50",
+   "open": 5073,
+   "close": 44056,
+   "span": 38984,
+   "idle": 3591,
+   "idle_from": 31505,
+   "idle_to": 35096,
+   "idle_at_peak": 13777,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 21.5,
+   "idle_capital": 2.0,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q60",
+   "open": 3455,
+   "close": 34288,
+   "span": 30834,
+   "idle": 2866,
+   "idle_from": 31415,
+   "idle_to": 34281,
+   "idle_at_peak": 14074,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 17.0,
+   "idle_capital": 1.6,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q39",
+   "open": 9113,
+   "close": 34315,
+   "span": 25203,
+   "idle": 2860,
+   "idle_from": 31420,
+   "idle_to": 34280,
+   "idle_at_peak": 10353,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 13.9,
+   "idle_capital": 1.6,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q38",
+   "open": 9546,
+   "close": 34313,
+   "span": 24768,
+   "idle": 2854,
+   "idle_from": 31425,
+   "idle_to": 34279,
+   "idle_at_peak": 10026,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 13.7,
+   "idle_capital": 1.6,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q58",
+   "open": 3097,
+   "close": 34311,
+   "span": 31215,
+   "idle": 2836,
+   "idle_from": 31442,
+   "idle_to": 34278,
+   "idle_at_peak": 14048,
+   "settle": "accrual",
+   "toffoli_entries": 6,
+   "capital": 17.2,
+   "idle_capital": 1.6,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q62",
+   "open": 4185,
+   "close": 34309,
+   "span": 30125,
+   "idle": 2833,
+   "idle_from": 31444,
+   "idle_to": 34277,
+   "idle_at_peak": 14079,
+   "settle": "accrual",
+   "toffoli_entries": 6,
+   "capital": 16.6,
+   "idle_capital": 1.6,
+   "stages": "pre\u2192post"
+  },
+  {
+   "wire": "q37",
+   "open": 9972,
+   "close": 34307,
+   "span": 24336,
+   "idle": 2726,
+   "idle_from": 31449,
+   "idle_to": 34175,
+   "idle_at_peak": 9693,
+   "settle": "accrual",
+   "toffoli_entries": 4,
+   "capital": 13.4,
+   "idle_capital": 1.5,
+   "stages": "pre\u2192post"
+  }
+ ],
+ "aged_debts": [
+  {
+   "wire": "q51",
+   "hmr": 17405,
+   "repaid": 43291,
+   "age": 25886,
+   "fixups": 121,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q36",
+   "hmr": 17407,
+   "repaid": 43292,
+   "age": 25885,
+   "fixups": 1,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q48",
+   "hmr": 17404,
+   "repaid": 42537,
+   "age": 25133,
+   "fixups": 147,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q36",
+   "hmr": 17403,
+   "repaid": 41999,
+   "age": 24596,
+   "fixups": 120,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q55",
+   "hmr": 17395,
+   "repaid": 40239,
+   "age": 22844,
+   "fixups": 133,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q35",
+   "hmr": 17394,
+   "repaid": 38825,
+   "age": 21431,
+   "fixups": 136,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q47",
+   "hmr": 17393,
+   "repaid": 37468,
+   "age": 20075,
+   "fixups": 132,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q46",
+   "hmr": 17392,
+   "repaid": 36454,
+   "age": 19062,
+   "fixups": 131,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q42",
+   "hmr": 234,
+   "repaid": 16683,
+   "age": 16449,
+   "fixups": 1,
+   "stages": "pre\u2192pre"
+  },
+  {
+   "wire": "q43",
+   "hmr": 235,
+   "repaid": 16684,
+   "age": 16449,
+   "fixups": 1,
+   "stages": "pre\u2192pre"
+  },
+  {
+   "wire": "q44",
+   "hmr": 236,
+   "repaid": 16685,
+   "age": 16449,
+   "fixups": 1,
+   "stages": "pre\u2192pre"
+  },
+  {
+   "wire": "q45",
+   "hmr": 237,
+   "repaid": 16686,
+   "age": 16449,
+   "fixups": 1,
+   "stages": "pre\u2192pre"
+  },
+  {
+   "wire": "q36",
+   "hmr": 22940,
+   "repaid": 37595,
+   "age": 14655,
+   "fixups": 127,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q55",
+   "hmr": 22906,
+   "repaid": 37095,
+   "age": 14189,
+   "fixups": 119,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q48",
+   "hmr": 22823,
+   "repaid": 36976,
+   "age": 14153,
+   "fixups": 132,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q17",
+   "hmr": 22736,
+   "repaid": 36844,
+   "age": 14108,
+   "fixups": 130,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q47",
+   "hmr": 22644,
+   "repaid": 36714,
+   "age": 14070,
+   "fixups": 119,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q40",
+   "hmr": 22547,
+   "repaid": 36595,
+   "age": 14048,
+   "fixups": 141,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q15",
+   "hmr": 22339,
+   "repaid": 36212,
+   "age": 13873,
+   "fixups": 1,
+   "stages": "mid1\u2192post"
+  },
+  {
+   "wire": "q20",
+   "hmr": 22427,
+   "repaid": 36079,
+   "age": 13652,
+   "fixups": 1,
+   "stages": "mid1\u2192post"
+  }
+ ],
+ "debts_carried": {
+  "pre\u2192mid1": 2,
+  "rot1\u2192mid1": 14,
+  "mid1\u2192post": 61,
+  "rot2\u2192post": 25
+ },
+ "paying_twice": {
+  "static": {
+   "tier": "static",
+   "groups": 17,
+   "recomputed": 17,
+   "uncompute_pairs": 11,
+   "basis": "CCX whose controls hold the same wire versions as an earlier CCX"
+  },
+  "exact": {
+   "tier": "exact-all-x",
+   "groups": 300,
+   "recomputed": 317,
+   "toffoli_per_shot": 317.0,
+   "zero_products": 1,
+   "models": [
+    "zero",
+    "7",
+    "11"
+   ],
+   "basis": "CCX whose AND is equal on every legal x in every outcome model"
+  }
+ },
+ "paying_twice_groups": [
+  {
+   "ops": [
+    31,
+    16665,
+    26567,
+    45107
+   ],
+   "first": 31,
+   "last": 45107,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    45,
+    17356,
+    28017
+   ],
+   "first": 45,
+   "last": 28017,
+   "recomputed": 2,
+   "toffoli_per_shot": 2.0
+  },
+  {
+   "ops": [
+    85,
+    17358
+   ],
+   "first": 85,
+   "last": 17358,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    16659,
+    17398
+   ],
+   "first": 16659,
+   "last": 17398,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    16661,
+    17401
+   ],
+   "first": 16661,
+   "last": 17401,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    16664,
+    26565,
+    45105
+   ],
+   "first": 16664,
+   "last": 45105,
+   "recomputed": 2,
+   "toffoli_per_shot": 2.0
+  },
+  {
+   "ops": [
+    16678,
+    26753,
+    45112
+   ],
+   "first": 16678,
+   "last": 45112,
+   "recomputed": 2,
+   "toffoli_per_shot": 2.0
+  },
+  {
+   "ops": [
+    16730,
+    17044
+   ],
+   "first": 16730,
+   "last": 17044,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    16739,
+    17049
+   ],
+   "first": 16739,
+   "last": 17049,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    16748,
+    17054
+   ],
+   "first": 16748,
+   "last": 17054,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    17141,
+    27394
+   ],
+   "first": 17141,
+   "last": 27394,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    17174,
+    27623
+   ],
+   "first": 17174,
+   "last": 27623,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    17248,
+    27782
+   ],
+   "first": 17248,
+   "last": 27782,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    17284,
+    27861
+   ],
+   "first": 17284,
+   "last": 27861,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    17320,
+    27940
+   ],
+   "first": 17320,
+   "last": 27940,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22012,
+    36206
+   ],
+   "first": 22012,
+   "last": 36206,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22015,
+    36210
+   ],
+   "first": 22015,
+   "last": 36210,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22024,
+    36220
+   ],
+   "first": 22024,
+   "last": 36220,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22028,
+    36224
+   ],
+   "first": 22028,
+   "last": 36224,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22032,
+    36228
+   ],
+   "first": 22032,
+   "last": 36228,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22043,
+    36232
+   ],
+   "first": 22043,
+   "last": 36232,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22047,
+    36236
+   ],
+   "first": 22047,
+   "last": 36236,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22051,
+    36240
+   ],
+   "first": 22051,
+   "last": 36240,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22053,
+    36242
+   ],
+   "first": 22053,
+   "last": 36242,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22352,
+    36014
+   ],
+   "first": 22352,
+   "last": 36014,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22367,
+    36042
+   ],
+   "first": 22367,
+   "last": 36042,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22371,
+    36047
+   ],
+   "first": 22371,
+   "last": 36047,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22375,
+    36052
+   ],
+   "first": 22375,
+   "last": 36052,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22391,
+    36069
+   ],
+   "first": 22391,
+   "last": 36069,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22395,
+    36073
+   ],
+   "first": 22395,
+   "last": 36073,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22399,
+    36077
+   ],
+   "first": 22399,
+   "last": 36077,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22410,
+    36082
+   ],
+   "first": 22410,
+   "last": 36082,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22412,
+    36084
+   ],
+   "first": 22412,
+   "last": 36084,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22413,
+    36085
+   ],
+   "first": 22413,
+   "last": 36085,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22451,
+    35845
+   ],
+   "first": 22451,
+   "last": 35845,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22468,
+    35875
+   ],
+   "first": 22468,
+   "last": 35875,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22472,
+    35880
+   ],
+   "first": 22472,
+   "last": 35880,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22476,
+    35885
+   ],
+   "first": 22476,
+   "last": 35885,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22492,
+    35902
+   ],
+   "first": 22492,
+   "last": 35902,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22496,
+    35906
+   ],
+   "first": 22496,
+   "last": 35906,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22500,
+    35910
+   ],
+   "first": 22500,
+   "last": 35910,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22509,
+    35913
+   ],
+   "first": 22509,
+   "last": 35913,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22510,
+    35914
+   ],
+   "first": 22510,
+   "last": 35914,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22511,
+    35915
+   ],
+   "first": 22511,
+   "last": 35915,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22551,
+    35681
+   ],
+   "first": 22551,
+   "last": 35681,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22568,
+    35711
+   ],
+   "first": 22568,
+   "last": 35711,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22572,
+    35716
+   ],
+   "first": 22572,
+   "last": 35716,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22576,
+    35721
+   ],
+   "first": 22576,
+   "last": 35721,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22592,
+    35738
+   ],
+   "first": 22592,
+   "last": 35738,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22596,
+    35742
+   ],
+   "first": 22596,
+   "last": 35742,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22598,
+    35744
+   ],
+   "first": 22598,
+   "last": 35744,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22599,
+    35745
+   ],
+   "first": 22599,
+   "last": 35745,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22600,
+    35746
+   ],
+   "first": 22600,
+   "last": 35746,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22601,
+    35747
+   ],
+   "first": 22601,
+   "last": 35747,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22648,
+    35522
+   ],
+   "first": 22648,
+   "last": 35522,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22665,
+    35552
+   ],
+   "first": 22665,
+   "last": 35552,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22669,
+    35557
+   ],
+   "first": 22669,
+   "last": 35557,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22673,
+    35562
+   ],
+   "first": 22673,
+   "last": 35562,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22689,
+    35579
+   ],
+   "first": 22689,
+   "last": 35579,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22691,
+    35581
+   ],
+   "first": 22691,
+   "last": 35581,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22692,
+    35582
+   ],
+   "first": 22692,
+   "last": 35582,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22693,
+    35583
+   ],
+   "first": 22693,
+   "last": 35583,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22694,
+    35584
+   ],
+   "first": 22694,
+   "last": 35584,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22695,
+    35585
+   ],
+   "first": 22695,
+   "last": 35585,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22740,
+    35368
+   ],
+   "first": 22740,
+   "last": 35368,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22757,
+    35398
+   ],
+   "first": 22757,
+   "last": 35398,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22761,
+    35403
+   ],
+   "first": 22761,
+   "last": 35403,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22765,
+    35408
+   ],
+   "first": 22765,
+   "last": 35408,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22779,
+    35423
+   ],
+   "first": 22779,
+   "last": 35423,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22780,
+    35424
+   ],
+   "first": 22780,
+   "last": 35424,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22781,
+    35425
+   ],
+   "first": 22781,
+   "last": 35425,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22782,
+    35426
+   ],
+   "first": 22782,
+   "last": 35426,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22783,
+    35427
+   ],
+   "first": 22783,
+   "last": 35427,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22784,
+    35428
+   ],
+   "first": 22784,
+   "last": 35428,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22827,
+    35222
+   ],
+   "first": 22827,
+   "last": 35222,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22844,
+    35252
+   ],
+   "first": 22844,
+   "last": 35252,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22848,
+    35257
+   ],
+   "first": 22848,
+   "last": 35257,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22850,
+    35260
+   ],
+   "first": 22850,
+   "last": 35260,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22862,
+    35273
+   ],
+   "first": 22862,
+   "last": 35273,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22863,
+    35274
+   ],
+   "first": 22863,
+   "last": 35274,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22864,
+    35275
+   ],
+   "first": 22864,
+   "last": 35275,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22865,
+    35276
+   ],
+   "first": 22865,
+   "last": 35276,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22866,
+    35277
+   ],
+   "first": 22866,
+   "last": 35277,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22867,
+    35278
+   ],
+   "first": 22867,
+   "last": 35278,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22910,
+    35088
+   ],
+   "first": 22910,
+   "last": 35088,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22927,
+    35118
+   ],
+   "first": 22927,
+   "last": 35118,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22929,
+    35121
+   ],
+   "first": 22929,
+   "last": 35121,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22930,
+    35123
+   ],
+   "first": 22930,
+   "last": 35123,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22941,
+    35134
+   ],
+   "first": 22941,
+   "last": 35134,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22942,
+    35135
+   ],
+   "first": 22942,
+   "last": 35135,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22943,
+    35136
+   ],
+   "first": 22943,
+   "last": 35136,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22944,
+    35137
+   ],
+   "first": 22944,
+   "last": 35137,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22945,
+    35138
+   ],
+   "first": 22945,
+   "last": 35138,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    22946,
+    35139
+   ],
+   "first": 22946,
+   "last": 35139,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24864,
+    34283
+   ],
+   "first": 24864,
+   "last": 34283,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24865,
+    34284
+   ],
+   "first": 24865,
+   "last": 34284,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24866,
+    34285
+   ],
+   "first": 24866,
+   "last": 34285,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24867,
+    34286
+   ],
+   "first": 24867,
+   "last": 34286,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24907,
+    31286
+   ],
+   "first": 24907,
+   "last": 31286,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24910,
+    31289
+   ],
+   "first": 24910,
+   "last": 31289,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24914,
+    31293
+   ],
+   "first": 24914,
+   "last": 31293,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24928,
+    31308
+   ],
+   "first": 24928,
+   "last": 31308,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24932,
+    31312
+   ],
+   "first": 24932,
+   "last": 31312,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24936,
+    31316
+   ],
+   "first": 24936,
+   "last": 31316,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24940,
+    31320
+   ],
+   "first": 24940,
+   "last": 31320,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24956,
+    31337
+   ],
+   "first": 24956,
+   "last": 31337,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24960,
+    31341
+   ],
+   "first": 24960,
+   "last": 31341,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24964,
+    31345
+   ],
+   "first": 24964,
+   "last": 31345,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24968,
+    31361
+   ],
+   "first": 24968,
+   "last": 31361,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24972,
+    31365
+   ],
+   "first": 24972,
+   "last": 31365,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    24998,
+    31370
+   ],
+   "first": 24998,
+   "last": 31370,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25002,
+    31386
+   ],
+   "first": 25002,
+   "last": 31386,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25006,
+    31390
+   ],
+   "first": 25006,
+   "last": 31390,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25010,
+    31394
+   ],
+   "first": 25010,
+   "last": 31394,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25014,
+    31398
+   ],
+   "first": 25014,
+   "last": 31398,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25016,
+    31400
+   ],
+   "first": 25016,
+   "last": 31400,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25017,
+    31401
+   ],
+   "first": 25017,
+   "last": 31401,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25075,
+    30895
+   ],
+   "first": 25075,
+   "last": 30895,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25098,
+    30938
+   ],
+   "first": 25098,
+   "last": 30938,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25102,
+    30942
+   ],
+   "first": 25102,
+   "last": 30942,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25106,
+    30946
+   ],
+   "first": 25106,
+   "last": 30946,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25110,
+    30950
+   ],
+   "first": 25110,
+   "last": 30950,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25131,
+    30972
+   ],
+   "first": 25131,
+   "last": 30972,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25135,
+    30976
+   ],
+   "first": 25135,
+   "last": 30976,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25139,
+    30980
+   ],
+   "first": 25139,
+   "last": 30980,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25143,
+    30984
+   ],
+   "first": 25143,
+   "last": 30984,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25159,
+    31001
+   ],
+   "first": 25159,
+   "last": 31001,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25163,
+    31005
+   ],
+   "first": 25163,
+   "last": 31005,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25167,
+    31009
+   ],
+   "first": 25167,
+   "last": 31009,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25171,
+    31025
+   ],
+   "first": 25171,
+   "last": 31025,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25175,
+    31029
+   ],
+   "first": 25175,
+   "last": 31029,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25201,
+    31034
+   ],
+   "first": 25201,
+   "last": 31034,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25205,
+    31050
+   ],
+   "first": 25205,
+   "last": 31050,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25209,
+    31054
+   ],
+   "first": 25209,
+   "last": 31054,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25211,
+    31056
+   ],
+   "first": 25211,
+   "last": 31056,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25212,
+    31057
+   ],
+   "first": 25212,
+   "last": 31057,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25213,
+    31058
+   ],
+   "first": 25213,
+   "last": 31058,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25267,
+    30544
+   ],
+   "first": 25267,
+   "last": 30544,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25292,
+    30589
+   ],
+   "first": 25292,
+   "last": 30589,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25296,
+    30593
+   ],
+   "first": 25296,
+   "last": 30593,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25300,
+    30597
+   ],
+   "first": 25300,
+   "last": 30597,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25304,
+    30601
+   ],
+   "first": 25304,
+   "last": 30601,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25325,
+    30623
+   ],
+   "first": 25325,
+   "last": 30623,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25329,
+    30627
+   ],
+   "first": 25329,
+   "last": 30627,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25333,
+    30631
+   ],
+   "first": 25333,
+   "last": 30631,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25337,
+    30635
+   ],
+   "first": 25337,
+   "last": 30635,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25353,
+    30652
+   ],
+   "first": 25353,
+   "last": 30652,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25357,
+    30656
+   ],
+   "first": 25357,
+   "last": 30656,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25361,
+    30660
+   ],
+   "first": 25361,
+   "last": 30660,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25365,
+    30676
+   ],
+   "first": 25365,
+   "last": 30676,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25369,
+    30680
+   ],
+   "first": 25369,
+   "last": 30680,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25373,
+    30684
+   ],
+   "first": 25373,
+   "last": 30684,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25399,
+    30701
+   ],
+   "first": 25399,
+   "last": 30701,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25401,
+    30703
+   ],
+   "first": 25401,
+   "last": 30703,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25402,
+    30704
+   ],
+   "first": 25402,
+   "last": 30704,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25403,
+    30705
+   ],
+   "first": 25403,
+   "last": 30705,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25404,
+    30706
+   ],
+   "first": 25404,
+   "last": 30706,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25460,
+    30272
+   ],
+   "first": 25460,
+   "last": 30272,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25481,
+    30320
+   ],
+   "first": 25481,
+   "last": 30320,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25485,
+    30324
+   ],
+   "first": 25485,
+   "last": 30324,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25489,
+    30328
+   ],
+   "first": 25489,
+   "last": 30328,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25505,
+    30345
+   ],
+   "first": 25505,
+   "last": 30345,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25509,
+    30349
+   ],
+   "first": 25509,
+   "last": 30349,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25513,
+    30353
+   ],
+   "first": 25513,
+   "last": 30353,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25517,
+    30357
+   ],
+   "first": 25517,
+   "last": 30357,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25533,
+    30374
+   ],
+   "first": 25533,
+   "last": 30374,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25537,
+    30378
+   ],
+   "first": 25537,
+   "last": 30378,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25541,
+    30382
+   ],
+   "first": 25541,
+   "last": 30382,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25557,
+    30388
+   ],
+   "first": 25557,
+   "last": 30388,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25561,
+    30392
+   ],
+   "first": 25561,
+   "last": 30392,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25572,
+    30398
+   ],
+   "first": 25572,
+   "last": 30398,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25576,
+    30406
+   ],
+   "first": 25576,
+   "last": 30406,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25634,
+    29972
+   ],
+   "first": 25634,
+   "last": 29972,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25656,
+    30013
+   ],
+   "first": 25656,
+   "last": 30013,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25660,
+    30017
+   ],
+   "first": 25660,
+   "last": 30017,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25664,
+    30021
+   ],
+   "first": 25664,
+   "last": 30021,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25680,
+    30038
+   ],
+   "first": 25680,
+   "last": 30038,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25684,
+    30042
+   ],
+   "first": 25684,
+   "last": 30042,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25688,
+    30046
+   ],
+   "first": 25688,
+   "last": 30046,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25692,
+    30050
+   ],
+   "first": 25692,
+   "last": 30050,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25708,
+    30067
+   ],
+   "first": 25708,
+   "last": 30067,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25712,
+    30071
+   ],
+   "first": 25712,
+   "last": 30071,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25716,
+    30075
+   ],
+   "first": 25716,
+   "last": 30075,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25720,
+    30091
+   ],
+   "first": 25720,
+   "last": 30091,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25741,
+    30096
+   ],
+   "first": 25741,
+   "last": 30096,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25745,
+    30107
+   ],
+   "first": 25745,
+   "last": 30107,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25747,
+    30109
+   ],
+   "first": 25747,
+   "last": 30109,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25748,
+    30110
+   ],
+   "first": 25748,
+   "last": 30110,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25798,
+    29671
+   ],
+   "first": 25798,
+   "last": 29671,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25820,
+    29718
+   ],
+   "first": 25820,
+   "last": 29718,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25824,
+    29722
+   ],
+   "first": 25824,
+   "last": 29722,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25828,
+    29726
+   ],
+   "first": 25828,
+   "last": 29726,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25844,
+    29743
+   ],
+   "first": 25844,
+   "last": 29743,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25848,
+    29747
+   ],
+   "first": 25848,
+   "last": 29747,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25852,
+    29751
+   ],
+   "first": 25852,
+   "last": 29751,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25856,
+    29755
+   ],
+   "first": 25856,
+   "last": 29755,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25872,
+    29772
+   ],
+   "first": 25872,
+   "last": 29772,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25876,
+    29776
+   ],
+   "first": 25876,
+   "last": 29776,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25880,
+    29780
+   ],
+   "first": 25880,
+   "last": 29780,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25884,
+    29796
+   ],
+   "first": 25884,
+   "last": 29796,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25888,
+    29800
+   ],
+   "first": 25888,
+   "last": 29800,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25907,
+    29810
+   ],
+   "first": 25907,
+   "last": 29810,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25908,
+    29811
+   ],
+   "first": 25908,
+   "last": 29811,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25909,
+    29812
+   ],
+   "first": 25909,
+   "last": 29812,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25964,
+    29448
+   ],
+   "first": 25964,
+   "last": 29448,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25982,
+    29490
+   ],
+   "first": 25982,
+   "last": 29490,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25986,
+    29494
+   ],
+   "first": 25986,
+   "last": 29494,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    25997,
+    29506
+   ],
+   "first": 25997,
+   "last": 29506,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26001,
+    29510
+   ],
+   "first": 26001,
+   "last": 29510,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26005,
+    29514
+   ],
+   "first": 26005,
+   "last": 29514,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26009,
+    29518
+   ],
+   "first": 26009,
+   "last": 29518,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26025,
+    29535
+   ],
+   "first": 26025,
+   "last": 29535,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26029,
+    29539
+   ],
+   "first": 26029,
+   "last": 29539,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26033,
+    29543
+   ],
+   "first": 26033,
+   "last": 29543,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26049,
+    29549
+   ],
+   "first": 26049,
+   "last": 29549,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26053,
+    29553
+   ],
+   "first": 26053,
+   "last": 29553,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26105,
+    29212
+   ],
+   "first": 26105,
+   "last": 29212,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26124,
+    29247
+   ],
+   "first": 26124,
+   "last": 29247,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26128,
+    29251
+   ],
+   "first": 26128,
+   "last": 29251,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26139,
+    29263
+   ],
+   "first": 26139,
+   "last": 29263,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26143,
+    29267
+   ],
+   "first": 26143,
+   "last": 29267,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26147,
+    29271
+   ],
+   "first": 26147,
+   "last": 29271,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26151,
+    29275
+   ],
+   "first": 26151,
+   "last": 29275,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26167,
+    29292
+   ],
+   "first": 26167,
+   "last": 29292,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26171,
+    29296
+   ],
+   "first": 26171,
+   "last": 29296,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26175,
+    29300
+   ],
+   "first": 26175,
+   "last": 29300,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26191,
+    29317
+   ],
+   "first": 26191,
+   "last": 29317,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26193,
+    29319
+   ],
+   "first": 26193,
+   "last": 29319,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26194,
+    29320
+   ],
+   "first": 26194,
+   "last": 29320,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26236,
+    28975
+   ],
+   "first": 26236,
+   "last": 28975,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26255,
+    29016
+   ],
+   "first": 26255,
+   "last": 29016,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26259,
+    29020
+   ],
+   "first": 26259,
+   "last": 29020,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26270,
+    29032
+   ],
+   "first": 26270,
+   "last": 29032,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26274,
+    29036
+   ],
+   "first": 26274,
+   "last": 29036,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26278,
+    29040
+   ],
+   "first": 26278,
+   "last": 29040,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26282,
+    29044
+   ],
+   "first": 26282,
+   "last": 29044,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26298,
+    29061
+   ],
+   "first": 26298,
+   "last": 29061,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26302,
+    29065
+   ],
+   "first": 26302,
+   "last": 29065,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26306,
+    29069
+   ],
+   "first": 26306,
+   "last": 29069,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26320,
+    29084
+   ],
+   "first": 26320,
+   "last": 29084,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26321,
+    29085
+   ],
+   "first": 26321,
+   "last": 29085,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26322,
+    29086
+   ],
+   "first": 26322,
+   "last": 29086,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26368,
+    28830
+   ],
+   "first": 26368,
+   "last": 28830,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26382,
+    28857
+   ],
+   "first": 26382,
+   "last": 28857,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26386,
+    28861
+   ],
+   "first": 26386,
+   "last": 28861,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26390,
+    28872
+   ],
+   "first": 26390,
+   "last": 28872,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26406,
+    28877
+   ],
+   "first": 26406,
+   "last": 28877,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26410,
+    28881
+   ],
+   "first": 26410,
+   "last": 28881,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26414,
+    28885
+   ],
+   "first": 26414,
+   "last": 28885,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26418,
+    28889
+   ],
+   "first": 26418,
+   "last": 28889,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26422,
+    28893
+   ],
+   "first": 26422,
+   "last": 28893,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26470,
+    28693
+   ],
+   "first": 26470,
+   "last": 28693,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26485,
+    28720
+   ],
+   "first": 26485,
+   "last": 28720,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26489,
+    28724
+   ],
+   "first": 26489,
+   "last": 28724,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26493,
+    28735
+   ],
+   "first": 26493,
+   "last": 28735,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26509,
+    28740
+   ],
+   "first": 26509,
+   "last": 28740,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26513,
+    28744
+   ],
+   "first": 26513,
+   "last": 28744,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26517,
+    28748
+   ],
+   "first": 26517,
+   "last": 28748,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26521,
+    28752
+   ],
+   "first": 26521,
+   "last": 28752,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26523,
+    28754
+   ],
+   "first": 26523,
+   "last": 28754,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26576,
+    28534
+   ],
+   "first": 26576,
+   "last": 28534,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26591,
+    28561
+   ],
+   "first": 26591,
+   "last": 28561,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26595,
+    28565
+   ],
+   "first": 26595,
+   "last": 28565,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26599,
+    28569
+   ],
+   "first": 26599,
+   "last": 28569,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26603,
+    28585
+   ],
+   "first": 26603,
+   "last": 28585,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26624,
+    28590
+   ],
+   "first": 26624,
+   "last": 28590,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26628,
+    28594
+   ],
+   "first": 26628,
+   "last": 28594,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26630,
+    28596
+   ],
+   "first": 26630,
+   "last": 28596,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26631,
+    28597
+   ],
+   "first": 26631,
+   "last": 28597,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26667,
+    28396
+   ],
+   "first": 26667,
+   "last": 28396,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26682,
+    28423
+   ],
+   "first": 26682,
+   "last": 28423,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26686,
+    28427
+   ],
+   "first": 26686,
+   "last": 28427,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26690,
+    28431
+   ],
+   "first": 26690,
+   "last": 28431,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26694,
+    28447
+   ],
+   "first": 26694,
+   "last": 28447,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26715,
+    28452
+   ],
+   "first": 26715,
+   "last": 28452,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26717,
+    28454
+   ],
+   "first": 26717,
+   "last": 28454,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26718,
+    28455
+   ],
+   "first": 26718,
+   "last": 28455,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26719,
+    28456
+   ],
+   "first": 26719,
+   "last": 28456,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26771,
+    28270
+   ],
+   "first": 26771,
+   "last": 28270,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26775,
+    28274
+   ],
+   "first": 26775,
+   "last": 28274,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26779,
+    28278
+   ],
+   "first": 26779,
+   "last": 28278,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26783,
+    28294
+   ],
+   "first": 26783,
+   "last": 28294,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26802,
+    28297
+   ],
+   "first": 26802,
+   "last": 28297,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26803,
+    28304
+   ],
+   "first": 26803,
+   "last": 28304,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26804,
+    28305
+   ],
+   "first": 26804,
+   "last": 28305,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26805,
+    28306
+   ],
+   "first": 26805,
+   "last": 28306,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26834,
+    28096
+   ],
+   "first": 26834,
+   "last": 28096,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26839,
+    28101
+   ],
+   "first": 26839,
+   "last": 28101,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26844,
+    28106
+   ],
+   "first": 26844,
+   "last": 28106,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26847,
+    28122
+   ],
+   "first": 26847,
+   "last": 28122,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26850,
+    28125
+   ],
+   "first": 26850,
+   "last": 28125,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26859,
+    26911,
+    28135,
+    28187
+   ],
+   "first": 26859,
+   "last": 28187,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    26860,
+    28136
+   ],
+   "first": 26860,
+   "last": 28136,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26863,
+    26906,
+    28139,
+    28182
+   ],
+   "first": 26863,
+   "last": 28182,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    26866,
+    26903,
+    28142,
+    28179
+   ],
+   "first": 26866,
+   "last": 28179,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    26875,
+    28151
+   ],
+   "first": 26875,
+   "last": 28151,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  },
+  {
+   "ops": [
+    26878,
+    26893,
+    28154,
+    28169
+   ],
+   "first": 26878,
+   "last": 28169,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    26881,
+    26890,
+    28157,
+    28166
+   ],
+   "first": 26881,
+   "last": 28166,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    26883,
+    26886,
+    28159,
+    28162
+   ],
+   "first": 26883,
+   "last": 28162,
+   "recomputed": 3,
+   "toffoli_per_shot": 3.0
+  },
+  {
+   "ops": [
+    26901,
+    28177
+   ],
+   "first": 26901,
+   "last": 28177,
+   "recomputed": 1,
+   "toffoli_per_shot": 1.0
+  }
+ ],
+ "close": {
+  "tier": "exact-all-x",
+  "unpaid_records": 7,
+  "open_debts": 0,
+  "contra_unverified": 26,
+  "x_restored": true,
+  "nonzero_lines": [],
+  "models": [
+   "zero",
+   "7",
+   "11"
+  ],
+  "balanced": true
+ },
+ "accounts": [
+  "x",
+  "q22",
+  "q23",
+  "q24",
+  "q25",
+  "q26",
+  "q27",
+  "q28",
+  "q29",
+  "q30",
+  "q31",
+  "q32",
+  "q33",
+  "q34",
+  "q35",
+  "q36",
+  "q37",
+  "q38",
+  "q39",
+  "q40",
+  "q41",
+  "q42",
+  "q43",
+  "q44",
+  "q45",
+  "q46",
+  "q47",
+  "q48",
+  "q49",
+  "q50",
+  "q51",
+  "q52",
+  "q53",
+  "q54",
+  "q55",
+  "q56",
+  "q57",
+  "q58",
+  "q59",
+  "q60",
+  "q61",
+  "q62"
+ ],
+ "account_totals": {
+  "x": {
+   "toffoli": 557,
+   "data": 19157,
+   "phase": 2885,
+   "control": 7266,
+   "settle": 331
+  },
+  "q22": {
+   "toffoli": 6,
+   "data": 1219,
+   "phase": 619,
+   "control": 612,
+   "settle": 9
+  },
+  "q23": {
+   "toffoli": 9,
+   "data": 18,
+   "phase": 69,
+   "control": 101,
+   "settle": 12
+  },
+  "q24": {
+   "toffoli": 8,
+   "data": 1145,
+   "phase": 654,
+   "control": 677,
+   "settle": 10
+  },
+  "q25": {
+   "toffoli": 8,
+   "data": 1026,
+   "phase": 596,
+   "control": 640,
+   "settle": 10
+  },
+  "q26": {
+   "toffoli": 23,
+   "data": 713,
+   "phase": 388,
+   "control": 755,
+   "settle": 24
+  },
+  "q27": {
+   "toffoli": 8,
+   "data": 271,
+   "phase": 914,
+   "control": 499,
+   "settle": 8
+  },
+  "q28": {
+   "toffoli": 7,
+   "data": 215,
+   "phase": 907,
+   "control": 506,
+   "settle": 6
+  },
+  "q29": {
+   "toffoli": 6,
+   "data": 187,
+   "phase": 903,
+   "control": 558,
+   "settle": 4
+  },
+  "q30": {
+   "toffoli": 7,
+   "data": 141,
+   "phase": 905,
+   "control": 502,
+   "settle": 6
+  },
+  "q31": {
+   "toffoli": 6,
+   "data": 171,
+   "phase": 915,
+   "control": 495,
+   "settle": 4
+  },
+  "q32": {
+   "toffoli": 6,
+   "data": 217,
+   "phase": 418,
+   "control": 563,
+   "settle": 7
+  },
+  "q33": {
+   "toffoli": 6,
+   "data": 152,
+   "phase": 240,
+   "control": 504,
+   "settle": 4
+  },
+  "q34": {
+   "toffoli": 6,
+   "data": 151,
+   "phase": 238,
+   "control": 539,
+   "settle": 4
+  },
+  "q35": {
+   "toffoli": 39,
+   "data": 126,
+   "phase": 107,
+   "control": 710,
+   "settle": 20
+  },
+  "q36": {
+   "toffoli": 27,
+   "data": 158,
+   "phase": 127,
+   "control": 678,
+   "settle": 21
+  },
+  "q37": {
+   "toffoli": 21,
+   "data": 247,
+   "phase": 209,
+   "control": 665,
+   "settle": 14
+  },
+  "q38": {
+   "toffoli": 10,
+   "data": 194,
+   "phase": 207,
+   "control": 578,
+   "settle": 5
+  },
+  "q39": {
+   "toffoli": 6,
+   "data": 192,
+   "phase": 211,
+   "control": 550,
+   "settle": 5
+  },
+  "q40": {
+   "toffoli": 250,
+   "data": 262,
+   "phase": 1465,
+   "control": 1071,
+   "settle": 149
+  },
+  "q41": {
+   "toffoli": 6,
+   "data": 225,
+   "phase": 599,
+   "control": 695,
+   "settle": 6
+  },
+  "q42": {
+   "toffoli": 5,
+   "data": 267,
+   "phase": 681,
+   "control": 679,
+   "settle": 6
+  },
+  "q43": {
+   "toffoli": 5,
+   "data": 239,
+   "phase": 240,
+   "control": 627,
+   "settle": 5
+  },
+  "q44": {
+   "toffoli": 15,
+   "data": 132,
+   "phase": 237,
+   "control": 698,
+   "settle": 12
+  },
+  "q45": {
+   "toffoli": 5,
+   "data": 149,
+   "phase": 886,
+   "control": 465,
+   "settle": 4
+  },
+  "q46": {
+   "toffoli": 106,
+   "data": 325,
+   "phase": 465,
+   "control": 724,
+   "settle": 90
+  },
+  "q47": {
+   "toffoli": 83,
+   "data": 259,
+   "phase": 530,
+   "control": 632,
+   "settle": 67
+  },
+  "q48": {
+   "toffoli": 50,
+   "data": 182,
+   "phase": 497,
+   "control": 763,
+   "settle": 46
+  },
+  "q49": {
+   "toffoli": 5,
+   "data": 213,
+   "phase": 627,
+   "control": 638,
+   "settle": 5
+  },
+  "q50": {
+   "toffoli": 5,
+   "data": 155,
+   "phase": 814,
+   "control": 404,
+   "settle": 3
+  },
+  "q51": {
+   "toffoli": 55,
+   "data": 225,
+   "phase": 966,
+   "control": 771,
+   "settle": 44
+  },
+  "q52": {
+   "toffoli": 5,
+   "data": 268,
+   "phase": 456,
+   "control": 621,
+   "settle": 5
+  },
+  "q53": {
+   "toffoli": 4,
+   "data": 217,
+   "phase": 473,
+   "control": 655,
+   "settle": 4
+  },
+  "q54": {
+   "toffoli": 4,
+   "data": 161,
+   "phase": 84,
+   "control": 601,
+   "settle": 3
+  },
+  "q55": {
+   "toffoli": 45,
+   "data": 189,
+   "phase": 498,
+   "control": 450,
+   "settle": 31
+  },
+  "q56": {
+   "toffoli": 3,
+   "data": 29,
+   "phase": 67,
+   "control": 492,
+   "settle": 5
+  },
+  "q57": {
+   "toffoli": 4,
+   "data": 205,
+   "phase": 96,
+   "control": 588,
+   "settle": 3
+  },
+  "q58": {
+   "toffoli": 6,
+   "data": 157,
+   "phase": 58,
+   "control": 455,
+   "settle": 3
+  },
+  "q59": {
+   "toffoli": 67,
+   "data": 287,
+   "phase": 963,
+   "control": 598,
+   "settle": 34
+  },
+  "q60": {
+   "toffoli": 5,
+   "data": 156,
+   "phase": 56,
+   "control": 439,
+   "settle": 4
+  },
+  "q61": {
+   "toffoli": 36,
+   "data": 233,
+   "phase": 918,
+   "control": 348,
+   "settle": 10
+  },
+  "q62": {
+   "toffoli": 7,
+   "data": 123,
+   "phase": 347,
+   "control": 407,
+   "settle": 5
+  }
+ },
+ "stages": "rot",
+ "definitions": {
+  "account": "a wire; register wires grouped by register (numbered families folded: S0..S69 -> S*)",
+  "entry": "an op touching the account: toffoli (CCX/CSWAP target), data (CX/X/SWAP target), phase (Z/CZ/CCZ/Z_POW), control, settle (R/HMR)",
+  "value": "one lifetime of a non-register wire (the width verb's interval): opened at its first touch after a reset, closed at an unconditional R/HMR or at its last touch",
+  "contra": "value closed at its last touch: erased by unitary uncompute (presumed statically; checked exactly for invsqrt)",
+  "accrual": "value closed by HMR whose record later conditions fix-ups: a phase liability until the last one",
+  "dead-tail": "value closed by R, or by HMR whose record nothing reads",
+  "liability": "one HMR record, open from the HMR to the last op it (or a bit derived from it) conditions",
+  "trial balance": "at each stage cut: values open across the cut, liabilities open across it, live width",
+  "capital": "qubit-ops \u00d7 rate / ops: T-eq of width used; charged = certified width \u00d7 rate",
+  "paying twice": "a CCX computing the same AND as an earlier one (exact: equal on every x; static: same wire versions)"
+ }
+}

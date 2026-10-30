@@ -1,0 +1,75 @@
+{
+ "verb": "width",
+ "circuits": [
+  {
+   "path": "circuits/9a8627c81283.kmb",
+   "sha12": "9a8627c81283",
+   "ops": 45576,
+   "qubits": 63
+  },
+  {
+   "path": "circuits/6dbb98b34c3b.kmb",
+   "sha12": "6dbb98b34c3b",
+   "ops": 47201,
+   "qubits": 62
+  }
+ ],
+ "facts": {
+  "certified_width": [
+   63,
+   62
+  ],
+  "header_qubits": [
+   63,
+   62
+  ],
+  "ops": [
+   45576,
+   47201
+  ],
+  "stages": "rot",
+  "n_stages": 5
+ },
+ "rows": [
+  {
+   "stage": "pre",
+   "ops": 16698,
+   "peak": 63,
+   "at_full_width": 9494,
+   "peak_b": 62,
+   "at_full_width_b": 10583
+  },
+  {
+   "stage": "rot1",
+   "ops": 360,
+   "peak": 63,
+   "at_full_width": 164,
+   "peak_b": 62,
+   "at_full_width_b": 268
+  },
+  {
+   "stage": "mid1",
+   "ops": 9897,
+   "peak": 63,
+   "at_full_width": 2479,
+   "peak_b": 62,
+   "at_full_width_b": 2657
+  },
+  {
+   "stage": "rot2",
+   "ops": 256,
+   "peak": 63,
+   "at_full_width": 145,
+   "peak_b": 62,
+   "at_full_width_b": 140
+  },
+  {
+   "stage": "post",
+   "ops": 18365,
+   "peak": 63,
+   "at_full_width": 2454,
+   "peak_b": 62,
+   "at_full_width_b": 2479
+  }
+ ]
+}

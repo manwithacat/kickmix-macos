@@ -1,0 +1,1952 @@
+{
+ "verb": "ledger",
+ "circuits": [
+  {
+   "path": "circuits/40fa4ebf25b2.kmb",
+   "sha12": "40fa4ebf25b2",
+   "ops": 59864413,
+   "qubits": 888
+  }
+ ],
+ "summary": {
+  "task": "dqi",
+  "Q": 888,
+  "width": 888,
+  "rate": 1001.87,
+  "rate_basis": "2 T / Q: d(R Q\u00b2 T)/dQ in Toffolis",
+  "values": {
+   "contra": 12,
+   "accrual": 31708,
+   "dead-tail": 2537
+  },
+  "liabilities": 104386,
+  "fixups": 946159,
+  "registers": 840,
+  "capital_charged": 889660.0,
+  "capital_used": 871841.9,
+  "utilisation": 0.98,
+  "model": {
+   "task": "dqi",
+   "Q": 888,
+   "toffoli_static": 444830,
+   "toffoli_used": 444830.0,
+   "toffoli_basis": "static count (upper bound)",
+   "R": 1.1913,
+   "formula": "R \u00d7 Q\u00b2 \u00d7 Toffolis",
+   "cost": 417869951184.58,
+   "reference_cost": 24439463583672.93,
+   "score_ratio": 58.48581
+  }
+ },
+ "facts": {
+  "task": "dqi",
+  "width": 888,
+  "Q": 888,
+  "rate_teq_per_qubit": 1001.87,
+  "values": {
+   "contra": 12,
+   "accrual": 31708,
+   "dead-tail": 2537
+  },
+  "liabilities": 104386,
+  "fixups": 946159,
+  "utilisation": 0.98,
+  "aged_top": "q847 idle 44.7M ops (75%, 4,764,332 at full width) synthesis\u2192unsynthesis, accrual",
+  "debts_carried": "5228 across stages; most extract\u2192unextract (3521)",
+  "paying_twice": {
+   "tier": "static",
+   "groups": 50,
+   "recomputed": 98
+  },
+  "close": {
+   "tier": "static",
+   "unpaid_records": 0,
+   "contra_unverified": 12
+  }
+ },
+ "trial_balance": [
+  {
+   "stage": "mask_projection",
+   "ops": 2388214,
+   "peak": 840,
+   "live": 840,
+   "open": 0,
+   "debts": 0,
+   "opened": 0,
+   "contra": 0,
+   "accrual": 0,
+   "dead-tail": 0,
+   "accum": 0,
+   "hmr": 0,
+   "fixups": 0,
+   "batch": [
+    0,
+    0,
+    0
+   ],
+   "toffoli": 0,
+   "capital": 33573.4
+  },
+  {
+   "stage": "initial",
+   "ops": 255759,
+   "peak": 840,
+   "live": 840,
+   "open": 0,
+   "debts": 0,
+   "opened": 0,
+   "contra": 0,
+   "accrual": 0,
+   "dead-tail": 0,
+   "accum": 0,
+   "hmr": 0,
+   "fixups": 0,
+   "batch": [
+    0,
+    2388214,
+    0
+   ],
+   "toffoli": 0,
+   "capital": 3595.4
+  },
+  {
+   "stage": "extract",
+   "ops": 4412559,
+   "peak": 888,
+   "live": 857,
+   "open": 17,
+   "debts": 3521,
+   "opened": 3518,
+   "contra": 0,
+   "accrual": 3360,
+   "dead-tail": 141,
+   "accum": 1230,
+   "hmr": 7345,
+   "fixups": 114993,
+   "batch": [
+    22098,
+    4572548,
+    615
+   ],
+   "toffoli": 65834,
+   "capital": 64577.8
+  },
+  {
+   "stage": "synthesis",
+   "ops": 5180828,
+   "peak": 888,
+   "live": 885,
+   "open": 45,
+   "debts": 4433,
+   "opened": 1468,
+   "contra": 0,
+   "accrual": 723,
+   "dead-tail": 717,
+   "accum": 344,
+   "hmr": 1535,
+   "fixups": 1653,
+   "batch": [
+    1411,
+    7152559,
+    381
+   ],
+   "toffoli": 33037,
+   "capital": 76732.2
+  },
+  {
+   "stage": "convert",
+   "ops": 5025131,
+   "peak": 888,
+   "live": 860,
+   "open": 20,
+   "debts": 5228,
+   "opened": 4296,
+   "contra": 0,
+   "accrual": 3880,
+   "dead-tail": 441,
+   "accum": 1141,
+   "hmr": 11957,
+   "fixups": 154919,
+   "batch": [
+    44535,
+    13995869,
+    1753
+   ],
+   "toffoli": 63336,
+   "capital": 73993.2
+  },
+  {
+   "stage": "scan",
+   "ops": 23493565,
+   "peak": 863,
+   "live": 860,
+   "open": 20,
+   "debts": 5228,
+   "opened": 12075,
+   "contra": 0,
+   "accrual": 12075,
+   "dead-tail": 0,
+   "accum": 0,
+   "hmr": 44275,
+   "fixups": 44275,
+   "batch": [
+    1144,
+    17538736,
+    1144
+   ],
+   "toffoli": 44275,
+   "capital": 338163.6
+  },
+  {
+   "stage": "unconvert",
+   "ops": 5128829,
+   "peak": 888,
+   "live": 866,
+   "open": 26,
+   "debts": 4433,
+   "opened": 4855,
+   "contra": 0,
+   "accrual": 4445,
+   "dead-tail": 404,
+   "accum": 1173,
+   "hmr": 13185,
+   "fixups": 185000,
+   "batch": [
+    54817,
+    43511966,
+    3401
+   ],
+   "toffoli": 65674,
+   "capital": 75544.1
+  },
+  {
+   "stage": "unsynthesis",
+   "ops": 6139859,
+   "peak": 884,
+   "live": 857,
+   "open": 17,
+   "debts": 3521,
+   "opened": 2231,
+   "contra": 0,
+   "accrual": 1855,
+   "dead-tail": 385,
+   "accum": 980,
+   "hmr": 14811,
+   "fixups": 150885,
+   "batch": [
+    49626,
+    51330605,
+    5312
+   ],
+   "toffoli": 54128,
+   "capital": 90536.5
+  },
+  {
+   "stage": "unextract",
+   "ops": 7489813,
+   "peak": 888,
+   "live": 840,
+   "open": 0,
+   "debts": 0,
+   "opened": 5814,
+   "contra": 12,
+   "accrual": 5370,
+   "dead-tail": 449,
+   "accum": 1991,
+   "hmr": 11278,
+   "fixups": 294434,
+   "batch": [
+    60719,
+    58851836,
+    3848
+   ],
+   "toffoli": 118546,
+   "capital": 110207.3
+  },
+  {
+   "stage": "uninitial",
+   "ops": 255669,
+   "peak": 840,
+   "live": 840,
+   "open": 0,
+   "debts": 0,
+   "opened": 0,
+   "contra": 0,
+   "accrual": 0,
+   "dead-tail": 0,
+   "accum": 0,
+   "hmr": 0,
+   "fixups": 0,
+   "batch": [
+    0,
+    59514557,
+    0
+   ],
+   "toffoli": 0,
+   "capital": 3594.2
+  },
+  {
+   "stage": "restore_masks",
+   "ops": 94187,
+   "peak": 840,
+   "live": 840,
+   "open": 0,
+   "debts": 0,
+   "opened": 0,
+   "contra": 0,
+   "accrual": 0,
+   "dead-tail": 0,
+   "accum": 0,
+   "hmr": 0,
+   "fixups": 0,
+   "batch": [
+    0,
+    59770226,
+    0
+   ],
+   "toffoli": 0,
+   "capital": 1324.1
+  }
+ ],
+ "aged_values": [
+  {
+   "wire": "q847",
+   "open": 6947548,
+   "close": 52232852,
+   "span": 45285305,
+   "idle": 44736892,
+   "idle_from": 7167857,
+   "idle_to": 51904749,
+   "idle_at_peak": 4764332,
+   "settle": "accrual",
+   "toffoli_entries": 23,
+   "capital": 757.9,
+   "idle_capital": 748.7,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q875",
+   "open": 14005965,
+   "close": 44057718,
+   "span": 30051754,
+   "idle": 29933209,
+   "idle_from": 14060273,
+   "idle_to": 43993482,
+   "idle_at_peak": 1837300,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 502.9,
+   "idle_capital": 501.0,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q874",
+   "open": 13952689,
+   "close": 44107557,
+   "span": 30154869,
+   "idle": 29805286,
+   "idle_from": 14116047,
+   "idle_to": 43921333,
+   "idle_at_peak": 1916298,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 504.7,
+   "idle_capital": 498.8,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q871",
+   "open": 13887649,
+   "close": 44183181,
+   "span": 30295533,
+   "idle": 29639885,
+   "idle_from": 14197536,
+   "idle_to": 43837421,
+   "idle_at_peak": 2006434,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 507.0,
+   "idle_capital": 496.0,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q867",
+   "open": 13764185,
+   "close": 44313820,
+   "span": 30549636,
+   "idle": 29286794,
+   "idle_from": 14370944,
+   "idle_to": 43657738,
+   "idle_at_peak": 2246918,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 511.3,
+   "idle_capital": 490.1,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q869",
+   "open": 13587235,
+   "close": 44499419,
+   "span": 30912185,
+   "idle": 28770402,
+   "idle_from": 14626736,
+   "idle_to": 43397138,
+   "idle_at_peak": 2595158,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 517.3,
+   "idle_capital": 481.5,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q866",
+   "open": 13334887,
+   "close": 44762344,
+   "span": 31427458,
+   "idle": 28016590,
+   "idle_from": 15002290,
+   "idle_to": 43018880,
+   "idle_at_peak": 3095240,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 526.0,
+   "idle_capital": 468.9,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q865",
+   "open": 12994560,
+   "close": 45113908,
+   "span": 32119349,
+   "idle": 26989468,
+   "idle_from": 15514815,
+   "idle_to": 42504283,
+   "idle_at_peak": 3771350,
+   "settle": "accrual",
+   "toffoli_entries": 0,
+   "capital": 537.5,
+   "idle_capital": 451.7,
+   "stages": "convert\u2192unconvert"
+  },
+  {
+   "wire": "q862",
+   "open": 6929522,
+   "close": 14026968,
+   "span": 7097447,
+   "idle": 7071382,
+   "idle_from": 6936042,
+   "idle_to": 14007424,
+   "idle_at_peak": 1450535,
+   "settle": "accrual",
+   "toffoli_entries": 122,
+   "capital": 118.8,
+   "idle_capital": 118.3,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q868",
+   "open": 6929522,
+   "close": 14026969,
+   "span": 7097448,
+   "idle": 7049684,
+   "idle_from": 6936043,
+   "idle_to": 13985727,
+   "idle_at_peak": 1450376,
+   "settle": "accrual",
+   "toffoli_entries": 109,
+   "capital": 118.8,
+   "idle_capital": 118.0,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q872",
+   "open": 6929572,
+   "close": 14027480,
+   "span": 7097909,
+   "idle": 6988766,
+   "idle_from": 6936044,
+   "idle_to": 13924810,
+   "idle_at_peak": 1449636,
+   "settle": "accrual",
+   "toffoli_entries": 130,
+   "capital": 118.8,
+   "idle_capital": 117.0,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q863",
+   "open": 6914305,
+   "close": 13851136,
+   "span": 6936832,
+   "idle": 6897432,
+   "idle_from": 6936045,
+   "idle_to": 13833477,
+   "idle_at_peak": 1315678,
+   "settle": "accrual",
+   "toffoli_entries": 40,
+   "capital": 116.1,
+   "idle_capital": 115.4,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q867",
+   "open": 6523882,
+   "close": 13711043,
+   "span": 7187162,
+   "idle": 6749439,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 1188362,
+   "settle": "accrual",
+   "toffoli_entries": 113,
+   "capital": 120.3,
+   "idle_capital": 113.0,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q887",
+   "open": 6914948,
+   "close": 13510014,
+   "span": 6595067,
+   "idle": 6537005,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 981526,
+   "settle": "accrual",
+   "toffoli_entries": 78,
+   "capital": 110.4,
+   "idle_capital": 109.4,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q866",
+   "open": 6930615,
+   "close": 13229339,
+   "span": 6298725,
+   "idle": 6242542,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 691475,
+   "settle": "accrual",
+   "toffoli_entries": 26,
+   "capital": 105.4,
+   "idle_capital": 104.5,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q861",
+   "open": 6930614,
+   "close": 12854048,
+   "span": 5923435,
+   "idle": 5850559,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 320235,
+   "settle": "accrual",
+   "toffoli_entries": 28,
+   "capital": 99.1,
+   "idle_capital": 97.9,
+   "stages": "extract\u2192convert"
+  },
+  {
+   "wire": "q852",
+   "open": 7056544,
+   "close": 52025455,
+   "span": 44968912,
+   "idle": 4462133,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 4759162,
+   "settle": "accrual",
+   "toffoli_entries": 6,
+   "capital": 752.6,
+   "idle_capital": 74.7,
+   "stages": "synthesis\u2192unextract"
+  },
+  {
+   "wire": "q843",
+   "open": 7056536,
+   "close": 52025033,
+   "span": 44968498,
+   "idle": 4462093,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 4759130,
+   "settle": "dead-tail",
+   "toffoli_entries": 140,
+   "capital": 752.6,
+   "idle_capital": 74.7,
+   "stages": "synthesis\u2192unextract"
+  },
+  {
+   "wire": "q842",
+   "open": 7056535,
+   "close": 52025039,
+   "span": 44968505,
+   "idle": 4462090,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 4759150,
+   "settle": "dead-tail",
+   "toffoli_entries": 210,
+   "capital": 752.6,
+   "idle_capital": 74.7,
+   "stages": "synthesis\u2192unextract"
+  },
+  {
+   "wire": "q841",
+   "open": 7056534,
+   "close": 52025042,
+   "span": 44968509,
+   "idle": 4462088,
+   "idle_from": null,
+   "idle_to": null,
+   "idle_at_peak": 4759096,
+   "settle": "dead-tail",
+   "toffoli_entries": 770,
+   "capital": 752.6,
+   "idle_capital": 74.7,
+   "stages": "synthesis\u2192unextract"
+  }
+ ],
+ "aged_debts": [
+  {
+   "wire": "q24",
+   "hmr": 2651632,
+   "repaid": 59514270,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q25",
+   "hmr": 2651633,
+   "repaid": 59514271,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q26",
+   "hmr": 2651634,
+   "repaid": 59514272,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q27",
+   "hmr": 2651635,
+   "repaid": 59514273,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q28",
+   "hmr": 2651636,
+   "repaid": 59514274,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q29",
+   "hmr": 2651637,
+   "repaid": 59514275,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q30",
+   "hmr": 2651638,
+   "repaid": 59514276,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q31",
+   "hmr": 2651639,
+   "repaid": 59514277,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q32",
+   "hmr": 2651640,
+   "repaid": 59514278,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q33",
+   "hmr": 2651641,
+   "repaid": 59514279,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q34",
+   "hmr": 2651642,
+   "repaid": 59514280,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q35",
+   "hmr": 2651643,
+   "repaid": 59514281,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q36",
+   "hmr": 2651644,
+   "repaid": 59514282,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q37",
+   "hmr": 2651645,
+   "repaid": 59514283,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q38",
+   "hmr": 2651646,
+   "repaid": 59514284,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q39",
+   "hmr": 2651647,
+   "repaid": 59514285,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q40",
+   "hmr": 2651648,
+   "repaid": 59514286,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q41",
+   "hmr": 2651649,
+   "repaid": 59514287,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q42",
+   "hmr": 2651650,
+   "repaid": 59514288,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  },
+  {
+   "wire": "q43",
+   "hmr": 2651651,
+   "repaid": 59514289,
+   "age": 56862638,
+   "fixups": 1,
+   "stages": "extract\u2192unextract"
+  }
+ ],
+ "debts_carried": {
+  "extract\u2192unextract": 3521,
+  "synthesis\u2192unsynthesis": 912,
+  "convert\u2192unconvert": 795
+ },
+ "paying_twice": {
+  "static": {
+   "tier": "static",
+   "groups": 50,
+   "recomputed": 98,
+   "uncompute_pairs": 98,
+   "basis": "CCX whose controls hold the same wire versions as an earlier CCX"
+  }
+ },
+ "paying_twice_groups": [
+  {
+   "ops": [
+    52837702,
+    52837759,
+    52837761
+   ],
+   "first": 52837702,
+   "last": 52837761,
+   "recomputed": 2,
+   "targets": [
+    866,
+    866,
+    866
+   ]
+  },
+  {
+   "ops": [
+    53625906,
+    53625963,
+    53625965
+   ],
+   "first": 53625906,
+   "last": 53625965,
+   "recomputed": 2,
+   "targets": [
+    865,
+    865,
+    865
+   ]
+  },
+  {
+   "ops": [
+    54364927,
+    54364984,
+    54364986
+   ],
+   "first": 54364927,
+   "last": 54364986,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55053387,
+    55053444,
+    55053446
+   ],
+   "first": 55053387,
+   "last": 55053446,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55690898,
+    55690955,
+    55690957
+   ],
+   "first": 55690898,
+   "last": 55690957,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56277652,
+    56277709,
+    56277711
+   ],
+   "first": 56277652,
+   "last": 56277711,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56813513,
+    56813570,
+    56813572
+   ],
+   "first": 56813513,
+   "last": 56813572,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    57298941,
+    57298998,
+    57299000
+   ],
+   "first": 57298941,
+   "last": 57299000,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    52837709,
+    52837765,
+    52837767
+   ],
+   "first": 52837709,
+   "last": 52837767,
+   "recomputed": 2,
+   "targets": [
+    866,
+    866,
+    866
+   ]
+  },
+  {
+   "ops": [
+    53625913,
+    53625969,
+    53625971
+   ],
+   "first": 53625913,
+   "last": 53625971,
+   "recomputed": 2,
+   "targets": [
+    865,
+    865,
+    865
+   ]
+  },
+  {
+   "ops": [
+    54364934,
+    54364990,
+    54364992
+   ],
+   "first": 54364934,
+   "last": 54364992,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55053394,
+    55053450,
+    55053452
+   ],
+   "first": 55053394,
+   "last": 55053452,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55690905,
+    55690961,
+    55690963
+   ],
+   "first": 55690905,
+   "last": 55690963,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56277659,
+    56277715,
+    56277717
+   ],
+   "first": 56277659,
+   "last": 56277717,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56813520,
+    56813576,
+    56813578
+   ],
+   "first": 56813520,
+   "last": 56813578,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    57298948,
+    57299004,
+    57299006
+   ],
+   "first": 57298948,
+   "last": 57299006,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    7161611,
+    7165062
+   ],
+   "first": 7161611,
+   "last": 7165062,
+   "recomputed": 1,
+   "targets": [
+    854,
+    854
+   ]
+  },
+  {
+   "ops": [
+    51909859,
+    51913310
+   ],
+   "first": 51909859,
+   "last": 51913310,
+   "recomputed": 1,
+   "targets": [
+    855,
+    855
+   ]
+  },
+  {
+   "ops": [
+    52837716,
+    52837771,
+    52837773
+   ],
+   "first": 52837716,
+   "last": 52837773,
+   "recomputed": 2,
+   "targets": [
+    866,
+    866,
+    866
+   ]
+  },
+  {
+   "ops": [
+    53625920,
+    53625975,
+    53625977
+   ],
+   "first": 53625920,
+   "last": 53625977,
+   "recomputed": 2,
+   "targets": [
+    865,
+    865,
+    865
+   ]
+  },
+  {
+   "ops": [
+    54364941,
+    54364996,
+    54364998
+   ],
+   "first": 54364941,
+   "last": 54364998,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55053401,
+    55053456,
+    55053458
+   ],
+   "first": 55053401,
+   "last": 55053458,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55690912,
+    55690967,
+    55690969
+   ],
+   "first": 55690912,
+   "last": 55690969,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56277666,
+    56277721,
+    56277723
+   ],
+   "first": 56277666,
+   "last": 56277723,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56813527,
+    56813582,
+    56813584
+   ],
+   "first": 56813527,
+   "last": 56813584,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    57298955,
+    57299010,
+    57299012
+   ],
+   "first": 57298955,
+   "last": 57299012,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    52837723,
+    52837777,
+    52837779
+   ],
+   "first": 52837723,
+   "last": 52837779,
+   "recomputed": 2,
+   "targets": [
+    866,
+    866,
+    866
+   ]
+  },
+  {
+   "ops": [
+    53625927,
+    53625981,
+    53625983
+   ],
+   "first": 53625927,
+   "last": 53625983,
+   "recomputed": 2,
+   "targets": [
+    865,
+    865,
+    865
+   ]
+  },
+  {
+   "ops": [
+    54364948,
+    54365002,
+    54365004
+   ],
+   "first": 54364948,
+   "last": 54365004,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55053408,
+    55053462,
+    55053464
+   ],
+   "first": 55053408,
+   "last": 55053464,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55690919,
+    55690973,
+    55690975
+   ],
+   "first": 55690919,
+   "last": 55690975,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56277673,
+    56277727,
+    56277729
+   ],
+   "first": 56277673,
+   "last": 56277729,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56813534,
+    56813588,
+    56813590
+   ],
+   "first": 56813534,
+   "last": 56813590,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    57298962,
+    57299016,
+    57299018
+   ],
+   "first": 57298962,
+   "last": 57299018,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    54364955,
+    54365008,
+    54365010
+   ],
+   "first": 54364955,
+   "last": 54365010,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55053415,
+    55053468,
+    55053470
+   ],
+   "first": 55053415,
+   "last": 55053470,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55690926,
+    55690979,
+    55690981
+   ],
+   "first": 55690926,
+   "last": 55690981,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56277680,
+    56277733,
+    56277735
+   ],
+   "first": 56277680,
+   "last": 56277735,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56813541,
+    56813594,
+    56813596
+   ],
+   "first": 56813541,
+   "last": 56813596,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    57298969,
+    57299022,
+    57299024
+   ],
+   "first": 57298969,
+   "last": 57299024,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    53625934,
+    53625987,
+    53625989
+   ],
+   "first": 53625934,
+   "last": 53625989,
+   "recomputed": 2,
+   "targets": [
+    865,
+    865,
+    865
+   ]
+  },
+  {
+   "ops": [
+    52837730,
+    52837783,
+    52837785
+   ],
+   "first": 52837730,
+   "last": 52837785,
+   "recomputed": 2,
+   "targets": [
+    866,
+    866,
+    866
+   ]
+  },
+  {
+   "ops": [
+    54364962,
+    54365014,
+    54365016
+   ],
+   "first": 54364962,
+   "last": 54365016,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55053422,
+    55053474,
+    55053476
+   ],
+   "first": 55053422,
+   "last": 55053476,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    55690933,
+    55690985,
+    55690987
+   ],
+   "first": 55690933,
+   "last": 55690987,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56277687,
+    56277739,
+    56277741
+   ],
+   "first": 56277687,
+   "last": 56277741,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    56813548,
+    56813600,
+    56813602
+   ],
+   "first": 56813548,
+   "last": 56813602,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    57298976,
+    57299028,
+    57299030
+   ],
+   "first": 57298976,
+   "last": 57299030,
+   "recomputed": 2,
+   "targets": [
+    864,
+    864,
+    864
+   ]
+  },
+  {
+   "ops": [
+    53625941,
+    53625993,
+    53625995
+   ],
+   "first": 53625941,
+   "last": 53625995,
+   "recomputed": 2,
+   "targets": [
+    865,
+    865,
+    865
+   ]
+  },
+  {
+   "ops": [
+    52837737,
+    52837789,
+    52837791
+   ],
+   "first": 52837737,
+   "last": 52837791,
+   "recomputed": 2,
+   "targets": [
+    866,
+    866,
+    866
+   ]
+  }
+ ],
+ "close": {
+  "tier": "static",
+  "unpaid_records": 0,
+  "open_debts": 0,
+  "contra_unverified": 12
+ },
+ "accounts": [
+  "S*",
+  "q840",
+  "q841",
+  "q842",
+  "q843",
+  "q844",
+  "q845",
+  "q846",
+  "q847",
+  "q848",
+  "q849",
+  "q850",
+  "q851",
+  "q852",
+  "q853",
+  "q854",
+  "q855",
+  "q856",
+  "q857",
+  "q858",
+  "q859",
+  "q860",
+  "q861",
+  "q862",
+  "q863",
+  "q864",
+  "q865",
+  "q866",
+  "q867",
+  "q868",
+  "q869",
+  "q870",
+  "q871",
+  "q872",
+  "q873",
+  "q874",
+  "q875",
+  "q876",
+  "q877",
+  "q878",
+  "q879",
+  "q880",
+  "q881",
+  "q882",
+  "q883",
+  "q884",
+  "q885",
+  "q886",
+  "q887"
+ ],
+ "account_totals": {
+  "S*": {
+   "toffoli": 305332,
+   "data": 50588433,
+   "phase": 1058836,
+   "control": 47134843,
+   "settle": 105936
+  },
+  "q840": {
+   "toffoli": 3732,
+   "data": 842783,
+   "phase": 9105,
+   "control": 163643,
+   "settle": 221
+  },
+  "q841": {
+   "toffoli": 2773,
+   "data": 570692,
+   "phase": 9848,
+   "control": 174316,
+   "settle": 201
+  },
+  "q842": {
+   "toffoli": 2394,
+   "data": 329964,
+   "phase": 12070,
+   "control": 204759,
+   "settle": 174
+  },
+  "q843": {
+   "toffoli": 2340,
+   "data": 142966,
+   "phase": 11843,
+   "control": 192655,
+   "settle": 170
+  },
+  "q844": {
+   "toffoli": 1682,
+   "data": 169753,
+   "phase": 11644,
+   "control": 194022,
+   "settle": 176
+  },
+  "q845": {
+   "toffoli": 1262,
+   "data": 119880,
+   "phase": 12168,
+   "control": 186182,
+   "settle": 180
+  },
+  "q846": {
+   "toffoli": 944,
+   "data": 90926,
+   "phase": 12330,
+   "control": 192097,
+   "settle": 184
+  },
+  "q847": {
+   "toffoli": 1289,
+   "data": 116683,
+   "phase": 11614,
+   "control": 144413,
+   "settle": 176
+  },
+  "q848": {
+   "toffoli": 1251,
+   "data": 99286,
+   "phase": 13272,
+   "control": 190940,
+   "settle": 203
+  },
+  "q849": {
+   "toffoli": 717,
+   "data": 76366,
+   "phase": 13883,
+   "control": 192411,
+   "settle": 214
+  },
+  "q850": {
+   "toffoli": 629,
+   "data": 69595,
+   "phase": 14924,
+   "control": 206024,
+   "settle": 235
+  },
+  "q851": {
+   "toffoli": 784,
+   "data": 65419,
+   "phase": 16467,
+   "control": 187227,
+   "settle": 273
+  },
+  "q852": {
+   "toffoli": 2379,
+   "data": 79213,
+   "phase": 12184,
+   "control": 193042,
+   "settle": 281
+  },
+  "q853": {
+   "toffoli": 16356,
+   "data": 85377,
+   "phase": 18690,
+   "control": 315823,
+   "settle": 8570
+  },
+  "q854": {
+   "toffoli": 9293,
+   "data": 85232,
+   "phase": 18786,
+   "control": 229899,
+   "settle": 8551
+  },
+  "q855": {
+   "toffoli": 10956,
+   "data": 81698,
+   "phase": 42959,
+   "control": 251437,
+   "settle": 12983
+  },
+  "q856": {
+   "toffoli": 5308,
+   "data": 81057,
+   "phase": 36525,
+   "control": 245040,
+   "settle": 4939
+  },
+  "q857": {
+   "toffoli": 4336,
+   "data": 78116,
+   "phase": 34917,
+   "control": 226893,
+   "settle": 5043
+  },
+  "q858": {
+   "toffoli": 3218,
+   "data": 122325,
+   "phase": 47197,
+   "control": 265559,
+   "settle": 856
+  },
+  "q859": {
+   "toffoli": 7231,
+   "data": 131559,
+   "phase": 41084,
+   "control": 303772,
+   "settle": 1030
+  },
+  "q860": {
+   "toffoli": 5041,
+   "data": 151720,
+   "phase": 62317,
+   "control": 251050,
+   "settle": 1038
+  },
+  "q861": {
+   "toffoli": 2251,
+   "data": 75148,
+   "phase": 26862,
+   "control": 120908,
+   "settle": 898
+  },
+  "q862": {
+   "toffoli": 1951,
+   "data": 75733,
+   "phase": 27143,
+   "control": 123559,
+   "settle": 794
+  },
+  "q863": {
+   "toffoli": 3487,
+   "data": 76307,
+   "phase": 21565,
+   "control": 155547,
+   "settle": 778
+  },
+  "q864": {
+   "toffoli": 4873,
+   "data": 103698,
+   "phase": 19171,
+   "control": 192440,
+   "settle": 1127
+  },
+  "q865": {
+   "toffoli": 2440,
+   "data": 81343,
+   "phase": 17299,
+   "control": 149389,
+   "settle": 595
+  },
+  "q866": {
+   "toffoli": 1509,
+   "data": 57898,
+   "phase": 10659,
+   "control": 44349,
+   "settle": 436
+  },
+  "q867": {
+   "toffoli": 1519,
+   "data": 70215,
+   "phase": 12449,
+   "control": 40734,
+   "settle": 407
+  },
+  "q868": {
+   "toffoli": 4853,
+   "data": 90563,
+   "phase": 34174,
+   "control": 66057,
+   "settle": 5455
+  },
+  "q869": {
+   "toffoli": 1567,
+   "data": 116249,
+   "phase": 22263,
+   "control": 180952,
+   "settle": 582
+  },
+  "q870": {
+   "toffoli": 1814,
+   "data": 107470,
+   "phase": 16775,
+   "control": 60679,
+   "settle": 754
+  },
+  "q871": {
+   "toffoli": 1894,
+   "data": 104482,
+   "phase": 13037,
+   "control": 58796,
+   "settle": 500
+  },
+  "q872": {
+   "toffoli": 5888,
+   "data": 62119,
+   "phase": 29252,
+   "control": 71158,
+   "settle": 4839
+  },
+  "q873": {
+   "toffoli": 2662,
+   "data": 94103,
+   "phase": 16977,
+   "control": 79120,
+   "settle": 1005
+  },
+  "q874": {
+   "toffoli": 1405,
+   "data": 118861,
+   "phase": 25181,
+   "control": 81289,
+   "settle": 907
+  },
+  "q875": {
+   "toffoli": 1360,
+   "data": 73273,
+   "phase": 13139,
+   "control": 72591,
+   "settle": 463
+  },
+  "q876": {
+   "toffoli": 2249,
+   "data": 51144,
+   "phase": 14940,
+   "control": 70959,
+   "settle": 919
+  },
+  "q877": {
+   "toffoli": 3002,
+   "data": 87235,
+   "phase": 20080,
+   "control": 118505,
+   "settle": 1314
+  },
+  "q878": {
+   "toffoli": 3424,
+   "data": 140840,
+   "phase": 33461,
+   "control": 142307,
+   "settle": 698
+  },
+  "q879": {
+   "toffoli": 3774,
+   "data": 64973,
+   "phase": 19110,
+   "control": 96736,
+   "settle": 759
+  },
+  "q880": {
+   "toffoli": 2019,
+   "data": 131095,
+   "phase": 15273,
+   "control": 71171,
+   "settle": 719
+  },
+  "q881": {
+   "toffoli": 2702,
+   "data": 253137,
+   "phase": 17933,
+   "control": 78479,
+   "settle": 673
+  },
+  "q882": {
+   "toffoli": 3010,
+   "data": 338829,
+   "phase": 18100,
+   "control": 73159,
+   "settle": 868
+  },
+  "q883": {
+   "toffoli": 1798,
+   "data": 42399,
+   "phase": 8858,
+   "control": 65934,
+   "settle": 323
+  },
+  "q884": {
+   "toffoli": 1178,
+   "data": 27727,
+   "phase": 11088,
+   "control": 61576,
+   "settle": 496
+  },
+  "q885": {
+   "toffoli": 994,
+   "data": 59393,
+   "phase": 11661,
+   "control": 62157,
+   "settle": 504
+  },
+  "q886": {
+   "toffoli": 1405,
+   "data": 24999,
+   "phase": 11523,
+   "control": 62569,
+   "settle": 562
+  },
+  "q887": {
+   "toffoli": 2249,
+   "data": 17697,
+   "phase": 7952,
+   "control": 38900,
+   "settle": 383
+  }
+ },
+ "stages": "tags",
+ "definitions": {
+  "account": "a wire; register wires grouped by register (numbered families folded: S0..S69 -> S*)",
+  "entry": "an op touching the account: toffoli (CCX/CSWAP target), data (CX/X/SWAP target), phase (Z/CZ/CCZ/Z_POW), control, settle (R/HMR)",
+  "value": "one lifetime of a non-register wire (the width verb's interval): opened at its first touch after a reset, closed at an unconditional R/HMR or at its last touch",
+  "contra": "value closed at its last touch: erased by unitary uncompute (presumed statically; checked exactly for invsqrt)",
+  "accrual": "value closed by HMR whose record later conditions fix-ups: a phase liability until the last one",
+  "dead-tail": "value closed by R, or by HMR whose record nothing reads",
+  "liability": "one HMR record, open from the HMR to the last op it (or a bit derived from it) conditions",
+  "trial balance": "at each stage cut: values open across the cut, liabilities open across it, live width",
+  "capital": "qubit-ops \u00d7 rate / ops: T-eq of width used; charged = certified width \u00d7 rate",
+  "paying twice": "a CCX computing the same AND as an earlier one (exact: equal on every x; static: same wire versions)"
+ }
+}

@@ -93,6 +93,14 @@ button:focus-visible, input:focus-visible, .filebtn:focus-within { outline: 2px 
 .player .speed { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
 .player .speed input { width: 110px; }
 .status { font-size: 12px; min-width: 0; overflow-wrap: anywhere; }
+/* Live text near the diagram stays on one line of fixed height (the full text is in its title), with tabular digits,
+   so nothing below it moves while the playhead plays. */
+.status.line { display: inline-block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; overflow-wrap: normal;
+  height: 1.5em; line-height: 1.5em; vertical-align: middle; font-variant-numeric: tabular-nums; max-width: 100%; }
+#playStatus { display: block; flex: 1 0 100%; }
+#zoomStatus { width: 37ch; }
+#followState { width: 12.5em; }
+#hlStatus { flex: 1 1 12em; }
 .canvas-box { position: relative; width: 100%; min-width: 0; }
 canvas { display: block; width: 100%; }
 #ribbon { cursor: pointer; }
@@ -208,7 +216,7 @@ button:disabled:hover { border-color: var(--rule); }
         <button id="zIn" class="sq" type="button" aria-label="Zoom in" aria-keyshortcuts="+" title="Zoom in (+)">+</button>
         <button id="zoomOut" type="button" aria-keyshortcuts="0" title="Show the whole circuit (0)">Whole circuit</button>
         <button id="laneBtn" type="button" aria-pressed="false">Taller lanes</button>
-        <span class="status mono" id="zoomStatus" aria-live="polite"></span>
+        <span class="status mono line" id="zoomStatus" aria-live="polite"></span>
       </div>
     </div>
     <div class="player" role="group" aria-label="Playhead">
@@ -227,10 +235,10 @@ button:disabled:hover { border-color: var(--rule); }
       <button id="sweepBtn" type="button" aria-pressed="false">⟳ Sweep x from 1 to max</button>
       <span class="presets" role="group" aria-label="Repeat" id="loopModes"><button type="button" data-mode="once" aria-pressed="false">Once</button><button type="button" data-mode="loop" aria-pressed="true">Loop</button><button type="button" data-mode="bounce" aria-pressed="false">Back and forth</button></span>
       <span class="follow" role="group" aria-label="Follow the playhead when zoomed in" id="followModes"><span class="lbl" aria-hidden="true">Follow</span><button type="button" data-follow="off" aria-pressed="false" title="The view stays put; the playhead can leave it">Off</button><button type="button" data-follow="p" aria-pressed="false" title="Turn a page when the playhead reaches the edge">Page</button><button type="button" data-follow="c" aria-pressed="true" title="The playhead stays put and the trace slides under it">Continuous</button></span>
-      <button id="followBtn" type="button" aria-pressed="true" aria-keyshortcuts="F" aria-describedby="followState" title="Follow the playhead on or off; turn it back on to catch up (F)">◎ Follow</button><span class="status" id="followState" role="status"></span>
+      <button id="followBtn" type="button" aria-pressed="true" aria-keyshortcuts="F" aria-describedby="followState" title="Follow the playhead on or off; turn it back on to catch up (F)">◎ Follow</button><span class="status line" id="followState" role="status"></span>
       <button id="hueBtn" type="button" aria-pressed="true">Colour bits by phase</button>
       <button id="envBtn" type="button" aria-pressed="true">Show qubit lifetimes</button>
-      <span class="status mono" id="playStatus" aria-live="polite"></span>
+      <span class="status mono line" id="playStatus" aria-live="polite"></span>
     </div>
     <p class="small" id="zoomHelp">Zoom: pinch, <kbd>Ctrl</kbd> or <kbd>⌘</kbd> + scroll, the buttons, or <kbd>+</kbd> <kbd>−</kbd> (<kbd>0</kbd> for the whole circuit). Pan: drag, scroll sideways or <kbd>Shift</kbd> + scroll, or move the window in the overview strip. Click a stage band to zoom to that stage; click or tap a qubit's lane to highlight it. Follow, while zoomed in: <b>Continuous</b> keeps the playhead 30% of the way across and slides the trace under it, <b>Page</b> turns a page at the edge, <b>Off</b> leaves the view alone. Panning or zooming by hand while playing suspends following; <kbd>F</kbd>, the Follow button or Play catches up again.</p>
     <div class="canvas-box"><canvas id="overview" tabindex="0" role="slider" aria-label="Visible part of the circuit (overview)" aria-describedby="zoomHelp"></canvas></div>
@@ -240,11 +248,11 @@ button:disabled:hover { border-color: var(--rule); }
     <div class="canvas-box"><canvas id="raster" aria-label="Qubit values over the circuit; click a lane to highlight its qubit"></canvas><div class="tip" id="tip" hidden></div></div>
     <div class="canvas-box"><canvas id="occ" aria-label="Scratch qubits in use"></canvas></div>
     </div>
-    <div class="scrub"><input id="scrub" type="range" min="0" max="47247" step="1" value="0" aria-label="Playhead: operation index"></div>
+    <div class="scrub"><input id="scrub" type="range" min="0" max="47248" step="any" value="0.5" aria-label="Playhead: operation index in the visible part of the circuit" title="Playhead. The scrubber spans the visible part of the circuit: the whole circuit, or the zoomed window (the ops under the axis labels)"></div>
     <div class="axis"><span id="axL">op 0</span><span>operation index →</span><span id="axR">op 47,248</span></div>
     <div class="pins" role="group" aria-label="Highlighted qubits">
       <label for="hlIn">Highlight qubit</label><input id="hlIn" type="number" min="0" step="1" placeholder="q"><button id="hlAdd" type="button">Pin</button>
-      <span id="hlList" class="presets"></span><span class="status" id="hlStatus" role="status"></span>
+      <span id="hlList" class="presets"></span><span class="status line" id="hlStatus" role="status"></span>
     </div>
     <div class="legend">
       <span id="legHue"><i class="wheel" style="width:80px"></i>1, coloured by the phase so far (0 → 1 turn)</span>
@@ -351,6 +359,8 @@ button:disabled:hover { border-color: var(--rule); }
   const T = window.InvsqrtTracer, CS = window.CircuitSnapshot, CV = window.CircuitView, V = CV.View, Pins = CV.Pins, Follow = CV.Follow;
   const esc = (v) => String(v).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const $ = (id) => document.getElementById(id);
+  // Live one-line text: the full text also goes in the title, since the line may be cut short with an ellipsis.
+  const setStatus = (el, t) => { if (el.textContent !== t) { el.textContent = t; el.title = t; } };
   const css = () => getComputedStyle(document.documentElement);
   const col = (n) => css().getPropertyValue(n).trim();
   const fmt = (n) => Math.round(n).toLocaleString('en-GB');
@@ -552,9 +562,8 @@ button:disabled:hover { border-color: var(--rule); }
     const B = CV.Trace.bin(tr, C.opq, C.isMeas, ia, ib, cols, { openDebts: C.A.openDebts, kicked: tr.kc });
     state.res = { ...B, a: state.win.a, b: state.win.b, r: tr.r, snaps: tr.snaps, peak: tr.peak, peakOp: tr.peakOp,
                   sTof: tr.sTof, sPhase: tr.sPhase, sMeas: tr.sMeas, rh: state.res ? state.res.rh : 5 };
-    const sc = $('scrub'); sc.min = ia; sc.max = ib - 1;
     $('diagram').classList.toggle('zoomed', !V.isFull(state.win, n));
-    draw(); drawOverview(); zoomUI();
+    draw(); drawOverview(); zoomUI(); syncScrub();
   }
   let layoutRaf = 0;
   function scheduleLayout() { if (!layoutRaf) layoutRaf = requestAnimationFrame(() => { layoutRaf = 0; layout(); }); }
@@ -581,8 +590,8 @@ button:disabled:hover { border-color: var(--rule); }
     const w = state.win, n = C.P.n, full = V.isFull(w, n), ms = minSpan(), ppo = diagramW() / (w.b - w.a);
     $('zoomOut').disabled = full && !state.view;
     $('zOut').disabled = full; $('zIn').disabled = w.b - w.a <= ms + 1e-9;
-    $('zoomStatus').textContent = full ? `whole circuit · ${fmt(n)} ops` :
-      `ops ${fmt(w.a)}–${fmt(w.b)} · ${ppo >= 1 ? (ppo < 10 ? ppo.toFixed(1) : fmt(ppo)) + ' px per op' : fmt(1 / ppo) + ' ops per px'}`;
+    setStatus($('zoomStatus'), full ? `whole circuit · ${fmt(n)} ops` :
+      `ops ${fmt(w.a)}–${fmt(w.b)} · ${ppo >= 1 ? (ppo < 10 ? ppo.toFixed(1) : fmt(ppo)) + ' px per op' : fmt(1 / ppo) + ' ops per px'}`);
     const ov = $('overview');
     ov.setAttribute('aria-valuemin', 0); ov.setAttribute('aria-valuemax', n); ov.setAttribute('aria-valuenow', Math.round((w.a + w.b) / 2));
     ov.setAttribute('aria-valuetext', `showing ops ${fmt(w.a)} to ${fmt(w.b)} of ${fmt(n)}`);
@@ -596,7 +605,7 @@ button:disabled:hover { border-color: var(--rule); }
     const fb = $('followBtn'), sus = f.suspended && f.mode !== 'off';
     fb.setAttribute('aria-pressed', String(Follow.active(f))); fb.classList.toggle('suspended', sus);
     const txt = f.mode === 'off' ? 'off' : sus ? 'suspended: F catches up' : full ? 'zoom in to follow' : '';
-    if ($('followState').textContent !== txt) $('followState').textContent = txt;
+    setStatus($('followState'), txt);
   }
   // Bring the window to the playhead now (re-engaging, or a new mode).
   function catchUp() {
@@ -614,6 +623,13 @@ button:disabled:hover { border-color: var(--rule); }
   $('followBtn').addEventListener('click', toggleFollow);
   // The playhead's position while playing, between ops (the frame loop's fractional progress), for a smooth slide.
   const phPos = () => { const ph = state.ph; return ph.playing ? ph.op + ph.dir * ph.acc : ph.op; };
+  // The scrubber spans the visible window, like the line; its thumb follows the fractional playhead every frame.
+  function syncScrub() {
+    const sc = $('scrub'), w = state.win || V.full(C.P.n), r = CV.Scrub.range(w);
+    if (+sc.max !== r.max || +sc.min !== r.min) { sc.max = r.max; sc.min = r.min; sc.max = r.max; }
+    const v = CV.Scrub.value(w, state.ph.active ? phPos() : 0);
+    if (+sc.value !== v) sc.value = v;
+  }
   // Whole device pixels: the window's left edge moves in steps of one device pixel, so a sliding trace stays crisp.
   function snapWin(v) {
     const n = C.P.n, s = v.b - v.a, k = diagramW() * Math.min(2, devicePixelRatio || 1) / s;
@@ -870,8 +886,8 @@ button:disabled:hover { border-color: var(--rule); }
     const before = state.pins, after = Pins.toggle(before, q);
     state.pins = after;
     const dropped = before.filter(k => k !== q && !after.includes(k));
-    $('hlStatus').textContent = before.includes(q) ? `q${q} no longer highlighted` :
-      `q${q} highlighted${dropped.length ? `; q${dropped.join(', q')} unpinned (at most ${Pins.MAX})` : ''}`;
+    setStatus($('hlStatus'), before.includes(q) ? `q${q} no longer highlighted` :
+      `q${q} highlighted${dropped.length ? `; q${dropped.join(', q')} unpinned (at most ${Pins.MAX})` : ''}`);
     renderPins(); draw(); renderSnap(); syncURL();
   }
   function renderPins() {
@@ -882,8 +898,8 @@ button:disabled:hover { border-color: var(--rule); }
   }
   function pinFromInput() {
     const v = $('hlIn').value.trim(), q = Number(v);
-    if (v === '' || !Number.isInteger(q) || q < 0 || q >= C.P.nq) { $('hlStatus').textContent = `Enter a qubit from 0 to ${C.P.nq - 1}`; return; }
-    if (!state.pins.includes(q)) togglePin(q); else $('hlStatus').textContent = `q${q} is already highlighted`;
+    if (v === '' || !Number.isInteger(q) || q < 0 || q >= C.P.nq) { setStatus($('hlStatus'), `Enter a qubit from 0 to ${C.P.nq - 1}`); return; }
+    if (!state.pins.includes(q)) togglePin(q); else setStatus($('hlStatus'), `q${q} is already highlighted`);
     $('hlIn').value = '';
   }
   $('hlAdd').addEventListener('click', pinFromInput);
@@ -1079,7 +1095,7 @@ button:disabled:hover { border-color: var(--rule); }
     }
     const now = performance.now();
     if (!ph.playing || now - snapAt > 100) { renderSnap(); snapAt = now; }
-    if (relayout) layout(); else { draw(); drawOverview(); }
+    if (relayout) layout(); else { draw(); drawOverview(); syncScrub(); }
     if (!ph.playing) syncURL();
   }
   function frame(ts) {
@@ -1094,7 +1110,7 @@ button:disabled:hover { border-color: var(--rule); }
                 prevStage: { type: 'prevStage' }, nextStage: { type: 'nextStage' }, nextMeas: { type: 'nextMeas' } };
   for (const b of $('navBtns').children) b.addEventListener('click', () => dispatch(NAV[b.dataset.act]));
   $('speed').addEventListener('input', () => dispatch({ type: 'speed', value: +$('speed').value }));
-  $('scrub').addEventListener('input', () => dispatch({ type: 'seek', op: +$('scrub').value }));
+  $('scrub').addEventListener('input', () => dispatch({ type: 'seek', op: CV.Scrub.op(+$('scrub').value, C.P.n) }));
   $('kickBtn').addEventListener('click', () => {
     state.kick = !state.kick; $('kickBtn').setAttribute('aria-pressed', String(!state.kick)); compute(); syncURL();
   });
@@ -1124,11 +1140,11 @@ button:disabled:hover { border-color: var(--rule); }
     const tr = tracks();
     const S = CS.snapshot({ A: C.A, P: C.P, x: state.x, seed: state.seed, kick: state.kick, trK: tr.trK, trZ: tr.trZ }, op);
     state.snap = S;
-    const sc = $('scrub'); if (+sc.value !== op) sc.value = op;
+    const sc = $('scrub');
     const g = S.gate, st = S.position.stage, w = S.width, cs = S.cost, P = S.phase, L = S.ledger, tb = L.trial_balance;
     const gtxt = `${g.kind} ${g.qubits.map(q => 'q' + q).join(' ')}${g.bits.length ? ' b' + g.bits.join(' b') : ''}`;
     sc.setAttribute('aria-valuetext', `op ${fmt(op)}, ${gtxt}${st ? ', ' + st.title : ''}`);
-    $('playStatus').textContent = `op ${fmt(op)} of ${fmt(C.P.n)} · ${gtxt}${st ? ' · ' + st.title : ''}`;
+    setStatus($('playStatus'), `op ${fmt(op)} of ${fmt(C.P.n)} · ${gtxt}${st ? ' · ' + st.title : ''}`);
     const pill = (ok, a, b) => `<span class="pill ${ok ? 'ran' : 'skip'}">${ok ? a : b}</span>`;
     const cond = g.cond == null ? 'none' : `b${g.cond} = ${g.cond_value}`;
     const stack = g.stack_depth ? `${g.stack_depth} pushed, ${g.stack_open ? 'all 1' : 'one is 0'}` : 'empty';
@@ -1235,7 +1251,7 @@ button:disabled:hover { border-color: var(--rule); }
     const f = advance(ts, 120 / +$('speed').value);
     if (f == null) { setX(C.maxx); stopSweep(); return; }
     setX(Math.round(Math.exp(f * Math.log(C.maxx))));
-    $('playStatus').textContent = `x = ${fmt(state.x)} · ${C.xq.length - Math.floor(Math.log2(state.x)) - 1} leading zeros` + (state.ph.active ? ` · paused at op ${fmt(state.ph.op)}` : '');
+    setStatus($('playStatus'), `x = ${fmt(state.x)} · ${C.xq.length - Math.floor(Math.log2(state.x)) - 1} leading zeros` + (state.ph.active ? ` · paused at op ${fmt(state.ph.op)}` : ''));
     anim.raf = requestAnimationFrame(sweepStep);
   }
   $('sweepBtn').addEventListener('click', () => {

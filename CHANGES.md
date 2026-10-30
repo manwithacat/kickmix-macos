@@ -15,6 +15,17 @@
 
 ## Tooling changes
 
+- 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself, `tracer.js` unchanged): DAW-style follow modes for
+  the playhead when zoomed in. Continuous (the new default) keeps the playhead 30% of the way across and slides the
+  trace under it every frame, stopping at op 0 and the last op so the playhead moves near the ends; Page turns a page
+  at the edge with a 5% lead-in; Off leaves the view alone. Panning or zooming by hand while playing suspends
+  following, shown on a Follow toggle; the toggle, the F key, Play or a mode change re-engage it and catch up. Paused
+  steps in continuous mode re-place the window only off-screen or near an edge. The mode is kept as `&follow=c|p|off`.
+  Play now runs over the whole circuit (or a picked stage) at a rate set by the visible span, via an optional `rate`
+  in the playhead state machine, and the window moves in whole device pixels. About 95–99 fps at the glyph zooms on
+  the 47,248-op circuit in desktop Chrome. Node tests for window placement per mode, edge clamping, suspend and
+  re-engage, the page lead-in, the URL round-trip and the playhead rate. Written with AI assistance (Claude,
+  Anthropic) under the repository owner's direction, from the owner's feedback.
 - 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself, `tracer.js` unchanged): zoom, pan and highlighted
   qubits. The diagram zooms on the op axis with pinch, Ctrl/⌘ + scroll at the cursor, −/+ buttons and the + − 0 keys,
   and pans by dragging, sideways or Shift + scroll, or an overview strip with the visible window boxed. Each window is

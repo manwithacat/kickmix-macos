@@ -127,3 +127,15 @@ test('a stop point costs at most one checkpoint of replay', () => {
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   assert.ok(ms < 2000, `200 backward steps took ${ms} ms`);
 });
+
+test('rate: the visible span sets the speed while play runs over the whole range', () => {
+  const c = { ...ctx, n: 47248, lo: 0, hi: 47248, rate: 200 };
+  let s = R(R(PH.init(), { type: 'seek', op: 30000 }, c), { type: 'play' }, c);
+  s = R(s, { type: 'tick', dt: 0.25 }, c);                        // 200 ops * speed 4 / 32 per second
+  assert.equal(s.op, 30006);
+  assert.ok(Math.abs(s.acc - 0.25) < 1e-9);                       // the fraction is kept for a smooth slide
+  s = R({ ...s, op: 47247 }, { type: 'tick', dt: 0.25 }, { ...c, loop: 'loop' });
+  assert.ok(s.op < 10);                                           // loops over the whole range, not the window
+  const noRate = R(R(PH.init(), { type: 'play' }), { type: 'tick', dt: 0.25 });
+  assert.equal(noRate.op, 31);                                    // without rate: (hi - lo) as before
+});

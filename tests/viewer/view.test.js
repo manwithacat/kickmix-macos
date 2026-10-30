@@ -10,7 +10,7 @@ require(path.join(VIEWER, 'tracer.js'));
 require(path.join(VIEWER, 'snapshot.js'));
 require(path.join(VIEWER, 'view.js'));
 const T = globalThis.InvsqrtTracer, CS = globalThis.CircuitSnapshot;
-const { View, Gesture, Pins, Trace } = globalThis.CircuitView;
+const { View, Gesture, Pins, Trace, Follow } = globalThis.CircuitView;
 
 const N = 47248, W = 1000, MIN = View.minSpan(N, W);
 const near = (a, b, eps = 1e-6) => Math.abs(a - b) <= eps;
@@ -124,6 +124,97 @@ test('gestures: a tap, a drag and a two-finger pinch', () => {
   assert.equal(u.tap, false);
   assert.equal(u.g.ptrs.size, 0);
   assert.equal(Gesture.move(u.g, 7, 1, 1, ctx).view, null);         // an unknown pointer does nothing
+});
+
+test('follow, continuous: the playhead stays at the anchor and the window slides under it', () => {
+  const f = Follow.init('c'), v = { a: 10000, b: 10200 }, s = 200;
+  assert.equal(Follow.ANCHOR, 0.3);
+  for (const pos of [10100, 10100.25, 10133.7, 20000]) {             // fractional positions slide the window smoothly
+    const w = Follow.playing(f, v, pos, N, 1);
+    assert.ok(near(w.b - w.a, s));
+    assert.ok(near(View.pxOf(w, pos + 0.5, W), Follow.ANCHOR * W), `pos ${pos}`);
+  }
+  const w1 = Follow.playing(f, v, 10100, N, 1), w2 = Follow.playing(f, w1, 10100.5, N, 1);
+  assert.ok(near(w2.a - w1.a, 0.5));                                 // half an op of play moves the window half an op
+  assert.equal(Follow.playing(f, v, 10059.5, N, 1), v);              // already there: the same object (no relayout)
+  // near the start the window stops at op 0 and the playhead moves instead; likewise at the end
+  for (const pos of [0, 10, 59]) assert.deepEqual(Follow.playing(f, v, pos, N, 1), { a: 0, b: s });
+  assert.ok(near(View.pxOf({ a: 0, b: s }, 10.5, W), 10.5 / s * W));
+  for (const pos of [N - 1, N - 50, N - 140]) assert.deepEqual(Follow.playing(f, v, pos, N, 1), { a: N - s, b: N });
+  const mid = Follow.playing(f, v, N - 141, N, 1);                    // the last position that still slides
+  assert.ok(mid.a < N - s && mid.b <= N);
+  // the whole circuit visible: no mode moves anything
+  for (const m of Follow.MODES) assert.deepEqual(Follow.playing(Follow.init(m), View.full(N), 30000, N, 1), View.full(N));
+  // off: the playhead can leave the view
+  assert.equal(Follow.playing(Follow.init('off'), v, 30000, N, 1), v);
+});
+
+test('follow, page: a new page at the edge with a lead-in, clamped at both ends', () => {
+  const f = Follow.init('p'), v = { a: 10000, b: 10200 }, s = 200, lead = Follow.LEAD * s;
+  assert.equal(Follow.playing(f, v, 10000, N, 1), v);                  // inside: unchanged
+  assert.equal(Follow.playing(f, v, 10199.9, N, 1), v);                // the last op is still on the page
+  const p = Follow.playing(f, v, 10200, N, 1);                         // reaches the edge: turn the page
+  assert.deepEqual(p, { a: 10200 - lead, b: 10200 - lead + s });
+  assert.ok(lead >= 1 && View.pxOf(p, 10200, W) > 0);                  // the playhead does not sit on the left edge
+  assert.equal(Follow.page({ a: 0, b: 10 }, 10, N, 1).a, 9);           // a lead-in of at least one op
+  assert.deepEqual(Follow.playing(f, v, 3, N, 1), { a: 0, b: s });     // a loop back to the start: page 0
+  assert.deepEqual(Follow.playing(f, v, N - 2, N, 1), { a: N - s, b: N });   // the last page ends at the last op
+  const back = Follow.playing(f, v, 9999, N, -1);                      // playing backwards: lead-in from the right
+  assert.deepEqual(back, { a: 9999 + 1 + lead - s, b: 9999 + 1 + lead });
+  assert.ok(View.pxOf(back, 10000, W) < W);
+});
+
+test('follow: paused steps re-place the window only off-screen or near an edge', () => {
+  const c = Follow.init('c'), p = Follow.init('p'), v = { a: 10000, b: 10200 }, e = Follow.EDGE * 200;
+  for (const op of [10000 + e, 10100, 10199 - e]) assert.equal(Follow.stepped(c, v, op, N, 1), v, `op ${op}`);
+  for (const op of [10000, 10000 + e - 1, 10199, 10199 - e + 1, 5000, 30000]) {
+    const w = Follow.stepped(c, v, op, N, 1);
+    assert.ok(near(View.pxOf(w, op + 0.5, W), Follow.ANCHOR * W), `op ${op}`);
+  }
+  assert.deepEqual(Follow.stepped(c, v, 3, N, -1), { a: 0, b: 200 });  // clamped at the start
+  assert.equal(Follow.stepped(p, v, 10199, N, 1), v);                  // page: on-screen stays
+  assert.equal(Follow.stepped(p, v, 10200, N, 1).a, 10200 - Follow.LEAD * 200);
+  assert.equal(Follow.stepped(Follow.init('off'), v, 30000, N, 1), v);
+  assert.deepEqual(Follow.stepped(c, View.full(N), 30000, N, 1), View.full(N));
+});
+
+test('follow: manual pan or zoom while playing suspends; F, Play or a mode re-engages', () => {
+  let f = Follow.init();
+  assert.deepEqual(f, { mode: 'c', suspended: false });
+  assert.equal(Follow.reduce(f, { type: 'manual', playing: false }), f);    // panning while paused: still following
+  f = Follow.reduce(f, { type: 'manual', playing: true });
+  assert.deepEqual(f, { mode: 'c', suspended: true });
+  assert.equal(Follow.active(f), false);
+  const v = { a: 10000, b: 10200 };
+  assert.equal(Follow.playing(f, v, 30000, N, 1), v);                       // suspended: the view stays put
+  assert.equal(Follow.stepped(f, v, 30000, N, 1), v);
+  assert.equal(Follow.reduce(f, { type: 'manual', playing: true }), f);
+  const g = Follow.reduce(f, { type: 'toggle' });                          // F or the Follow button: catch up
+  assert.deepEqual(g, { mode: 'c', suspended: false });
+  assert.ok(near(View.pxOf(Follow.playing(g, v, 30000, N, 1), 30000.5, W), Follow.ANCHOR * W));
+  assert.deepEqual(Follow.reduce(g, { type: 'toggle' }), { mode: 'c', suspended: true });   // and off again
+  assert.deepEqual(Follow.reduce(f, { type: 'play' }), { mode: 'c', suspended: false });
+  assert.deepEqual(Follow.reduce(f, { type: 'mode', mode: 'p' }), { mode: 'p', suspended: false });
+  let o = Follow.init('off');
+  assert.equal(Follow.reduce(o, { type: 'manual', playing: true }), o);    // nothing to suspend
+  assert.deepEqual(Follow.reduce(o, { type: 'toggle', last: 'p' }), { mode: 'p', suspended: false });
+  assert.deepEqual(Follow.reduce(o, { type: 'toggle' }), { mode: 'c', suspended: false });
+  assert.deepEqual(Follow.init('bogus'), { mode: 'c', suspended: false });
+});
+
+test('follow URL round-trip', () => {
+  assert.equal(Follow.DEFAULT, 'c');
+  for (const m of Follow.MODES) assert.equal(Follow.parse(Follow.format(m) || 'c'), m);
+  assert.equal(Follow.format('c'), '');                                    // the default stays out of the address bar
+  assert.equal(Follow.format('p'), 'p');
+  assert.equal(Follow.format('off'), 'off');
+  assert.equal(Follow.parse('Continuous'), 'c');
+  assert.equal(Follow.parse(' page '), 'p');
+  assert.equal(Follow.parse('OFF'), 'off');
+  for (const bad of [null, undefined, '', 'x', 'cp', '1']) assert.equal(Follow.parse(bad), null, String(bad));
+  const sp = new URLSearchParams('op=5&follow=p&view=100-300');
+  assert.equal(Follow.parse(sp.get('follow')), 'p');
+  assert.equal(Follow.parse(new URLSearchParams('op=5').get('follow')), null);   // absent: the caller keeps the default
 });
 
 test('pinned qubits: toggle, cap, URL round-trip', () => {

@@ -31,7 +31,9 @@
 
   // ---- playhead state machine
   // ctx: { n, lo, hi (the range played: the zoomed stage or the whole circuit), tof, meas, stages (sorted op lists),
-  //        loop: 'once' | 'loop' | 'bounce' }. tick advances (hi - lo) * speed / 32 ops per second.
+  //        loop: 'once' | 'loop' | 'bounce', rate (optional) }. tick advances rate * speed / 32 ops per second, rate
+//        defaulting to hi - lo; the viewer passes the visible span, so the trace moves at the same screen speed at
+//        every zoom while play runs over the whole circuit.
   const Playhead = {
     init() { return { op: 0, playing: false, speed: 4, dir: 1, acc: 0, active: false }; },
     reduce(s, a, ctx) {
@@ -59,8 +61,8 @@
         case 'prevStage': { const k = lowerBound(ctx.stages, s.op) - 1; return k >= 0 ? jump(ctx.stages[k]) : jump(0); }
         case 'tick': {
           if (!s.playing) return s;
-          const span = Math.max(1, hi - lo);
-          let acc = s.acc + Math.max(0, Math.min(0.25, +a.dt || 0)) * span * s.speed / 32;
+          const span = Math.max(1, hi - lo), rate = ctx.rate > 0 ? ctx.rate : span;
+          let acc = s.acc + Math.max(0, Math.min(0.25, +a.dt || 0)) * rate * s.speed / 32;
           const adv = Math.floor(acc); acc -= adv;
           if (!adv) return { ...s, acc };
           const loop = ctx.loop || 'once';

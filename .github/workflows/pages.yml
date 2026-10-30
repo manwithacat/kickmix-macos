@@ -29,6 +29,7 @@ jobs:
           mkdir -p _site/viewer
           cp -r site/. _site/
           cp tools/circuit-viewer/index.html tools/circuit-viewer/*.js tools/circuit-viewer/*.json _site/viewer/
+          cp -r tools/circuit-viewer/circuits _site/viewer/
           touch _site/.nojekyll
           ls -la _site _site/viewer
       - uses: actions/configure-pages@v5

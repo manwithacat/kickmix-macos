@@ -1,7 +1,8 @@
-// Zoom window, gestures and pinned qubits for the circuit viewer (pure functions, no DOM).
+// Zoom window, gestures, follow modes and pinned qubits for the circuit viewer (pure functions, no DOM).
 // - View: the visible window {a, b} on the op axis (a <= op < b, fractional ends allowed so panning is smooth at
 //   high zoom), zooming about an anchor op, panning, clamping, pinch maths and wheel handling, and `&view=a-b`.
 // - Gesture: a small reducer for pointers on the diagram: one pointer drags (pans), two pointers pinch (zoom and pan).
+// - Follow: where the window goes while the playhead plays or steps (continuous, page or off; `&follow=c|p|off`).
 // - Pins: the highlighted qubits (`&hl=14,51`), at most Pins.MAX of them.
 // Tested under Node (tests/viewer/view.test.js). Written with AI assistance (Claude, Anthropic) under the repository
 // owner's direction.
@@ -133,6 +134,66 @@
     },
   };
 
+  // ---- following the playhead while zoomed in (DAW-style follow modes)
+  // Modes: 'c' continuous (the playhead stays ANCHOR of the way across and the trace slides under it; near the ends of
+  // the circuit the window stops at op 0 or the last op and the playhead moves instead), 'p' page (the window jumps a
+  // page when the playhead reaches an edge, leaving a lead-in of LEAD of the span), 'off' (the window never moves).
+  // f = { mode, suspended }: a manual pan or zoom while playing suspends following until it is re-engaged (the Follow
+  // button or F, pressing Play, or picking a mode). With the whole circuit visible every mode leaves the window alone.
+  const Follow = {
+    MODES: ['off', 'p', 'c'], DEFAULT: 'c',
+    ANCHOR: 0.3,                 // continuous: the playhead sits 30% of the way across
+    LEAD: 0.05,                  // page: a new page starts this share of the span before the playhead
+    EDGE: 0.1,                   // paused steps re-place the window only when the op is off-screen or this close to an edge
+    init(mode) { return { mode: Follow.MODES.includes(mode) ? mode : Follow.DEFAULT, suspended: false }; },
+    // `&follow=c|p|off` (long names accepted); null for anything else. format gives '' for the default.
+    parse(str) {
+      const s = String(str == null ? '' : str).trim().toLowerCase();
+      return { c: 'c', continuous: 'c', p: 'p', page: 'p', off: 'off', none: 'off', '0': 'off' }[s] || null;
+    },
+    format(mode) { return mode === Follow.DEFAULT ? '' : mode; },
+    active(f) { return f.mode !== 'off' && !f.suspended; },
+    // Actions: { type: 'mode', mode } | { type: 'manual', playing } (a pan or zoom by hand) | { type: 'play' } |
+    // { type: 'toggle', last } (the Follow button or F; from Off it switches to `last`, default continuous).
+    reduce(f, a) {
+      switch (a.type) {
+        case 'mode': return Follow.init(a.mode);
+        case 'manual': return a.playing && f.mode !== 'off' && !f.suspended ? { ...f, suspended: true } : f;
+        case 'play': return f.suspended ? { ...f, suspended: false } : f;
+        case 'toggle': return f.mode === 'off' ? Follow.init(a.last && a.last !== 'off' ? a.last : 'c') : { ...f, suspended: !f.suspended };
+        default: return f;
+      }
+    },
+    // Continuous: op `pos` (fractional while playing) at ANCHOR of the width, clamped to the circuit.
+    continuous(v, pos, n) {
+      const s = v.b - v.a, a = clampNum(pos + 0.5 - Follow.ANCHOR * s, 0, Math.max(0, n - s));
+      return a === v.a ? v : { a, b: a + s };
+    },
+    // Page: unchanged while op is inside; otherwise a new page with the op LEAD of the span in from the edge it entered
+    // by (the left edge going forwards, or after a loop back to the start; the right edge going backwards).
+    page(v, op, n, dir) {
+      if (op >= v.a && op + 1 <= v.b) return v;
+      const s = v.b - v.a, lead = Math.max(1, Follow.LEAD * s);
+      const a0 = dir < 0 && op < v.a ? op + 1 + lead - s : op - lead;
+      const a = clampNum(a0, 0, Math.max(0, n - s));
+      return { a, b: a + s };
+    },
+    // The window for this frame of play. pos: the playhead's (fractional) op; dir: +1 or -1.
+    playing(f, v, pos, n, dir) {
+      if (!Follow.active(f) || View.isFull(v, n)) return v;
+      return f.mode === 'c' ? Follow.continuous(v, pos, n) : Follow.page(v, Math.floor(pos), n, dir || 1);
+    },
+    // The window after a step, seek or jump while paused: continuous re-places it only when the op is off-screen or
+    // within EDGE of an edge (so small steps do not jitter the view); page turns a page only when the op is off-screen.
+    stepped(f, v, op, n, dir) {
+      if (!Follow.active(f) || View.isFull(v, n)) return v;
+      if (f.mode === 'p') return Follow.page(v, op, n, dir || 1);
+      const e = Follow.EDGE * (v.b - v.a);
+      if (op >= v.a + e && op + 1 <= v.b - e) return v;
+      return Follow.continuous(v, op, n);
+    },
+  };
+
   // ---- pinned (highlighted) qubits
   const Pins = {
     MAX: 4,
@@ -211,5 +272,5 @@
     },
   };
 
-  root.CircuitView = { View, Gesture, Pins, Trace };
+  root.CircuitView = { View, Gesture, Pins, Trace, Follow };
 })(typeof window !== 'undefined' ? window : globalThis);

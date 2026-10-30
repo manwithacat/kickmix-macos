@@ -167,6 +167,9 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
 .zoomctl button.sq { min-width: 34px; padding-inline: 8px; font-family: var(--font-mono); }
 button:disabled { opacity: 0.45; cursor: default; }
 button:disabled:hover { border-color: var(--rule); }
+.follow { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.follow .lbl { font-size: 12px; color: var(--muted); }
+#followBtn.suspended { border-color: var(--meas); box-shadow: inset 0 0 0 1px var(--meas); }
 .pins { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13px; }
 .pins input[type=number] { font-size: 14px; width: 7ch; padding: 4px 6px; }
 .pins .chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mono); }
@@ -223,11 +226,13 @@ button:disabled:hover { border-color: var(--rule); }
       <label class="speed" for="speed">Speed <input id="speed" type="range" min="1" max="10" value="4"></label>
       <button id="sweepBtn" type="button" aria-pressed="false">⟳ Sweep x from 1 to max</button>
       <span class="presets" role="group" aria-label="Repeat" id="loopModes"><button type="button" data-mode="once" aria-pressed="false">Once</button><button type="button" data-mode="loop" aria-pressed="true">Loop</button><button type="button" data-mode="bounce" aria-pressed="false">Back and forth</button></span>
+      <span class="follow" role="group" aria-label="Follow the playhead when zoomed in" id="followModes"><span class="lbl" aria-hidden="true">Follow</span><button type="button" data-follow="off" aria-pressed="false" title="The view stays put; the playhead can leave it">Off</button><button type="button" data-follow="p" aria-pressed="false" title="Turn a page when the playhead reaches the edge">Page</button><button type="button" data-follow="c" aria-pressed="true" title="The playhead stays put and the trace slides under it">Continuous</button></span>
+      <button id="followBtn" type="button" aria-pressed="true" aria-keyshortcuts="F" aria-describedby="followState" title="Follow the playhead on or off; turn it back on to catch up (F)">◎ Follow</button><span class="status" id="followState" role="status"></span>
       <button id="hueBtn" type="button" aria-pressed="true">Colour bits by phase</button>
       <button id="envBtn" type="button" aria-pressed="true">Show qubit lifetimes</button>
       <span class="status mono" id="playStatus" aria-live="polite"></span>
     </div>
-    <p class="small" id="zoomHelp">Zoom: pinch, <kbd>Ctrl</kbd> or <kbd>⌘</kbd> + scroll, the buttons, or <kbd>+</kbd> <kbd>−</kbd> (<kbd>0</kbd> for the whole circuit). Pan: drag, scroll sideways or <kbd>Shift</kbd> + scroll, or move the window in the overview strip. Click a stage band to zoom to that stage; click or tap a qubit's lane to highlight it.</p>
+    <p class="small" id="zoomHelp">Zoom: pinch, <kbd>Ctrl</kbd> or <kbd>⌘</kbd> + scroll, the buttons, or <kbd>+</kbd> <kbd>−</kbd> (<kbd>0</kbd> for the whole circuit). Pan: drag, scroll sideways or <kbd>Shift</kbd> + scroll, or move the window in the overview strip. Click a stage band to zoom to that stage; click or tap a qubit's lane to highlight it. Follow, while zoomed in: <b>Continuous</b> keeps the playhead 30% of the way across and slides the trace under it, <b>Page</b> turns a page at the edge, <b>Off</b> leaves the view alone. Panning or zooming by hand while playing suspends following; <kbd>F</kbd>, the Follow button or Play catches up again.</p>
     <div class="canvas-box"><canvas id="overview" tabindex="0" role="slider" aria-label="Visible part of the circuit (overview)" aria-describedby="zoomHelp"></canvas></div>
     <div id="diagram">
     <div class="canvas-box"><canvas id="ribbon" aria-label="Stages along the circuit"></canvas></div>
@@ -271,7 +276,7 @@ button:disabled:hover { border-color: var(--rule); }
   <section class="card" id="snapCard" aria-labelledby="snapTitle">
     <div class="inst-head"><h2 id="snapTitle">At the playhead</h2>
       <div class="presets"><button id="copySnap" type="button">Copy snapshot JSON</button><span class="status" id="copyStatus" role="status"></span></div></div>
-    <p class="keys">Keys: <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> one op · <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> Toffoli · <kbd>[</kbd> <kbd>]</kbd> stage · <kbd>M</kbd> next HMR · <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> zoom. The address bar keeps this stop point (<span class="mono">?op=…&amp;x=…</span>), the zoom window (<span class="mono">&amp;view=a-b</span>) and the highlighted qubits (<span class="mono">&amp;hl=…</span>). The state shown is after the op at the playhead has run; <span class="mono">render.py snapshot --op N --x X</span> gives the same JSON.</p>
+    <p class="keys">Keys: <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> one op · <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> Toffoli · <kbd>[</kbd> <kbd>]</kbd> stage · <kbd>M</kbd> next HMR · <kbd>+</kbd> <kbd>−</kbd> <kbd>0</kbd> zoom · <kbd>F</kbd> follow the playhead on or off. The address bar keeps this stop point (<span class="mono">?op=…&amp;x=…</span>), the zoom window (<span class="mono">&amp;view=a-b</span>), the follow mode (<span class="mono">&amp;follow=p</span> or <span class="mono">off</span>; continuous is the default) and the highlighted qubits (<span class="mono">&amp;hl=…</span>). The state shown is after the op at the playhead has run; <span class="mono">render.py snapshot --op N --x X</span> gives the same JSON.</p>
     <div class="snap" id="snapBody"></div>
   </section>
 
@@ -343,7 +348,7 @@ button:disabled:hover { border-color: var(--rule); }
 <script src="view.js"></script>
 <script>
 (async function () {
-  const T = window.InvsqrtTracer, CS = window.CircuitSnapshot, CV = window.CircuitView, V = CV.View, Pins = CV.Pins;
+  const T = window.InvsqrtTracer, CS = window.CircuitSnapshot, CV = window.CircuitView, V = CV.View, Pins = CV.Pins, Follow = CV.Follow;
   const esc = (v) => String(v).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const $ = (id) => document.getElementById(id);
   const css = () => getComputedStyle(document.documentElement);
@@ -413,7 +418,7 @@ button:disabled:hover { border-color: var(--rule); }
 
   // view: the selected stage (or null); win: the visible op window {a, b}; winIsStage: win was set by picking that stage.
   const state = { x: 161, seed: 1, view: null, win: null, winIsStage: false, res: null, reveal: null, kick: true, ph: CS.Playhead.init(), snap: null,
-                  pins: [], tall: false };
+                  pins: [], tall: false, follow: Follow.init(), lastFollow: 'c' };
 
   // ---- presets and controls
   function buildPresets() {
@@ -461,6 +466,7 @@ button:disabled:hover { border-color: var(--rule); }
         const vf = state.winIsStage ? '' : V.format(state.win, C.P.n);
         if (vf) sp.set('view', vf); else sp.delete('view');
         if (state.pins.length) sp.set('hl', Pins.format(state.pins)); else sp.delete('hl');
+        const ff = Follow.format(state.follow.mode); if (ff) sp.set('follow', ff); else sp.delete('follow');
         u.hash = state.view && C.ref ? state.view.id : '';
         history.replaceState(null, '', u);
       } catch (e) {}
@@ -556,11 +562,13 @@ button:disabled:hover { border-color: var(--rule); }
     retrace(); layout();
     renderSnap(); renderReadouts(); renderStageCard(); updateStageRows();
   }
-  // A window chosen by zooming or panning (not by picking a stage).
-  function userWin(v) {
+  // A window chosen by zooming or panning (not by picking a stage). By hand (drag, wheel, pinch, the overview strip)
+  // while playing, it suspends following; how = 'zoom' (the buttons and keys, which zoom about the playhead) does not.
+  function userWin(v, how) {
     const n = C.P.n; v = V.clamp(v, n, minSpan());
     if (state.win && v.a === state.win.a && v.b === state.win.b) return;
     state.win = v; state.winIsStage = false;
+    if (how !== 'zoom') setFollow(Follow.reduce(state.follow, { type: 'manual', playing: state.ph.playing }));
     if (state.view && !(v.b > state.view.start && v.a < state.view.end)) { state.view = null; renderStageCard(); updateStageRows(); }
     scheduleLayout(); syncURL();
   }
@@ -568,7 +576,7 @@ button:disabled:hover { border-color: var(--rule); }
     const op = state.ph.op, w = state.win;
     return state.ph.active && op >= w.a && op < w.b ? op + 0.5 : (w.a + w.b) / 2;
   }
-  function zoomBy(f) { userWin(V.zoomAt(state.win, f, zoomAnchor(), C.P.n, minSpan())); }
+  function zoomBy(f) { userWin(V.zoomAt(state.win, f, zoomAnchor(), C.P.n, minSpan()), 'zoom'); }
   function zoomUI() {
     const w = state.win, n = C.P.n, full = V.isFull(w, n), ms = minSpan(), ppo = diagramW() / (w.b - w.a);
     $('zoomOut').disabled = full && !state.view;
@@ -578,6 +586,39 @@ button:disabled:hover { border-color: var(--rule); }
     const ov = $('overview');
     ov.setAttribute('aria-valuemin', 0); ov.setAttribute('aria-valuemax', n); ov.setAttribute('aria-valuenow', Math.round((w.a + w.b) / 2));
     ov.setAttribute('aria-valuetext', `showing ops ${fmt(w.a)} to ${fmt(w.b)} of ${fmt(n)}`);
+    followUI();
+  }
+  // ---- follow modes: the mode buttons, the Follow toggle (F) and its state
+  function setFollow(f) { if (f !== state.follow) { state.follow = f; followUI(); } }
+  function followUI() {
+    const f = state.follow, full = V.isFull(state.win, C.P.n);
+    for (const b of $('followModes').querySelectorAll('button')) b.setAttribute('aria-pressed', String(b.dataset.follow === f.mode));
+    const fb = $('followBtn'), sus = f.suspended && f.mode !== 'off';
+    fb.setAttribute('aria-pressed', String(Follow.active(f))); fb.classList.toggle('suspended', sus);
+    const txt = f.mode === 'off' ? 'off' : sus ? 'suspended: F catches up' : full ? 'zoom in to follow' : '';
+    if ($('followState').textContent !== txt) $('followState').textContent = txt;
+  }
+  // Bring the window to the playhead now (re-engaging, or a new mode).
+  function catchUp() {
+    const ph = state.ph, n = C.P.n, f = state.follow;
+    if (!ph.active || state.winIsStage || !Follow.active(f) || V.isFull(state.win, n)) return;
+    const nv = f.mode === 'c' ? Follow.continuous(state.win, phPos(), n) : Follow.page(state.win, ph.op, n, ph.dir);
+    if (nv !== state.win) { state.win = snapWin(nv); layout(); syncURL(); }
+  }
+  function followMode(mode) {
+    if (mode !== 'off') state.lastFollow = mode;
+    setFollow(Follow.reduce(state.follow, { type: 'mode', mode })); catchUp(); syncURL();
+  }
+  function toggleFollow() { setFollow(Follow.reduce(state.follow, { type: 'toggle', last: state.lastFollow })); catchUp(); syncURL(); }
+  for (const b of $('followModes').querySelectorAll('button')) b.addEventListener('click', () => followMode(b.dataset.follow));
+  $('followBtn').addEventListener('click', toggleFollow);
+  // The playhead's position while playing, between ops (the frame loop's fractional progress), for a smooth slide.
+  const phPos = () => { const ph = state.ph; return ph.playing ? ph.op + ph.dir * ph.acc : ph.op; };
+  // Whole device pixels: the window's left edge moves in steps of one device pixel, so a sliding trace stays crisp.
+  function snapWin(v) {
+    const n = C.P.n, s = v.b - v.a, k = diagramW() * Math.min(2, devicePixelRatio || 1) / s;
+    const a = Math.max(0, Math.min(n - s, Math.round(v.a * k) / k));
+    return a === v.a ? v : { a, b: a + s };
   }
   // Checkpointed tracers for this circuit, x and seed: one with seeded HMR outcomes, one with every outcome 0.
   function tracks() {
@@ -627,7 +668,7 @@ button:disabled:hover { border-color: var(--rule); }
     const setW = (ww) => { w = ww; k = ww / (b - a); };
     const X = (op) => (op - a) * k, cx = (c) => X(ia + c * spanI / cols), cwOf = () => spanI / cols * k;
     const fadeAfter = (g, c) => { g.globalAlpha = c < reveal ? 1 : 0.12; };
-    const playhead = (g, h) => { if (state.reveal != null) { g.globalAlpha = 1; g.fillStyle = col('--phase'); g.fillRect(X(pOp + 0.5) - 1, 0, 2, h); } };
+    const pPos = phPos(), playhead = (g, h) => { if (state.reveal != null) { g.globalAlpha = 1; g.fillStyle = col('--phase'); g.fillRect(X(pPos + 0.5) - 1, 0, 2, h); } };
 
     { const { g, w: ww, h } = sizeCanvas($('ribbon'), 44); setW(ww);
       g.font = '500 11px ' + col('--font-body');
@@ -731,7 +772,7 @@ button:disabled:hover { border-color: var(--rule); }
       playhead(g, h);
     }
     drawDial(state.ph.active && state.snap ? state.snap.phase.turns : T.turns(R.r.phase));
-    drawTol();
+    if (!playing) drawTol();                                   // the precision curve does not change during play
   }
   // One glyph per gate when there are at least 5 px per op: a line across its wires, dots on controls (and on
   // every wire of a Z-type gate), a ring on an X target, crosses on swapped wires, a square on R/HMR, a diamond on
@@ -999,31 +1040,42 @@ button:disabled:hover { border-color: var(--rule); }
   }
 
   // ---- playhead: (op, playing, speed). Play and Pause keep the position; Stop is the only rewind.
-  // Play runs over the visible window (a picked stage, or wherever the diagram is zoomed to).
+  // Play runs over a picked stage, or else the whole circuit, at a rate set by the visible span (one window every
+  // 32/speed seconds), so the trace moves at the same screen speed at every zoom; the follow mode moves the window.
   function phCtx() {
-    const n = C.P.n, w = state.win || V.full(n);
-    return { n, lo: Math.max(0, Math.floor(w.a)), hi: Math.min(n, Math.ceil(w.b)), tof: C.A.tof, meas: C.A.meas, stages: C.A.stageStarts, loop: state.loop };
+    const n = C.P.n, w = state.win || V.full(n), stage = !!(state.view && state.winIsStage);
+    return { n, lo: stage ? Math.max(0, Math.floor(w.a)) : 0, hi: stage ? Math.min(n, Math.ceil(w.b)) : n, rate: w.b - w.a,
+             tof: C.A.tof, meas: C.A.meas, stages: C.A.stageStarts, loop: state.loop };
   }
   let raf = null, lastTs = 0, snapAt = 0;
   function dispatch(action) {
     const prev = state.ph;
-    state.ph = CS.Playhead.reduce(prev, action, phCtx());
+    if (action.type === 'play' || (action.type === 'toggle' && !prev.playing)) {
+      // Zoomed in with no playhead placed yet: start at the left of the view. Play also re-engages following.
+      if (!prev.active && !state.winIsStage && !V.isFull(state.win, C.P.n)) state.ph = CS.Playhead.reduce(prev, { type: 'seek', op: Math.ceil(state.win.a) }, phCtx());
+      setFollow(Follow.reduce(state.follow, { type: 'play' }));
+    }
+    state.ph = CS.Playhead.reduce(state.ph, action, phCtx());
     const ph = state.ph;
     if (ph === prev) return;
     if (ph.playing && !prev.playing) { stopSweep(); lastTs = 0; raf = requestAnimationFrame(frame); }
     $('playBtn').setAttribute('aria-pressed', String(ph.playing)); $('playBtn').textContent = ph.playing ? '❚❚ Pause' : '▶ Play';
     $('playStatus').setAttribute('aria-live', ph.playing ? 'off' : 'polite');
-    let relayout = false;                                  // a step or jump out of the window moves the window
-    if (ph.active && (ph.op < state.win.a || ph.op + 1 > state.win.b)) {
-      if (state.view && state.winIsStage) {                // a picked stage: follow into the stage the playhead is now in
+    $('zoomStatus').setAttribute('aria-live', ph.playing ? 'off' : 'polite');
+    let relayout = false;
+    if (ph.active && state.view && state.winIsStage) {     // a picked stage: a step out of it follows into the next stage
+      if (ph.op < state.win.a || ph.op + 1 > state.win.b) {
         const s = C.stages.find(s => ph.op >= s.start && ph.op < s.end) || null;
         state.view = s; state.winIsStage = !!s; state.win = s ? V.clamp({ a: s.start, b: s.end }, C.P.n, minSpan()) : V.full(C.P.n);
-        renderStageCard(); updateStageRows();
-      } else {
-        state.win = V.reveal(state.win, ph.op, C.P.n);
+        renderStageCard(); updateStageRows(); relayout = true;
+      }
+    } else if (ph.active) {                                // otherwise the follow mode places the window
+      const n = C.P.n, dir = ph.playing ? ph.dir : (Math.sign(ph.op - prev.op) || 1);
+      const nv = ph.playing ? Follow.playing(state.follow, state.win, phPos(), n, dir) : Follow.stepped(state.follow, state.win, ph.op, n, dir);
+      if (nv !== state.win) {
+        state.win = snapWin(nv); relayout = true;
         if (state.view && !(state.win.b > state.view.start && state.win.a < state.view.end)) { state.view = null; renderStageCard(); updateStageRows(); }
       }
-      relayout = true;
     }
     const now = performance.now();
     if (!ph.playing || now - snapAt > 100) { renderSnap(); snapAt = now; }
@@ -1054,6 +1106,7 @@ button:disabled:hover { border-color: var(--rule); }
     if (e.key === '+' || e.key === '=') { e.preventDefault(); zoomBy(V.STEP); return; }
     if (e.key === '-' || e.key === '_') { e.preventDefault(); zoomBy(1 / V.STEP); return; }
     if (e.key === '0') { e.preventDefault(); setView(null); return; }
+    if (e.key === 'f' || e.key === 'F') { e.preventDefault(); toggleFollow(); return; }
     let act = null;
     if (e.key === ' ') { if (tag === 'BUTTON' || tag === 'A' || tag === 'TR') return; act = { type: 'toggle' }; }
     else if (e.key === 'ArrowLeft') act = e.shiftKey ? NAV.prevTof : NAV.back;
@@ -1219,6 +1272,7 @@ button:disabled:hover { border-color: var(--rule); }
   const h = (location.hash || '').slice(1);
   const seedP = parseInt(URLP.get('seed'), 10); if (seedP > 0) { state.seed = seedP; $('seedV').textContent = seedP; }
   if (URLP.get('kick') === '0') { state.kick = false; $('kickBtn').setAttribute('aria-pressed', 'true'); }
+  const fP = Follow.parse(URLP.get('follow')); if (fP) { state.follow = Follow.init(fP); if (fP !== 'off') state.lastFollow = fP; }
   onCircuitChange();
   const xP = parseInt(URLP.get('x'), 10); if (xP >= 1) setX(xP);
   const st = C.stages.find(s => s.id === h); if (st) setView(st);

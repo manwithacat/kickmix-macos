@@ -86,8 +86,10 @@ and pans on its own, without zooming the page:
   on Z-type gates), a ring on an X target, crosses on swapped wires, a square for R/HMR, a diamond for a rotation;
   red for Toffoli-class, gold for measurement-based, grey when its condition skipped it. The deepest zoom is about
   24 pixels per op.
-- Play runs within the visible window. Stepping or jumping out of it moves the window (into the next stage when a
-  stage was picked). The scrubber covers the visible window.
+- Play runs over the whole circuit, or over a picked stage, at a speed set by the visible span (one window every
+  32 ÷ speed seconds), so the trace moves at the same screen speed at every zoom. Where the window goes is the
+  follow mode (below). Stepping or jumping out of a picked stage moves into the next stage. The scrubber covers the
+  visible window.
 - The address bar keeps the window: `&view=18000-18400`.
 
 "Taller lanes" doubles the lane height, which makes lanes easier to tap and glyphs easier to read.
@@ -103,10 +105,41 @@ so the current gate's wires changed on every frame and the outlines flickered wi
 outlines are now drawn only when paused or stepping, where they are steady and mark one gate. To follow particular
 wires while playing, highlight them: those outlines do not change from frame to frame.
 
-The zoom maths, gestures, highlight state and URL round-trips are in `view.js` and tested under Node
+## Following the playhead
+
+Zoomed in, the playhead follows DAW conventions. The "Follow" buttons beside the repeat modes pick the mode, and the
+address bar keeps it (`&follow=p` or `&follow=off`; continuous is the default and is left out):
+
+- **Continuous** (default): the playhead stays 30% of the way across and the trace slides under it every frame.
+  Near op 0 and the last op the window stops and the playhead moves instead, so the view never runs past either end.
+  30% rather than the centre because ops after the playhead are drawn faded but still show their gate glyphs, so
+  the wider right-hand side is look-ahead at what is about to run, as in Pro Tools' and Logic's continuous scroll;
+  centring halves that look-ahead and puts the most recent history in the middle of the reading direction.
+- **Page**: the window stays put until the playhead reaches the right edge, then turns a page, starting 5% of the
+  span (at least one op) before the playhead so it does not sit on the edge. Playing backwards (Back and forth)
+  turns pages the other way.
+- **Off**: the window never moves; the playhead can leave it.
+
+Panning or zooming by hand while playing (drag, scroll, pinch, the overview strip) suspends following: the Follow
+button is no longer pressed, gets a gold outline and says "suspended". The Follow button or <kbd>F</kbd> turns
+following back on (or off again) and the view catches up at once; pressing Play, or picking a mode, also re-engages
+it. The − and + buttons and keys zoom about the playhead, so they do not suspend. While paused, a step, jump or scrub
+in continuous mode re-places the window the same way, but only when the op is off-screen or within 10% of an edge,
+so single steps do not jitter the view; page mode turns a page only when the op leaves the window. With the whole
+circuit visible, or a stage picked, the follow modes do nothing. With no playhead placed yet, Play starts at the left
+of the view.
+
+The window's left edge moves in whole device pixels, so the sliding trace stays crisp. Continuous follow redraws the
+visible range every frame from the stored trace; on the 47,248-op circuit in Chrome on an Apple-silicon Mac (734 px
+diagram) it ran at 94–99 fps at the glyph zooms (5.8 and 24 px per op, 3–4 ms of script per frame), matching the
+display rate, so no canvas blitting was needed. Zoomed out to about 12 ops per pixel it ran at about 54 fps, the same
+as play on the previous version with a still window: the cost there is drawing, not following. The precision curve,
+which does not change during play, is no longer redrawn on every frame.
+
+The zoom maths, gestures, follow modes, highlight state and URL round-trips are in `view.js` and tested under Node
 (`tests/viewer/view.test.js`), including a check that re-binning the stored trace gives exactly the columns that a
 fresh tracer pass gave before. The pinch and drag tests feed simulated pointer positions to the gesture reducer;
-real multi-touch was not tried on a tablet.
+real multi-touch was not tried on a tablet, and the follow modes were checked in desktop Chrome only (not Safari).
 
 ## Headless pictures and GIFs: `render.py`
 
@@ -150,7 +183,7 @@ python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
 | File | What it is |
 |---|---|
 | `snapshot.js` | the playhead state machine, the static analysis (lifetimes, liabilities) and the snapshot object |
-| `view.js` | the zoom window, pointer gestures (drag, pinch), highlighted qubits, and the per-op trace the diagram is binned from |
+| `view.js` | the zoom window, pointer gestures (drag, pinch), follow modes, highlighted qubits, and the per-op trace the diagram is binned from |
 | `ops.json` | the 62-qubit invsqrt circuit (kmb SHA-256 `67482db6…37ae4997`) as a compact op list, with `n_qubits` and `n_bits` |
 | `stages.json` | busyaprime's 17 named stages and qubit groups, carried over to this circuit. Where the two op streams run the same gate sequence on relabelled wires (front decoder and its phase repair, `lookup_b`, most of `arith_b`, `lookup_c`, the seed retirement: 36,700 ops in aligned blocks) a boundary moves with its block. Elsewhere it sits at the matching op pattern, checked against live-wire value sets and the stage anchors of the 62-qubit mechanism analysis. Stage notes say what changed against 9a8627: the lookup builds 27 of its 32 products in place and ends with an HMR block with Clifford fix-ups, later stages move fix-up parities into classical logic on measurement bits, plus yoyobar's four AND rewrites in `arith_a` and Özer's patch in `unnormalize` |
 | `errcurve.json` | error ÷ tolerance for all 3,133,452 inputs, computed with kickmix, binned. It is identical, input for input, to 9a8627's; 308 inputs were re-checked with a bit-level tracer |
@@ -170,4 +203,4 @@ mrmeows' hybrid invsqrt design (public Kaggle dataset `mrmeows/qcc-1375-open-cir
 which is itself on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Simulator and
 verifier: Google Quantum AI's kickmix (Qualtran, Apache-2.0). Viewer written with AI assistance (Claude)
 under the repository owner's direction; the playhead and snapshot (`snapshot.js`, `render.py snapshot`) were
-written the same way, from the owner's plan, as were the zoom, pan and qubit highlighting (`view.js`), from the owner's feedback.
+written the same way, from the owner's plan, as were the zoom, pan and qubit highlighting (`view.js`) and the follow modes, from the owner's feedback.

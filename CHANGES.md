@@ -15,6 +15,16 @@
 
 ## Tooling changes
 
+- 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself): the viewer now opens on the 62-qubit invsqrt
+  circuit `67482db6c538`, the current public frontier. It combines yoyobar's own candidate (yoyobar published the
+  first public 62-qubit invsqrt circuit, `a568bc793481`) with Ahmed Berat Özer's patch from `6dbb98b34c3b`, on
+  busyaprime's `9a8627` and mrmeows' 63-qubit design. `ops/stages/errcurve/livepeak.json` were regenerated for it;
+  busyaprime's 17 stage boundaries were carried over through op-shape alignment and live-wire value sets, and the
+  stage notes say what changed against 9a8627. `9a8627` moved to `circuits/9a8627/` and stays selectable with
+  `?circuit=9a8627`, as does `?circuit=0766a111`. The price card now uses the selected circuit's qubit count, and the
+  Pages workflow now also deploys `circuits/`, which the hosted viewer's selector needs. `tracer.js` is unchanged
+  and matched kickmix on the new circuit (2,299 inputs, 0 mismatches). Written with AI assistance (Claude,
+  Anthropic) under the repository owner's direction.
 - 2026-10-30, `tools/circuit-viewer/render.py`: new verb `ledger`, a double-entry bookkeeping view of a
   reversible circuit. Wires are accounts (registers grouped), ops are entries, and every wire lifetime is a value
   settled by unitary uncompute (contra), by HMR with later phase fix-ups (accrual: the HMR record is a liability

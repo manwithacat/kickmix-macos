@@ -19,8 +19,8 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
 
 ## Try it in your browser
 
-- **[Circuit viewer](https://manwithacat.github.io/kickmix-macos/viewer/)**: follow one input through mrmeows'
-  63-qubit invsqrt circuit, with qubit values, stages, Toffolis, qubit lifetimes, the precision curve over every
+- **[Circuit viewer](https://manwithacat.github.io/kickmix-macos/viewer/)**: follow one input through the
+  62-qubit public-frontier invsqrt circuit (two earlier 63-qubit circuits are selectable), with qubit values, stages, Toffolis, qubit lifetimes, the precision curve over every
   input and the phase building to 1/√x. Load your own `.kmx` too. Source and local instructions:
   [`tools/circuit-viewer/`](tools/circuit-viewer/).
 - **Circuit pictures from the command line**: `tools/circuit-viewer/render.py` makes PNGs and animated GIFs of

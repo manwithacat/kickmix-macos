@@ -149,7 +149,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   <header>
     <div class="eyebrow">Verifiable quantum circuit compilation · invsqrt task</div>
     <h1>Inside invsqrt</h1>
-    <p class="lede" id="lede">The circuit must multiply each basis state <b>|x⟩</b> by the phase <b>e<sup>2πi/√x</sup></b> for every x from 1 to 3,133,452, and hand x back untouched with every scratch qubit at zero. Pick an x and follow it through all <b id="ledeOps">45,576</b> operations on <b id="ledeQ">63</b> qubits: where its bits go, which stages do the work, where the qubit budget peaks, and how the phase builds up to its target.</p>
+    <p class="lede" id="lede">The circuit must multiply each basis state <b>|x⟩</b> by the phase <b>e<sup>2πi/√x</sup></b> for every x from 1 to 3,133,452, and hand x back untouched with every scratch qubit at zero. Pick an x and follow it through all <b id="ledeOps">47,248</b> operations on <b id="ledeQ">62</b> qubits: where its bits go, which stages do the work, where the qubit budget peaks, and how the phase builds up to its target.</p>
     <div class="formula">|x⟩|0…0⟩  →  exp(2πi · 1/√x) |x⟩|0…0⟩     tolerance 2⁻²⁴/√x turns</div>
   </header>
 
@@ -185,7 +185,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     <div class="canvas-box"><canvas id="tracks" aria-label="Toffolis, measurements and skipped conditional ops"></canvas></div>
     <div class="canvas-box"><canvas id="raster" aria-label="Qubit values over the circuit"></canvas><div class="tip" id="tip" hidden></div></div>
     <div class="canvas-box"><canvas id="occ" aria-label="Scratch qubits in use"></canvas></div>
-    <div class="axis"><span id="axL">op 0</span><span>operation index →</span><span id="axR">op 45,576</span></div>
+    <div class="axis"><span id="axL">op 0</span><span>operation index →</span><span id="axR">op 47,248</span></div>
     <div class="legend">
       <span id="legHue"><i class="wheel" style="width:80px"></i>1, coloured by the phase so far (0 → 1 turn)</span>
       <span id="legX"><i class="sw" style="background:var(--one-x)"></i>1 in the x register</span>
@@ -197,7 +197,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <span><i class="sw" style="background:var(--skip)"></i>conditional ops skipped for this x</span>
       <span><i class="wheel" style="width:40px"></i>gates that changed the phase</span>
     </div>
-    <p class="small" id="occNote">Bottom track: how many non-x qubits hold a 1 for this x; the faint red band is the maximum over <span id="occNx">3,000</span> sampled x, with red ticks where it peaks (<span id="occPeak">35 of 41</span>). Holding a 1 is only a lower bound on being in use: a qubit carrying data can read 0. Q = 63 because all 41 scratch qubits are needed at some point and their lifetimes overlap in a staggered way (the darker background in the raster), so saving a qubit means shortening or re-packing those lifetimes, not just lowering the peak.</p>
+    <p class="small" id="occNote">Bottom track: how many non-x qubits hold a 1 for this x; the faint red band is the maximum over <span id="occNx">3,000</span> sampled x, with red ticks where it peaks (<span id="occPeak">34 of 40</span>). Holding a 1 is only a lower bound on being in use: a qubit carrying data can read 0. <span id="occWhy"></span></p>
     <div class="phasehead"><canvas id="dial" aria-label="Phase dial"></canvas><div style="display:grid;gap:4px"><h3>Accumulated phase</h3><p class="small" id="dialNote">The dial shows the phase as an angle: coloured hand = phase so far, black tick = target 1/√x.</p></div></div>
     <div class="canvas-box"><canvas id="phaseTrack" aria-label="Accumulated phase over the circuit"></canvas></div>
     <div class="legend">
@@ -262,10 +262,10 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   </section>
 
   <footer class="foot">
-    <p id="credit"><b>Circuit</b>: busyaprime's 63-qubit invsqrt build (Kaggle notebook <a href="https://www.kaggle.com/code/busyaprime/lb-22-72431-22x-cheaper-than-google-s-circuits">LB 22.72431 | 22x Cheaper Than Google's Circuits</a>, version 10, Apache-2.0; .kmb SHA-256 <span class="mono">9a8627c8…e36339be</span>). It is mrmeows' hybrid design (public dataset <a href="https://www.kaggle.com/datasets/mrmeows/qcc-1375-open-circuits">qcc-1375-open-circuits</a>, Apache-2.0) with two regions re-synthesised by busyaprime: the coefficient lookup (186 → 172 AND gates) and window S1 inside the front decoder (30 → 25), on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Simulator and verifier: Google Quantum AI's kickmix.</p>
-    <p><b>How this page computes</b>: a bit-level tracer runs the circuit in your browser for one basis state. Each measurement draws an outcome from a seeded generator, and the phase is kept exactly in units of 2⁻¹²⁸ turn. On both demo circuits the tracer matched kickmix exactly (all qubits, all classical bits and the phase, on 2,299 inputs each, including x = 1, 161 and the maximum, with outcome-matched replays). The precision curve and the occupancy maximum were computed offline with kickmix and the same tracer.</p>
+    <p id="credit"></p>
+    <p><b>How this page computes</b>: a bit-level tracer runs the circuit in your browser for one basis state. Each measurement draws an outcome from a seeded generator, and the phase is kept exactly in units of 2⁻¹²⁸ turn. On all three demo circuits the tracer matched kickmix exactly (all qubits, all classical bits and the phase, on 2,299 inputs each, including x = 1, 161 and the maximum, with outcome-matched replays). The precision curve and the occupancy maximum were computed offline with kickmix and the same tracer.</p>
     <p><b>Your own circuit</b>: a loaded .kmx file stays in your browser and is not uploaded anywhere. The page is a viewer, not a verifier: the official verifier is the referee. Convert a .kmb with <span class="mono">kickmix.Circuit.from_file("c.kmb").to_file("c.kmx", format="kmx")</span>. Circuits much larger than invsqrt (about 50,000 ops) may be slow in a browser.</p>
-    <p><b>Stage names</b>: stages tagged <span style="color:var(--doc)">documented</span> follow mrmeows' published README and proofs (and, for the re-synthesised lookup and window S1, busyaprime's notebook); those tagged <span style="color:var(--inf)">inferred</span> are read from the op stream, with boundaries good to about ±100 ops. On busyaprime's circuit the stage boundaries were carried over from mrmeows' file by an op-by-op diff: outside the two re-synthesised regions the two op streams are identical. Built with AI assistance (Claude) for manwithacat.</p>
+    <p><b>Stage names</b>: stages tagged <span style="color:var(--doc)">documented</span> follow mrmeows' published README and proofs (and, for the re-synthesised lookup and window S1, busyaprime's notebook); those tagged <span style="color:var(--inf)">inferred</span> are read from the op stream, with boundaries good to about ±100 ops. On busyaprime's circuit the stage boundaries were carried over from mrmeows' file by an op-by-op diff: outside the two re-synthesised regions the two op streams are identical. On the 62-qubit circuit they are busyaprime's 17 stages carried over again: where the two op streams run the same gate sequence on relabelled wires (most of the decoder, arithmetic, lookup and seed-retirement stages) a boundary moves with its block, and elsewhere it sits at the matching op pattern, checked against the live-wire values. Built with AI assistance (Claude) for manwithacat.</p>
   </footer>
 </div>
 
@@ -282,11 +282,16 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   // ---- demo circuits; each has its own offline data (computed with kickmix and the validated tracer)
   const MAXX = 3133452;
   const MRMEOWS = '<a href="https://www.kaggle.com/datasets/mrmeows/qcc-1375-open-circuits">qcc-1375-open-circuits</a>';
+  const BUSYA = '<a href="https://www.kaggle.com/code/busyaprime/lb-22-72431-22x-cheaper-than-google-s-circuits">LB 22.72431 | 22x Cheaper Than Google\'s Circuits</a>';
+  const OCC63 = 'Q = 63 because all 41 scratch qubits are needed at some point and their lifetimes overlap in a staggered way (the darker background in the raster), so saving a qubit means shortening or re-packing those lifetimes, not just lowering the peak.';
   const REFS = [
-    { key: '9a8627', dir: '', name: "busyaprime's invsqrt circuit", label: '9a8627 · busyaprime on mrmeows (public frontier, 29 Oct 2026)',
-      credit: $('credit').innerHTML },
-    { key: '0766a111', dir: 'circuits/0766a111/', name: "mrmeows' invsqrt circuit", label: '0766a111 · mrmeows (earlier version)',
-      credit: `<b>Circuit</b>: mrmeows' 63-qubit hybrid invsqrt build (public dataset ${MRMEOWS}, Apache-2.0; .kmb SHA-256 <span class="mono">0766a111…07d67d6</span>), on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. busyaprime's circuit above is this design with two regions re-synthesised. Simulator and verifier: Google Quantum AI's kickmix.` }];
+    { key: '67482db6c538', dir: '', name: 'the 62-qubit invsqrt circuit', label: '67482db6c538 · yoyobar, with Özer\'s patch, 62 qubits (public frontier, 30 Oct 2026)',
+      occ: 'Q = 62, one fewer than 9a8627. The saving is not one wire whose job disappears: every 63-wide stage of 9a8627 is narrowed by one, by building lookup products in place, re-packing lifetimes and moving fix-up parities into classical logic on measurement bits.',
+      credit: `<b>Circuit</b>: the 62-qubit invsqrt build 67482db6c538 (.kmb SHA-256 <span class="mono">67482db6…37ae4997</span>). yoyobar's <a href="https://www.kaggle.com/code/yoyobar/lb-22-99-invsqrt-101-62-qubits">Kaggle notebook</a> (version 8) published the first public 62-qubit invsqrt circuit, a568bc793481; this file combines yoyobar's own candidate with Ahmed Berat Özer's patch from 6dbb98b34c3b, which removes one controlled swap's AND and repairs the phase with a measurement. It is built on busyaprime's 9a8627 (notebook ${BUSYA}, version 10, Apache-2.0), on mrmeows' 63-qubit hybrid design (public dataset ${MRMEOWS}, Apache-2.0), on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Our local run of the official verifier passes it on all 3,133,452 inputs: cost 100,692.58, 62 qubits, 1,327.48 Toffolis per input on average. Simulator and verifier: Google Quantum AI's kickmix.` },
+    { key: '9a8627', dir: 'circuits/9a8627/', name: "busyaprime's invsqrt circuit", label: '9a8627 · busyaprime on mrmeows, 63 qubits (29 Oct 2026)', occ: OCC63,
+      credit: `<b>Circuit</b>: busyaprime's 63-qubit invsqrt build (Kaggle notebook ${BUSYA}, version 10, Apache-2.0; .kmb SHA-256 <span class="mono">9a8627c8…e36339be</span>). It is mrmeows' hybrid design (public dataset ${MRMEOWS}, Apache-2.0) with two regions re-synthesised by busyaprime: the coefficient lookup (186 → 172 AND gates) and window S1 inside the front decoder (30 → 25), on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Simulator and verifier: Google Quantum AI's kickmix.` },
+    { key: '0766a111', dir: 'circuits/0766a111/', name: "mrmeows' invsqrt circuit", label: '0766a111 · mrmeows, 63 qubits (earlier version)', occ: OCC63,
+      credit: `<b>Circuit</b>: mrmeows' 63-qubit hybrid invsqrt build (public dataset ${MRMEOWS}, Apache-2.0; .kmb SHA-256 <span class="mono">0766a111…07d67d6</span>), on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. busyaprime's 9a8627 is this design with two regions re-synthesised. Simulator and verifier: Google Quantum AI's kickmix.` }];
   async function loadRef(R) {
     if (R.C) return R.C;
     const [opsData, meta, errcurve, livepeak] = await Promise.all([
@@ -316,7 +321,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     return { P, data, xq, xset, opq, opStage, isMeas, other, maxx: Math.min(2 ** xq.length - 1, opts.maxx || Infinity), ...opts };
   }
   const qs = new URLSearchParams(location.search).get('circuit');
-  let REFI = Math.max(0, REFS.findIndex(R => R.key === qs));
+  let REFI = Math.max(0, REFS.findIndex(R => qs && qs.length >= 6 && (R.key.startsWith(qs) || qs.startsWith(R.key))));
   for (const [j, R] of REFS.entries()) { const o = document.createElement('option'); o.value = j; o.textContent = R.label; $('refSel').appendChild(o); }
   $('refSel').value = REFI;
   let C = await loadRef(REFS[REFI]);
@@ -404,7 +409,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     $('priceCard').hidden = !C.ref;
     if (C.ref) {
       $('ledeOps').textContent = fmt(C.P.n); $('ledeQ').textContent = C.P.nq;
-      $('credit').innerHTML = C.refInfo.credit;
+      $('credit').innerHTML = C.refInfo.credit; $('occWhy').textContent = C.refInfo.occ || '';
       if (C.livepeak) { $('occNx').textContent = fmt(C.livepeak.n_x); $('occPeak').textContent = `${C.livepeak.global_max} of ${C.other.length}`; }
       renderPrecStats(); renderPrice();
     }
@@ -740,9 +745,9 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     const d = +$('pd').value, ro = +$('pr').value, nf = +$('pf').value;
     const price = Math.round(10000 * Math.pow(20, +$('pp').value / 100) / 1000) * 1000;      // $10k .. $200k, log scale
     const cycle = 1e-6 * Math.pow(1000, +$('pc').value / 100);                               // 1 us .. 1 ms, log scale
-    const logical = 63, perLogical = 2 * d * d, phys = Math.round(logical * perLogical * ro + nf * 3000);
+    const logical = C.P.nq, perLogical = 2 * d * d, phys = Math.round(logical * perLogical * ro + nf * 3000);
     const capex = phys * price;
-    const tof = C.tofMean || 1329.84, shot = tof * d * cycle / nf, shots = 200540928;                       // each factory delivers one Toffoli per d rounds
+    const tof = C.tofMean || 1327.48, shot = tof * d * cycle / nf, shots = 200540928;                       // each factory delivers one Toffoli per d rounds
     const money = (v) => v >= 1e9 ? '$' + (v / 1e9).toFixed(1) + ' billion' : v >= 1e6 ? '$' + (v / 1e6).toFixed(0) + ' million' : '$' + fmt(v);
     const dur = (s) => s < 1 ? (s * 1000).toFixed(1) + ' ms' : s < 120 ? s.toFixed(1) + ' s' : s < 7200 ? (s / 60).toFixed(0) + ' min' : s < 172800 ? (s / 3600).toFixed(1) + ' hours' : s < 2 * 31557600 ? (s / 86400).toFixed(0) + ' days' : (s / 31557600).toFixed(1) + ' years';
     $('pdV').textContent = `${d} → ${fmt(perLogical)} per logical`; $('prV').textContent = '×' + ro.toFixed(1); $('pfV').textContent = nf;

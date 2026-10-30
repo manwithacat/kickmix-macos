@@ -141,6 +141,20 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
 .scale .row { display: grid; grid-template-columns: 9.5em minmax(0, 1fr) auto; gap: 8px; align-items: center; }
 .scale .row i { display: block; height: 10px; border-radius: 2px; background: var(--muted); min-width: 1px; }
 .scale .row.need i { background: var(--tof); }
+.scrub { display: grid; gap: 2px; }
+.scrub input[type=range] { width: 100%; margin: 0; }
+.keys { font-size: 12px; color: var(--muted); }
+.keys kbd { font: 500 11px var(--font-mono); border: 1px solid var(--rule); border-bottom-width: 2px; border-radius: 4px; padding: 0 4px; background: var(--panel); color: var(--ink); }
+.snap { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+.snap .blk { border: 1px solid var(--rule); border-radius: 8px; padding: 10px 12px; display: grid; gap: 6px; min-width: 0; align-content: start; }
+.snap .blk.wide { grid-column: 1 / -1; }
+.snap .big { font-family: var(--font-mono); font-size: 17px; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.snap table { font-size: 12px; }
+.snap td, .snap th { padding: 3px 6px; }
+.bits { font-family: var(--font-mono); letter-spacing: 0.04em; white-space: nowrap; }
+.bits b { color: var(--tof); background: var(--sel); font-weight: 700; border-radius: 2px; }
+.pill { display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 999px; border: 1px solid currentColor; }
+.pill.ran { color: var(--doc); } .pill.skip { color: var(--skip); } .pill.kick { color: var(--meas); }
 .foot { font-size: 13px; color: var(--muted); max-width: 90ch; display: grid; gap: 6px; }
 .foot a, .small a { color: var(--phase); }
 </style>
@@ -172,10 +186,20 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <h2 id="viewTitle">The whole circuit</h2>
       <div class="hint">Click a stage band to zoom in. <button id="zoomOut" type="button" hidden>Show whole circuit</button></div>
     </div>
-    <div class="player">
-      <button id="playBtn" type="button" aria-pressed="false">▶ Play through the circuit</button>
-      <button id="sweepBtn" type="button" aria-pressed="false">⟳ Sweep x from 1 to max</button>
+    <div class="player" role="group" aria-label="Playhead">
+      <button id="playBtn" type="button" aria-pressed="false" aria-keyshortcuts="Space">▶ Play</button>
+      <button id="stopBtn" type="button" title="Stop and go back to the start">■ Stop</button>
+      <span class="presets" role="group" aria-label="Move the playhead" id="navBtns">
+        <button type="button" data-act="prevStage" aria-keyshortcuts="[" title="Previous stage boundary ([)">⇤ Stage</button>
+        <button type="button" data-act="prevTof" aria-keyshortcuts="Shift+ArrowLeft" title="Previous Toffoli (Shift+←)">◀ Toffoli</button>
+        <button type="button" data-act="back" aria-keyshortcuts="ArrowLeft" title="Back one op (←)" aria-label="Back one op">◀ Op</button>
+        <button type="button" data-act="fwd" aria-keyshortcuts="ArrowRight" title="Forward one op (→)" aria-label="Forward one op">Op ▶</button>
+        <button type="button" data-act="nextTof" aria-keyshortcuts="Shift+ArrowRight" title="Next Toffoli (Shift+→)">Toffoli ▶</button>
+        <button type="button" data-act="nextMeas" aria-keyshortcuts="M" title="Next measurement, HMR (M)">HMR ▶</button>
+        <button type="button" data-act="nextStage" aria-keyshortcuts="]" title="Next stage boundary (])">Stage ⇥</button>
+      </span>
       <label class="speed" for="speed">Speed <input id="speed" type="range" min="1" max="10" value="4"></label>
+      <button id="sweepBtn" type="button" aria-pressed="false">⟳ Sweep x from 1 to max</button>
       <span class="presets" role="group" aria-label="Repeat" id="loopModes"><button type="button" data-mode="once" aria-pressed="false">Once</button><button type="button" data-mode="loop" aria-pressed="true">Loop</button><button type="button" data-mode="bounce" aria-pressed="false">Back and forth</button></span>
       <button id="hueBtn" type="button" aria-pressed="true">Colour bits by phase</button>
       <button id="envBtn" type="button" aria-pressed="true">Show qubit lifetimes</button>
@@ -185,6 +209,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     <div class="canvas-box"><canvas id="tracks" aria-label="Toffolis, measurements and skipped conditional ops"></canvas></div>
     <div class="canvas-box"><canvas id="raster" aria-label="Qubit values over the circuit"></canvas><div class="tip" id="tip" hidden></div></div>
     <div class="canvas-box"><canvas id="occ" aria-label="Scratch qubits in use"></canvas></div>
+    <div class="scrub"><input id="scrub" type="range" min="0" max="47247" step="1" value="0" aria-label="Playhead: operation index"></div>
     <div class="axis"><span id="axL">op 0</span><span>operation index →</span><span id="axR">op 47,248</span></div>
     <div class="legend">
       <span id="legHue"><i class="wheel" style="width:80px"></i>1, coloured by the phase so far (0 → 1 turn)</span>
@@ -196,15 +221,27 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       <span><i class="sw" style="background:var(--meas)"></i>measurement-based clean-ups (HMR/R)</span>
       <span><i class="sw" style="background:var(--skip)"></i>conditional ops skipped for this x</span>
       <span><i class="wheel" style="width:40px"></i>gates that changed the phase</span>
+      <span><i class="sw" style="background:var(--phase)"></i>playhead; the current gate's wires are outlined</span>
     </div>
     <p class="small" id="occNote">Bottom track: how many non-x qubits hold a 1 for this x; the faint red band is the maximum over <span id="occNx">3,000</span> sampled x, with red ticks where it peaks (<span id="occPeak">34 of 40</span>). Holding a 1 is only a lower bound on being in use: a qubit carrying data can read 0. <span id="occWhy"></span></p>
-    <div class="phasehead"><canvas id="dial" aria-label="Phase dial"></canvas><div style="display:grid;gap:4px"><h3>Accumulated phase</h3><p class="small" id="dialNote">The dial shows the phase as an angle: coloured hand = phase so far, black tick = target 1/√x.</p></div></div>
+    <div class="phasehead"><canvas id="dial" aria-label="Phase dial"></canvas><div style="display:grid;gap:4px"><h3>Accumulated phase</h3><p class="small" id="dialNote">The dial shows the phase as an angle: coloured hand = phase so far (at the playhead when it is paused), black tick = target 1/√x.</p></div>
+      <div style="display:grid;gap:6px;max-width:62ch"><button id="kickBtn" type="button" aria-pressed="false" aria-describedby="kickNote" style="justify-self:start">Phase without kickback</button>
+        <p class="small" id="kickNote">An HMR that reads 1 on a qubit holding 1 adds half a turn, and a later Z or CZ conditioned on that reading pays it back, so mid-circuit phases (the lookup's especially) flash as x changes. This toggle replays with every HMR outcome forced to 0: no kickback, no fix-ups, and the same final phase.</p></div></div>
     <div class="canvas-box"><canvas id="phaseTrack" aria-label="Accumulated phase over the circuit"></canvas></div>
     <div class="legend">
       <span><i class="sw" style="background:var(--phase)"></i>phase so far, in turns</span>
       <span><i class="sw" style="background:var(--target)"></i>target 1/√x (mod 1)</span>
+      <span><i class="sw" style="background:var(--meas);opacity:0.35"></i>open phase debts: HMR records whose fix-ups are still to come</span>
+      <span><i class="sw" style="background:var(--meas)"></i>of those, ones that kicked back for this x</span>
       <span>Mid-circuit the phase also carries measurement kickback that later stages repair, so only the end has to hit the target.</span>
     </div>
+  </section>
+
+  <section class="card" id="snapCard" aria-labelledby="snapTitle">
+    <div class="inst-head"><h2 id="snapTitle">At the playhead</h2>
+      <div class="presets"><button id="copySnap" type="button">Copy snapshot JSON</button><span class="status" id="copyStatus" role="status"></span></div></div>
+    <p class="keys">Keys: <kbd>Space</kbd> play or pause · <kbd>←</kbd> <kbd>→</kbd> one op · <kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd> Toffoli · <kbd>[</kbd> <kbd>]</kbd> stage · <kbd>M</kbd> next HMR. The address bar keeps this stop point (<span class="mono">?op=…&amp;x=…</span>). The state shown is after the op at the playhead has run; <span class="mono">render.py snapshot --op N --x X</span> gives the same JSON.</p>
+    <div class="snap" id="snapBody"></div>
   </section>
 
   <section class="detail">
@@ -271,9 +308,11 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
 
 <script src="tracer.js"></script>
 <script src="kmx.js"></script>
+<script src="snapshot.js"></script>
 <script>
 (async function () {
-  const T = window.InvsqrtTracer;
+  const T = window.InvsqrtTracer, CS = window.CircuitSnapshot;
+  const esc = (v) => String(v).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const $ = (id) => document.getElementById(id);
   const css = () => getComputedStyle(document.documentElement);
   const col = (n) => css().getPropertyValue(n).trim();
@@ -318,9 +357,11 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     opts.stages.forEach((s, j) => { for (let i = s.start; i < s.end; i++) opStage[i] = j; });
     const isMeas = data.ops.map(o => o[0] === 8 || o[0] === 9);
     const other = []; for (let k = 0; k < P.nq; k++) if (!xset.has(k)) other.push(k);
-    return { P, data, xq, xset, opq, opStage, isMeas, other, maxx: Math.min(2 ** xq.length - 1, opts.maxx || Infinity), ...opts };
+    const A = CS.analyse(data, { stages: opts.stages, groups: opts.groups });
+    return { P, A, data, xq, xset, opq, opStage, isMeas, other, maxx: Math.min(2 ** xq.length - 1, opts.maxx || Infinity), tracks: new Map(), ...opts };
   }
-  const qs = new URLSearchParams(location.search).get('circuit');
+  const URLP = new URLSearchParams(location.search);
+  const qs = URLP.get('circuit');
   let REFI = Math.max(0, REFS.findIndex(R => qs && qs.length >= 6 && (R.key.startsWith(qs) || qs.startsWith(R.key))));
   for (const [j, R] of REFS.entries()) { const o = document.createElement('option'); o.value = j; o.textContent = R.label; $('refSel').appendChild(o); }
   $('refSel').value = REFI;
@@ -338,7 +379,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       s.tof = tof; s.n_hmr = h; s.n_zpow = z; }
   }
 
-  const state = { x: 161, seed: 1, view: null, res: null, reveal: null };
+  const state = { x: 161, seed: 1, view: null, res: null, reveal: null, kick: true, ph: CS.Playhead.init(), snap: null };
 
   // ---- presets and controls
   function buildPresets() {
@@ -353,7 +394,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   }
   $('xIn').addEventListener('change', () => setX(+$('xIn').value));
   $('xLog').addEventListener('input', () => setX(Math.round(Math.exp(+$('xLog').value / 1000 * Math.log(C.maxx)))));
-  $('reroll').addEventListener('click', () => { state.seed = (state.seed * 48271) % 2147483647; $('seedV').textContent = state.seed; compute(); });
+  $('reroll').addEventListener('click', () => { state.seed = (state.seed * 48271) % 2147483647; $('seedV').textContent = state.seed; compute(); syncURL(); });
   $('zoomOut').addEventListener('click', () => setView(null));
 
   function setX(v) {
@@ -361,12 +402,29 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     state.x = v; $('xIn').value = v;
     $('xLog').value = Math.round(Math.log(v) / Math.log(Math.max(2, C.maxx)) * 1000);
     for (const b of $('presets').children) b.setAttribute('aria-pressed', String(+b.dataset.x === v));
-    compute();
+    compute(); syncURL();
   }
   function setView(st) {
     state.view = st;
-    try { history.replaceState(null, '', location.pathname + location.search + (st && C.ref ? '#' + st.id : '')); } catch (e) {}
-    compute();
+    compute(); syncURL();
+  }
+  // The address bar holds the stop point: ?circuit=…&op=…&x=… (plus seed and kick=0 when not the defaults), #stage.
+  let urlTimer = null;
+  function syncURL() {
+    clearTimeout(urlTimer);
+    urlTimer = setTimeout(() => {
+      try {
+        const u = new URL(location.href), sp = u.searchParams;
+        if (C.ref && REFI) sp.set('circuit', REFS[REFI].key); else sp.delete('circuit');
+        const ph = state.ph, active = ph.active && !ph.playing;
+        if (active) sp.set('op', ph.op); else sp.delete('op');
+        if (active || state.x !== 161) sp.set('x', state.x); else sp.delete('x');
+        if (state.seed !== 1) sp.set('seed', state.seed); else sp.delete('seed');
+        if (!state.kick) sp.set('kick', '0'); else sp.delete('kick');
+        u.hash = state.view && C.ref ? state.view.id : '';
+        history.replaceState(null, '', u);
+      } catch (e) {}
+    }, 120);
   }
 
   // ---- loading a user's circuit
@@ -384,19 +442,18 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
         ...data.registers.filter(r => r.qubits !== data.x_qubits).map(r => ({ name: r.name || 'r' + r.r, qubits: r.qubits, role: 'register in the file', evidence: 'from the file' }))];
       const c = makeCircuit(data, { name: f.name, ref: false, stages, groups, maxx: Infinity });
       staticCounts(c);
-      C = c; state.view = null; stopAnim();
+      C = c; state.view = null; stopSweep();
       note.textContent = `Loaded ${f.name}: ${fmt(data.ops.length)} ops on ${data.n_qubits} qubits, input register of ${data.x_qubits.length} qubits. Error is shown against 1/√x, the invsqrt target; for other tasks read the phase directly.`;
       $('backRef').hidden = false; onCircuitChange();
     } catch (err) { note.className = 'notice err'; note.textContent = `Could not load ${f.name}: ${err.message}`; }
     e.target.value = '';
   });
   async function showRef(j) {
-    stopAnim(); REFI = j; $('refSel').value = j;
+    stopSweep(); REFI = j; $('refSel').value = j;
     const note = $('circuitNotice');
     try { C = await loadRef(REFS[j]); note.hidden = true; }
     catch (err) { note.hidden = false; note.className = 'notice err'; note.textContent = `Could not load ${REFS[j].name}: ${err.message}`; return; }
     state.view = null; $('backRef').hidden = true;
-    try { const u = new URL(location.href); if (j) u.searchParams.set('circuit', REFS[j].key); else u.searchParams.delete('circuit'); u.hash = ''; history.replaceState(null, '', u); } catch (e) {}
     onCircuitChange();
   }
   $('refSel').addEventListener('change', () => showRef(+$('refSel').value));
@@ -414,6 +471,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       renderPrecStats(); renderPrice();
     }
     buildPresets(); renderTables();
+    state.ph = CS.Playhead.reduce(state.ph, { type: 'stop' }, phCtx());
     setX(C.ref ? 161 : Math.min(C.maxx, 161));
   }
 
@@ -431,6 +489,13 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     let live = 0, peak = 0, peakOp = 0, cur = -1;
     const snap = (q, phase) => ({ x: C.xq.reduce((acc, k, j) => acc + q[k] * 2 ** j, 0), live, phase: T.turns(phase) });
     snaps.set(0, snap(mirror, 0n));
+    const tr = tracks();
+    const dS = new Uint16Array(cols), dK = new Uint16Array(cols), kd = new Int32Array(C.P.n + 1);
+    if (state.kick) { const L = C.A.liab; for (let j = 0; j < L.op.length; j++) if (L.settle[j] >= 0 && tr.trK.kicked[L.op[j]]) { kd[L.op[j]]++; kd[L.settle[j]]--; } }
+    let kcur = 0;
+    for (let i = 0; i < C.P.n; i++) { kcur += kd[i]; if (i < a || i >= b) continue;
+      const c = Math.min(cols - 1, Math.floor((i - a) * cols / span));
+      if (C.A.openDebts[i] > dS[c]) dS[c] = C.A.openDebts[i]; if (kcur > dK[c]) dK[c] = kcur; }
     const r = T.run(C.P, state.x, state.seed, (i, q, phase, t, ran) => {
       for (const k of C.opq[i]) if (q[k] !== mirror[k]) { if (!C.xset.has(k)) live += q[k] ? 1 : -1; mirror[k] = q[k]; }
       if (live > peak) { peak = live; peakOp = i; }
@@ -444,10 +509,22 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       tof[c] += t; if (ran && C.isMeas[i]) meas[c]++; if (!ran) skip[c]++;
       if (phase !== lastP) { pchg[c]++; lastP = phase; }
       if (live > occ[c]) occ[c] = live; ph[c] = T.turns(phase);
-    });
+    }, state.kick ? undefined : CS.ZERO);
     C.stages.forEach((s, j) => { const p0 = snaps.get(s.start), p1 = snaps.get(s.end); if (p0 && p1) sPhase[j] = ((p1.phase - p0.phase) % 1 + 1.5) % 1 - 0.5; });
-    state.res = { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, r, snaps, sTof, sPhase, sMeas, peak, peakOp };
-    draw(); renderReadouts(); renderStageCard(); updateStageRows();
+    state.res = { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, r, snaps, sTof, sPhase, sMeas, peak, peakOp, dS, dK };
+    const sc = $('scrub'); sc.min = a; sc.max = b - 1;
+    renderSnap(); draw(); renderReadouts(); renderStageCard(); updateStageRows();
+  }
+  // Checkpointed tracers for this circuit, x and seed: one with seeded HMR outcomes, one with every outcome 0.
+  function tracks() {
+    const key = state.x + '|' + state.seed;
+    let t = C.tracks.get(key);
+    if (!t) {
+      if (C.tracks.size > 6) C.tracks.clear();
+      t = { trK: CS.track(C.P, C.A, state.x, state.seed, true), trZ: CS.track(C.P, C.A, state.x, state.seed, false) };
+      C.tracks.set(key, t);
+    }
+    return t;
   }
 
   // ---- drawing helpers
@@ -468,7 +545,9 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   function draw() {
     const R = state.res; if (!R) return;
     HS = col('--hue-s'); HL = col('--hue-l');
-    const { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg } = R;
+    const { a, b, cols, NQ, bits, tof, meas, skip, ph, occ, pchg, dS, dK } = R;
+    const pOp = state.ph.op;
+    state.reveal = state.ph.active && pOp >= a && pOp < b ? Math.min(cols - 1, Math.floor((pOp - a) * cols / (b - a))) : null;
     const reveal = state.reveal == null ? cols : state.reveal;
     $('axL').textContent = 'op ' + fmt(a); $('axR').textContent = 'op ' + fmt(b);
     $('viewTitle').textContent = state.view ? state.view.title : (C.ref ? 'The whole circuit' : C.name);
@@ -514,6 +593,14 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       g.globalAlpha = 1;
       if (C.ref) { g.fillStyle = col('--muted'); g.fillRect(0, H - 22 * rh - 1, w, 1); }
       playhead(g, w, H); R.rh = rh;
+      if (state.reveal != null) {                                  // the current gate's wires
+        const px = Math.min(state.reveal, cols - 1) * w / cols;
+        g.strokeStyle = col('--phase'); g.lineWidth = 1;
+        for (const k of C.opq[pOp]) { const y0 = H - (k + 1) * rh;
+          g.globalAlpha = 0.45; g.strokeRect(0.5, y0 - 0.5, w - 1, rh + 1);
+          g.globalAlpha = 1; g.fillStyle = col('--ink'); g.fillRect(px - 4, y0 - 1, 10, rh + 2); g.fillStyle = col('--phase'); g.fillRect(px - 3, y0, 8, rh); }
+        g.globalAlpha = 1;
+      }
     }
     { const { g, w, h } = sizeCanvas($('occ'), 64), nOther = C.other.length, pad = 4, y = (v) => h - pad - v / nOther * (h - 2 * pad);
       g.strokeStyle = col('--rule'); g.beginPath(); g.moveTo(0, y(nOther)); g.lineTo(w, y(nOther)); g.stroke();
@@ -538,6 +625,12 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
       for (const t of [0, 0.25, 0.5, 0.75, 1]) { g.beginPath(); g.moveTo(0, y(t)); g.lineTo(w, y(t)); g.stroke(); }
       g.fillStyle = col('--muted'); g.font = '10px ' + col('--font-mono');
       g.fillText('1 turn', 2, y(1) + 10); g.fillText('0', 2, y(0) - 2); g.fillText('½', 2, y(0.5) - 2);
+      { let mx = 1; for (const v of dS) mx = Math.max(mx, v);        // open phase debts, as a band along the bottom
+        const bh = 26; g.fillStyle = col('--meas');
+        for (let c = 0; c < cols; c++) { const x0 = c * w / cols, cw = Math.max(1, w / cols);
+          if (dS[c]) { g.globalAlpha = 0.3; const hh = dS[c] / mx * bh; g.fillRect(x0, h - hh, cw, hh); }
+          if (dK[c]) { g.globalAlpha = 0.9; const hh = dK[c] / mx * bh; g.fillRect(x0, h - hh, cw, hh); } }
+        g.globalAlpha = 1; g.fillStyle = col('--muted'); g.fillText('open debts (max ' + mx + ')', Math.max(2, w - 120), h - bh - 3); }
       const tgt = ((1 / Math.sqrt(state.x)) % 1 + 1) % 1;
       g.strokeStyle = col('--target'); g.setLineDash([5, 4]); g.beginPath(); g.moveTo(0, y(tgt)); g.lineTo(w, y(tgt)); g.stroke(); g.setLineDash([]);
       g.lineWidth = 2;
@@ -549,7 +642,7 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
         g.stroke(); }
       playhead(g, w, h);
     }
-    drawDial(state.reveal == null ? T.turns(R.r.phase) : ph[Math.min(state.reveal, cols - 1)]);
+    drawDial(state.ph.active && state.snap ? state.snap.phase.turns : T.turns(R.r.phase));
     drawTol();
   }
   function drawDial(t) {
@@ -690,14 +783,128 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     });
   }
 
-  // ---- animation: play through the circuit, or sweep x over its range
+  // ---- playhead: (op, playing, speed). Play and Pause keep the position; Stop is the only rewind.
+  function phCtx() {
+    const n = C.P.n, v = state.view;
+    return { n, lo: v ? v.start : 0, hi: v ? v.end : n, tof: C.A.tof, meas: C.A.meas, stages: C.A.stageStarts, loop: state.loop };
+  }
+  let raf = null, lastTs = 0, snapAt = 0;
+  function dispatch(action) {
+    const prev = state.ph;
+    state.ph = CS.Playhead.reduce(prev, action, phCtx());
+    const ph = state.ph;
+    if (ph === prev) return;
+    if (ph.playing && !prev.playing) { stopSweep(); lastTs = 0; raf = requestAnimationFrame(frame); }
+    $('playBtn').setAttribute('aria-pressed', String(ph.playing)); $('playBtn').textContent = ph.playing ? '❚❚ Pause' : '▶ Play';
+    $('playStatus').setAttribute('aria-live', ph.playing ? 'off' : 'polite');
+    if (state.view && ph.active && (ph.op < state.view.start || ph.op >= state.view.end)) { setView(null); return; }   // jumped out of the zoomed stage
+    const now = performance.now();
+    if (!ph.playing || now - snapAt > 100) { renderSnap(); snapAt = now; }
+    draw();
+    if (!ph.playing) syncURL();
+  }
+  function frame(ts) {
+    if (!state.ph.playing) { raf = null; return; }
+    const dt = lastTs ? (ts - lastTs) / 1000 : 0; lastTs = ts;
+    dispatch({ type: 'tick', dt });
+    if (state.ph.playing) raf = requestAnimationFrame(frame); else { raf = null; renderSnap(); }
+  }
+  $('playBtn').addEventListener('click', () => dispatch({ type: 'toggle' }));
+  $('stopBtn').addEventListener('click', () => dispatch({ type: 'stop' }));
+  const NAV = { back: { type: 'step', delta: -1 }, fwd: { type: 'step', delta: 1 }, prevTof: { type: 'prevTof' }, nextTof: { type: 'nextTof' },
+                prevStage: { type: 'prevStage' }, nextStage: { type: 'nextStage' }, nextMeas: { type: 'nextMeas' } };
+  for (const b of $('navBtns').children) b.addEventListener('click', () => dispatch(NAV[b.dataset.act]));
+  $('speed').addEventListener('input', () => dispatch({ type: 'speed', value: +$('speed').value }));
+  $('scrub').addEventListener('input', () => dispatch({ type: 'seek', op: +$('scrub').value }));
+  $('kickBtn').addEventListener('click', () => {
+    state.kick = !state.kick; $('kickBtn').setAttribute('aria-pressed', String(!state.kick)); compute(); syncURL();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey) return;
+    const t = e.target, tag = t && t.tagName, scrub = t === $('scrub');
+    const typing = (tag === 'INPUT' && !scrub) || tag === 'SELECT' || tag === 'TEXTAREA' || (t && t.isContentEditable);
+    if (typing) return;
+    let act = null;
+    if (e.key === ' ') { if (tag === 'BUTTON' || tag === 'A' || tag === 'TR') return; act = { type: 'toggle' }; }
+    else if (e.key === 'ArrowLeft') act = e.shiftKey ? NAV.prevTof : NAV.back;
+    else if (e.key === 'ArrowRight') act = e.shiftKey ? NAV.nextTof : NAV.fwd;
+    else if (e.key === '[') act = NAV.prevStage;
+    else if (e.key === ']') act = NAV.nextStage;
+    else if (e.key === 'm' || e.key === 'M') act = NAV.nextMeas;
+    if (!act) return;
+    e.preventDefault(); dispatch(act);
+  });
+
+  // ---- the snapshot panel (and the JSON the copy button gives; render.py snapshot builds the same object)
+  function renderSnap() {
+    const ph = state.ph, op = Math.max(0, Math.min(C.P.n - 1, ph.op));
+    const tr = tracks();
+    const S = CS.snapshot({ A: C.A, P: C.P, x: state.x, seed: state.seed, kick: state.kick, trK: tr.trK, trZ: tr.trZ }, op);
+    state.snap = S;
+    const sc = $('scrub'); if (+sc.value !== op) sc.value = op;
+    const g = S.gate, st = S.position.stage, w = S.width, cs = S.cost, P = S.phase, L = S.ledger, tb = L.trial_balance;
+    const gtxt = `${g.kind} ${g.qubits.map(q => 'q' + q).join(' ')}${g.bits.length ? ' b' + g.bits.join(' b') : ''}`;
+    sc.setAttribute('aria-valuetext', `op ${fmt(op)}, ${gtxt}${st ? ', ' + st.title : ''}`);
+    $('playStatus').textContent = `op ${fmt(op)} of ${fmt(C.P.n)} · ${gtxt}${st ? ' · ' + st.title : ''}`;
+    const pill = (ok, a, b) => `<span class="pill ${ok ? 'ran' : 'skip'}">${ok ? a : b}</span>`;
+    const cond = g.cond == null ? 'none' : `b${g.cond} = ${g.cond_value}`;
+    const stack = g.stack_depth ? `${g.stack_depth} pushed, ${g.stack_open ? 'all 1' : 'one is 0'}` : 'empty';
+    const kv = (rows) => `<dl class="kv">${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl>`;
+    const costRow = (k, lab) => `<tr><td>${lab}</td><td class="num">${fmt(cs.so_far[k])}</td><td class="num">${fmt(cs.remaining[k])}</td><td class="num">${fmt(cs.static_remaining[k])}</td></tr>`;
+    const bitsHtml = (r) => { const n = r.qubits.length, ch = new Set(r.changed);
+      return r.bits.split('').map((c, i) => ch.has(n - 1 - i) ? `<b>${c}</b>` : c).join(''); };
+    const regRows = S.registers.map(r => `<tr><td class="mono">${esc(r.name)}</td><td class="num">${r.value == null ? '–' : fmt(r.value)}</td><td class="bits" title="most significant first">${bitsHtml(r)}</td></tr>`).join('');
+    const ov = L.open_values.slice(0, 8).map(v => `<tr><td class="mono">q${v.wire}</td><td class="num">${fmt(v.opened)}</td><td class="num">${fmt(v.closes)}</td><td>${v.settlement}</td></tr>`).join('');
+    const od = L.open_debts.slice(0, 8).map(d => `<tr><td class="mono">q${d.wire}</td><td class="num">${fmt(d.hmr)}</td><td class="num">${fmt(d.repaid_at)}</td><td>${d.kicked ? '<span class="pill kick">kicked back</span>' : 'no kickback'}</td></tr>`).join('');
+    const idle = S.idle.wires.map(x => `q${x.wire}${x.register ? ' (reg)' : ''}`).join(', ') || 'none';
+    const lh = L.longest_held;
+    $('snapBody').innerHTML = `
+      <div class="blk"><h3>Position</h3><div class="big">op ${fmt(op)} <span class="small">of ${fmt(C.P.n)}</span></div>
+        ${kv([['Stage', st ? esc(st.title) : '–'], ['Stage span', st ? `ops ${fmt(st.start)}–${fmt(st.end)}` : '–'], ['Input', `x = ${fmt(state.x)}, seed ${state.seed}`]])}</div>
+      <div class="blk"><h3>Gate</h3><div class="big">${esc(gtxt)}</div>
+        ${kv([['Ran', pill(g.ran, 'ran', 'skipped by a condition') + (g.toffoli_class ? ' Toffoli-class' : '')], ['Condition', cond], ['Condition stack', stack],
+              ...(g.outcome != null ? [['Outcome', `${g.outcome}${g.kicked ? ' <span class="pill kick">kickback: ½ turn</span>' : ''}`]] : []),
+              ...(g.angle_turns != null ? [['Angle', g.angle_turns.toPrecision(9) + ' turn']] : []),
+              ['Changed', [...g.changed_qubits.map(q => 'q' + q), ...g.changed_bits.map(b => 'b' + b)].join(' ') || 'nothing'], ['Phase changed', g.phase_changed ? 'yes' : 'no']])}</div>
+      <div class="blk"><h3>Width</h3>
+        ${kv([['Holding 1 now', `${w.ones.now} / ${w.ones.of}`], ['Peak so far', `${w.ones.peak_so_far}${w.ones.peak_so_far_op != null ? ' at op ' + fmt(w.ones.peak_so_far_op) : ''}`], ['Peak for this x', `${w.ones.peak}${w.ones.peak_op != null ? ' at op ' + fmt(w.ones.peak_op) : ''}`],
+              ['Live wires now', `${w.live.now}`], ['Live peak so far', `${w.live.peak_so_far} at op ${fmt(w.live.peak_so_far_op)}`], ['Live peak', `${w.live.peak} at op ${fmt(w.live.peak_op)}`]])}
+        <p class="small">Live wires: lifetimes as <span class="mono">render.py width</span> counts them (registers always live).</p></div>
+      <div class="blk"><h3>Cost</h3><div class="tablebox"><table><thead><tr><th></th><th class="num">so far</th><th class="num">to run</th><th class="num">in file</th></tr></thead><tbody>
+        ${costRow('toffolis', 'Toffolis')}${costRow('rotations', 'Rotations')}${costRow('measurements', 'HMR')}${costRow('resets', 'R')}</tbody></table></div>
+        <p class="small">"To run" is exact for this x (${fmt(cs.total.toffolis)} Toffolis in all); "in file" counts every remaining op, run or skipped.</p></div>
+      <div class="blk"><h3>Phase</h3>
+        ${kv([['So far', `${P.turns.toFixed(9)} turn`], ['Target 1/√x', `${P.target_turns.toFixed(9)}`], ['Error ÷ tolerance', `${P.share_of_tolerance < 1e4 ? P.share_of_tolerance.toFixed(4) : P.share_of_tolerance.toExponential(2)}${P.share_of_tolerance <= 1 ? ' <span class="ok">inside</span>' : ''}`],
+              ['Without kickback', `${P.without_kickback.turns.toFixed(9)} turn`], ['Kickback outstanding', P.kickback_turns ? `${P.kickback_turns} turn` : 'none'], ['Outcomes', P.outcomes === 'zero' ? 'all forced to 0' : 'seeded']])}
+        <p class="small">Mid-circuit the error is large by design; only the last op has to land within tolerance.</p></div>
+      <div class="blk"><h3>Ledger at this cut</h3><p class="small mono">${esc(L.line)}</p>
+        ${kv([['Opened / closed', `${fmt(tb.opened)} / ${fmt(tb.closed.contra + tb.closed.accrual + tb.closed['dead-tail'])} (contra ${tb.closed.contra}, accrual ${tb.closed.accrual}, dead tail ${tb.closed['dead-tail']})`],
+              ['Open phase debts', `${tb.open_debts} (${tb.open_debts_kicked} kicked back for this x)`], ['Fix-ups so far', fmt(tb.fixups_so_far)],
+              ['Longest-held value', lh ? `q${lh.wire}, open since op ${fmt(lh.opened)} (${fmt(lh.held)} ops), closes at ${fmt(lh.closes)} by ${lh.settlement}` : 'none']])}</div>
+      <div class="blk wide"><h3>Registers for x = ${fmt(state.x)}</h3><div class="tablebox"><table><thead><tr><th>Group</th><th class="num">Value</th><th>Bits (the gate's changes in red)</th></tr></thead><tbody>${regRows}</tbody></table></div></div>
+      <div class="blk"><h3>Open values${L.open_values.length > 8 ? ` (first 8 of ${L.open_values.length})` : ''}</h3><div class="tablebox"><table><thead><tr><th>Wire</th><th class="num">opened</th><th class="num">closes</th><th>settled by</th></tr></thead><tbody>${ov || '<tr><td colspan="4">none</td></tr>'}</tbody></table></div></div>
+      <div class="blk"><h3>Open phase debts${L.open_debts.length > 8 ? ` (first 8 of ${L.open_debts.length})` : ''}</h3><div class="tablebox"><table><thead><tr><th>Wire</th><th class="num">HMR</th><th class="num">repaid at</th><th>this x</th></tr></thead><tbody>${od || '<tr><td colspan="4">none</td></tr>'}</tbody></table></div></div>
+      <div class="blk"><h3>Idle wires</h3><p class="small">Live, but untouched for the next ${fmt(S.idle.k)} ops: ${idle}.</p></div>`;
+  }
+  async function copySnap() {
+    if (!state.snap) renderSnap();
+    const text = JSON.stringify(state.snap, null, 1), st = $('copyStatus');
+    try { await navigator.clipboard.writeText(text); st.textContent = `Copied (${fmt(text.length)} characters)`; }
+    catch (e) {
+      const ta = document.createElement('textarea'); ta.value = text; ta.setAttribute('readonly', ''); ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      let ok = false; try { ok = document.execCommand('copy'); } catch (e2) {}
+      ta.remove(); st.textContent = ok ? `Copied (${fmt(text.length)} characters)` : 'Copy failed: your browser blocked the clipboard';
+    }
+  }
+  $('copySnap').addEventListener('click', copySnap);
+
+  // ---- sweep x over its range (the playhead keeps its position, so a stop point can be watched across x)
   let anim = null;
-  function stopAnim() {
+  function stopSweep() {
     if (anim) cancelAnimationFrame(anim.raf);
-    anim = null; state.reveal = null;
-    $('playBtn').setAttribute('aria-pressed', 'false'); $('playBtn').textContent = '▶ Play through the circuit';
+    anim = null;
     $('sweepBtn').setAttribute('aria-pressed', 'false'); $('sweepBtn').textContent = '⟳ Sweep x from 1 to max';
-    $('playStatus').textContent = ''; if (state.res) draw();
   }
   // Progress through one pass, by repeat mode. Speed changes mid-run keep the position (phase accumulator).
   state.loop = 'loop';
@@ -712,31 +919,17 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
     if (m === 'loop') return anim.pos % 1;
     const p = anim.pos % 2; return p <= 1 ? p : 2 - p;            // back and forth
   }
-  function playStep(ts) {
-    const R = state.res;
-    const f = advance(ts, 32 / +$('speed').value);
-    if (f == null) { stopAnim(); return; }
-    const c = Math.min(R.cols - 1, Math.floor(f * R.cols));
-    state.reveal = c; draw();
-    const op = Math.floor(R.a + c * (R.b - R.a) / R.cols), si = C.opStage[op];
-    $('playStatus').textContent = `op ${fmt(op)} · ${si >= 0 ? C.stages[si].title : ''} · non-x qubits at 1: ${R.occ[c]}/${C.other.length} · phase ${R.ph[c].toFixed(6)}`;
-    anim.raf = requestAnimationFrame(playStep);
-  }
   function sweepStep(ts) {
     const f = advance(ts, 120 / +$('speed').value);
-    if (f == null) { setX(C.maxx); stopAnim(); return; }
+    if (f == null) { setX(C.maxx); stopSweep(); return; }
     setX(Math.round(Math.exp(f * Math.log(C.maxx))));
-    $('playStatus').textContent = `x = ${fmt(state.x)} · ${C.xq.length - Math.floor(Math.log2(state.x)) - 1} leading zeros`;
+    $('playStatus').textContent = `x = ${fmt(state.x)} · ${C.xq.length - Math.floor(Math.log2(state.x)) - 1} leading zeros` + (state.ph.active ? ` · paused at op ${fmt(state.ph.op)}` : '');
     anim.raf = requestAnimationFrame(sweepStep);
   }
-  $('playBtn').addEventListener('click', () => {
-    if (anim && anim.kind === 'play') return stopAnim();
-    stopAnim(); anim = { kind: 'play', pos: 0, last: 0 }; $('playBtn').setAttribute('aria-pressed', 'true'); $('playBtn').textContent = '■ Stop';
-    anim.raf = requestAnimationFrame(playStep);
-  });
   $('sweepBtn').addEventListener('click', () => {
-    if (anim && anim.kind === 'sweep') return stopAnim();
-    stopAnim(); anim = { kind: 'sweep', pos: 0, last: 0 }; $('sweepBtn').setAttribute('aria-pressed', 'true'); $('sweepBtn').textContent = '■ Stop sweep';
+    if (anim && anim.kind === 'sweep') return stopSweep();
+    if (state.ph.playing) dispatch({ type: 'pause' });
+    stopSweep(); anim = { kind: 'sweep', pos: 0, last: 0 }; $('sweepBtn').setAttribute('aria-pressed', 'true'); $('sweepBtn').textContent = '■ Stop sweep';
     anim.raf = requestAnimationFrame(sweepStep);
   });
 
@@ -763,10 +956,14 @@ tr.stage-row[aria-current="true"] td { background: var(--sel); font-weight: 600;
   }
   for (const id of ['pd', 'pr', 'pf', 'pp', 'pc']) $(id).addEventListener('input', renderPrice);
 
-  // ---- start
+  // ---- start: restore a stop point from the address bar (?circuit=…&op=…&x=…&seed=…&kick=0#stage)
   const h = (location.hash || '').slice(1);
+  const seedP = parseInt(URLP.get('seed'), 10); if (seedP > 0) { state.seed = seedP; $('seedV').textContent = seedP; }
+  if (URLP.get('kick') === '0') { state.kick = false; $('kickBtn').setAttribute('aria-pressed', 'true'); }
   onCircuitChange();
+  const xP = parseInt(URLP.get('x'), 10); if (xP >= 1) setX(xP);
   const st = C.stages.find(s => s.id === h); if (st) setView(st);
+  const opP = parseInt(URLP.get('op'), 10); if (opP >= 0) dispatch({ type: 'seek', op: opP });
   let t; window.addEventListener('resize', () => { clearTimeout(t); t = setTimeout(compute, 150); });
   window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
   new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });

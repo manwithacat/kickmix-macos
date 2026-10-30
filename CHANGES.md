@@ -15,6 +15,20 @@
 
 ## Tooling changes
 
+- 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself): a playhead and a snapshot of the stop point.
+  Play and Pause keep the position and only Stop rewinds (Play then Stop used to reset to the start). New controls
+  step one op, jump to the previous or next Toffoli, stage boundary or measurement (also on the keyboard: Space,
+  ←/→, Shift+←/→, [ and ], M), a scrubber sits under the width profile, and `?circuit=…&op=…&x=…` restores a stop
+  point. An "At the playhead" panel shows the gate and its wires, width, cost so far and still to come, the phase
+  against the target, register values with the changed bits, idle wires and the ledger at the cut (`render.py
+  ledger` semantics). A "phase without kickback" toggle replays with every HMR outcome forced to 0, and a band on
+  the phase track shows open phase debts. "Copy snapshot JSON" gives the panel as JSON; the new verb
+  `render.py snapshot --op N [--x X] [--seed S]` gives the same object headlessly, and a test compares the two
+  (the viewer's code run under Node) on all three demo circuits and on random circuits. The new `snapshot.js`
+  holds the playhead state machine, the static analysis and the snapshot builder. `tracer.js` now exposes its
+  state (`start`, `exec`, `clone`) for checkpointing every 1,000 ops; its results are identical to the previous
+  version's on 2,376 runs. Node tests for the playhead are in `tests/viewer/`. Written with AI assistance
+  (Claude, Anthropic) under the repository owner's direction, from the owner's plan.
 - 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself): the viewer now opens on the 62-qubit invsqrt
   circuit `67482db6c538`, the current public frontier. It combines yoyobar's own candidate (yoyobar published the
   first public 62-qubit invsqrt circuit, `a568bc793481`) with Ahmed Berat Özer's patch from `6dbb98b34c3b`, on

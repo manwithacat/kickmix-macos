@@ -453,3 +453,126 @@ def test_cli_ledger_deterministic(tmp_path):
         assert code == 0
         outs.append([Path(f['path']).read_bytes() for f in json.loads(text)['files'] if f['kind'] != 'json'])
     assert outs[0] == outs[1]
+
+
+# ------------------------------------------------------------------------------------------------ viewer snapshot
+# The viewer's "Copy snapshot JSON" (tools/circuit-viewer/snapshot.js on tracer.js, run here under Node) and
+# `render.py snapshot` must give the same object at the same stop point. Static parts (width profile, values,
+# liabilities) are also compared array by array.
+import shutil  # noqa: E402
+import subprocess  # noqa: E402
+
+VIEWER = ROOT / "tools" / "circuit-viewer"
+NODE = shutil.which("node")
+needs_node = pytest.mark.skipif(NODE is None, reason="Node.js not installed")
+VIEWER_CIRCUITS = ["", "circuits/9a8627", "circuits/0766a111"]
+MAXX = 3133452
+
+
+def node_snapshots(ops_path, stages_path, points):
+    r = subprocess.run([NODE, str(ROOT / "tests" / "viewer" / "snapshot_cli.js"), str(ops_path),
+                        str(stages_path) if stages_path else "-", json.dumps(points)],
+                       capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stderr
+    return json.loads(r.stdout)
+
+
+def assert_same(a, b, where="snapshot"):
+    if isinstance(a, dict):
+        assert isinstance(b, dict) and set(a) == set(b), f"{where}: keys {sorted(set(a) ^ set(b))}"
+        for k in a:
+            assert_same(a[k], b[k], f"{where}.{k}")
+    elif isinstance(a, list):
+        assert isinstance(b, list) and len(a) == len(b), f"{where}: lengths {len(a)} vs {len(b)}"
+        for i, (x, y) in enumerate(zip(a, b)):
+            assert_same(x, y, f"{where}[{i}]")
+    else:
+        assert a == b and type(a) is type(b) or (isinstance(a, (int, float)) and not isinstance(a, bool)
+                                                 and not isinstance(b, bool) and a == b), f"{where}: {a!r} vs {b!r}"
+
+
+def stop_points(ops, xs):
+    """Fixed stop points: ends, checkpoint edges, the middle, and the first op of several kinds."""
+    n = len(ops)
+    first = lambda pred: next(i for i, o in enumerate(ops) if pred(o))  # noqa: E731
+    picks = [0, 1, 999, 1000, 1001, n // 2, n - 1,
+             first(lambda o: o[0] == 9), first(lambda o: o[0] == 11), first(lambda o: o[0] == 15),
+             first(lambda o: o[0] in (2, 5, 7)), first(lambda o: o[0] not in (11, 15, 16) and o[-1] >= 0)]
+    pts = [[op, x, 1, 1] for x in xs for op in sorted(set(min(n - 1, p) for p in picks))]
+    pts += [[n // 3, xs[1], 1, 0], [n - 1, xs[1], 1, 0], [n // 3, xs[-1], 7, 1], [2 * n // 3, xs[0], 7, 0]]
+    return pts
+
+
+def static_python(st):
+    vals = sorted(([v['q'], v['a'], v['b'], v['kind'], int(v['reg']), int(v['init'])] for v in st.values))
+    return dict(profile=st.profile, values=vals,
+                liabilities=[[li['op'], li['qubit'], li['settle'], li['reads']] for li in st.liab], fixups=st.fix)
+
+
+@needs_node
+@pytest.mark.parametrize("sub", VIEWER_CIRCUITS)
+def test_viewer_snapshot_parity(sub):
+    ops_path, stages_path = VIEWER / sub / "ops.json", VIEWER / sub / "stages.json"
+    data = json.loads(ops_path.read_text())
+    stages, groups = R.load_viewer_stages(str(stages_path), str(ops_path))
+    st = R.ViewerStatic(data, stages, groups)
+    pts = stop_points(data["ops"], [1, 161, MAXX])
+    js = node_snapshots(ops_path, stages_path, pts)
+    assert_same(js["static"], static_python(st), "static")
+    for (op, x, seed, kick), snap in zip(pts, js["snapshots"]):
+        py = R.viewer_snapshot(data, st, op, x, seed, bool(kick))
+        assert_same(snap, py, f"{sub or '67482db6c538'} op={op} x={x} seed={seed} kick={kick}")
+        tb = py["ledger"]["trial_balance"]
+        assert tb["live"] == tb["registers"] + tb["open_values"] + tb["closing_here"]
+        assert tb["records"] == tb["repaid"] + tb["open_debts"] + tb["never_repaid"]
+        assert tb["opened"] - sum(tb["closed"].values()) == tb["open_values"]
+
+
+@needs_node
+@pytest.mark.parametrize("seed", [3, 4])
+def test_viewer_snapshot_parity_random(tmp_path, seed):
+    """Random circuits with conditions, conditional HMRs and bit copies: the liability and lifetime ports."""
+    c = R.read_kmb(random_circuit(tmp_path / "r.kmb", seed, n_ops=2500, nq=12, nb=6))
+    data = R.viewer_data_from_kmb(c)
+    ops_path = tmp_path / "ops.json"
+    ops_path.write_text(json.dumps(data))
+    st = R.ViewerStatic(data, [], [])
+    assert st.profile == R.width_profile(c).tolist()
+    n = len(data["ops"])
+    pts = [[op, x, s, k] for op in (0, 7, n // 2, n - 1, 1000, 1999) for x in (1, 5) for s, k in ((1, 1), (9, 0))]
+    js = node_snapshots(ops_path, None, pts)
+    assert_same(js["static"], static_python(st), "static")
+    for (op, x, s, k), snap in zip(pts, js["snapshots"]):
+        assert_same(snap, R.viewer_snapshot(data, st, op, x, s, bool(k)), f"op={op} x={x}")
+
+
+def test_viewer_ops_kmb_roundtrip(tmp_path):
+    c = R.read_kmb(random_circuit(tmp_path / "r.kmb", 5, n_ops=800))
+    data = R.viewer_data_from_kmb(c)
+    R.kmb_from_viewer_data(data, tmp_path / "back.kmb")
+    back = R.read_kmb(tmp_path / "back.kmb")
+    assert R.viewer_data_from_kmb(back)["ops"] == data["ops"]
+    assert np.array_equal(R.width_profile(back), R.width_profile(c))
+    ops = json.loads((VIEWER / "ops.json").read_text())
+    R.kmb_from_viewer_data(ops, tmp_path / "v.kmb")
+    again = R.viewer_data_from_kmb(R.read_kmb(tmp_path / "v.kmb"))
+    assert again["ops"] == ops["ops"] and again["zpow_exact"] == ops["zpow_exact"]
+
+
+def test_cli_snapshot_contract(tmp_path):
+    ops = str(VIEWER / "ops.json")
+    code, text = run_cli(["snapshot", ops, "--op", "15213", "--x", "161", "--out", str(tmp_path)])
+    assert code == 0, text
+    d = check_summary(text)
+    assert d["verb"] == "snapshot" and d["facts"]["stage"] == "coeff_lookup"
+    full = json.loads(Path(d["files"][0]["path"]).read_text())
+    code, text = run_cli(["snapshot", ops, "--op", "15213", "--x", "161", "--print"])
+    assert code == 0 and json.loads(text) == full and full["schema"] == R.SNAPSHOT_SCHEMA
+    code, text = run_cli(["snapshot", ops, "--op", "99999999"])
+    assert code == 2 and "outside" in json.loads(text)["error"]
+
+
+@needs_node
+def test_viewer_playhead_node():
+    r = subprocess.run([NODE, "--test", str(ROOT / "tests" / "viewer")], capture_output=True, text=True, timeout=300)
+    assert r.returncode == 0, r.stdout[-3000:] + r.stderr[-2000:]

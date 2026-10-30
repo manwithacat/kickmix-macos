@@ -42,6 +42,31 @@ then use "Load your own .kmx" on the page. Uploaded circuits get equal-width sli
 stages. Circuits much larger than invsqrt (about 50,000 ops) will be slow in a browser; a local
 summariser for large circuits is planned.
 
+## Playhead and snapshot
+
+Play runs the playhead through the circuit and Pause stops it where it is; Play again resumes from there, and only
+Stop goes back to the start. Move it with the scrubber under the width profile, the buttons, or the keys:
+<kbd>Space</kbd> play or pause, <kbd>←</kbd>/<kbd>→</kbd> one op, <kbd>Shift</kbd>+<kbd>←</kbd>/<kbd>→</kbd> the
+previous or next Toffoli, <kbd>[</kbd>/<kbd>]</kbd> stage boundaries, <kbd>M</kbd> the next measurement (HMR). The
+address bar keeps the stop point, so `?circuit=9a8627&op=14000&x=161` opens exactly there (`seed` and `kick=0` too).
+
+While paused, the "At the playhead" panel shows the state after that op has run: the gate (type, operands,
+condition; its wires are outlined in the raster), width now and its peaks, cost so far and still to come, the phase
+against the target, register values with the bits the gate changed, wires that are live but idle for the next
+1,000 ops, and the ledger at that cut (open values, open phase debts, the trial-balance line, the longest-held
+value). The tracer keeps a checkpoint every 1,000 ops, so stepping backwards replays at most 1,000 ops.
+
+**Phase without kickback.** The phase track jumps by half a turn mid-circuit, and sweeping x makes the coefficient
+lookup's phase flash. That is measurement kickback: an HMR that reads 1 on a qubit holding 1 adds half a turn, and a
+later Z or CZ conditioned on that reading pays it back. The toggle replays the same x with every HMR outcome forced
+to 0: no kickback, no fix-ups, the same final phase (checked on x = 1, 161 and the maximum for all three circuits).
+The band along the bottom of the phase track counts open phase debts, darker where they actually kicked back for
+this x.
+
+"Copy snapshot JSON" copies the panel as one JSON object, and `python render.py snapshot ops.json --op N --x X`
+gives the same object headlessly (schema in [RENDER.md](RENDER.md#snapshot)); a test runs the viewer's code under
+Node and checks the two agree.
+
 ## Headless pictures and GIFs: `render.py`
 
 For figures you can post or put in a notebook, `render.py` renders the same kind of views from `.kmb` files on
@@ -71,6 +96,11 @@ python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
   qubits and phase on a free run, and all 62 qubits, all 30,001 classical bits and the phase on an outcome-matched
   replay. A perturbed rotation angle (1,145 phase mismatches) and one flipped HMR outcome (1 classical-bit
   mismatch) were both caught. `tracer.js` itself is unchanged; `ops.json` now states `n_qubits` and `n_bits`.
+- `tracer.js` now keeps its machine state in an object (`start`, `exec`, `clone`) so `snapshot.js` can checkpoint
+  and replay it; `run()` is built on the same step. On all three circuits it gives results identical to the
+  previous `tracer.js` (qubits, classical bits, phase, Toffolis and per-op states) on 2,376 runs: 132 inputs
+  including x = 1, 161 and the maximum, three seeds, free and outcome-overridden. That is how the kickmix match
+  above carries over; the kickmix comparison itself was not re-run.
 - `kmx.js` parses `.kmx` text exactly (Z_POW exponents as exact decimals); on the invsqrt circuit it
   reproduces the reference op list op for op.
 
@@ -78,6 +108,7 @@ python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
 
 | File | What it is |
 |---|---|
+| `snapshot.js` | the playhead state machine, the static analysis (lifetimes, liabilities) and the snapshot object |
 | `ops.json` | the 62-qubit invsqrt circuit (kmb SHA-256 `67482db6…37ae4997`) as a compact op list, with `n_qubits` and `n_bits` |
 | `stages.json` | busyaprime's 17 named stages and qubit groups, carried over to this circuit. Where the two op streams run the same gate sequence on relabelled wires (front decoder and its phase repair, `lookup_b`, most of `arith_b`, `lookup_c`, the seed retirement: 36,700 ops in aligned blocks) a boundary moves with its block. Elsewhere it sits at the matching op pattern, checked against live-wire value sets and the stage anchors of the 62-qubit mechanism analysis. Stage notes say what changed against 9a8627: the lookup builds 27 of its 32 products in place and ends with an HMR block with Clifford fix-ups, later stages move fix-up parities into classical logic on measurement bits, plus yoyobar's four AND rewrites in `arith_a` and Özer's patch in `unnormalize` |
 | `errcurve.json` | error ÷ tolerance for all 3,133,452 inputs, computed with kickmix, binned. It is identical, input for input, to 9a8627's; 308 inputs were re-checked with a bit-level tracer |
@@ -96,4 +127,5 @@ version 10, Apache-2.0), with the re-synthesised coefficient lookup and window S
 mrmeows' hybrid invsqrt design (public Kaggle dataset `mrmeows/qcc-1375-open-circuits`, Apache-2.0),
 which is itself on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Simulator and
 verifier: Google Quantum AI's kickmix (Qualtran, Apache-2.0). Viewer written with AI assistance (Claude)
-under the repository owner's direction.
+under the repository owner's direction; the playhead and snapshot (`snapshot.js`, `render.py snapshot`) were
+written the same way, from the owner's plan.

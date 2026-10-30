@@ -8,7 +8,7 @@ numpy, matplotlib and Pillow (all preinstalled on Kaggle), so you can copy it an
 It was built with AI assistance (Claude, Anthropic) under the repository owner's direction, as part of this
 openly AI-assisted fork, and is Apache-2.0 like the rest of the repository.
 
-## Quick start (6 commands)
+## Quick start (7 commands)
 
 ```sh
 python render.py doctor                                       # dependencies; kickmix is optional
@@ -17,6 +17,7 @@ python render.py diff  A.kmb B.kmb                            # what changed, al
 python render.py trace A.kmb --set x=161                      # one shot's qubits and registers
 python render.py cost  A.kmb B.kmb                            # Q, Toffolis, cost and score ratio dashboard
 python render.py ledger A.kmb                                 # bookkeeping: values, phase debts, capital, close
+python render.py snapshot ops.json --op 15213 --x 161         # the viewer's stop point as JSON
 ```
 
 Files go to `./render-out/` (`--out DIR`), named `<A>_vs_<B>_<verb>.png|gif|json|csv` (`--name STEM` to choose).
@@ -31,6 +32,7 @@ Files go to `./render-out/` (`--out DIR`), named `<A>_vs_<B>_<verb>.png|gif|json
 | `trace` | PNG, GIF | One shot in the computational basis: every qubit's value along the circuit, qubits holding 1 against the static width, the phase, and register values (`--show`). `--watch 'S*'` tracks registers that hit 0 (DQI chance-zero failures). | python engine: same. kickmix engine: kickmix |
 | `cost` | PNG | Dashboard: Q, Toffolis per shot, cost and score ratio from the official formulas, Toffolis and peak width per stage, Toffolis accumulated along the circuit. | same |
 | `ledger` | PNG, CSV | Double-entry view (see [Ledger](#ledger)): T-accounts per register, trial balance at each stage cut, aged liabilities, ANDs paid for twice, closing balance. `--compare A B` reconciles two circuits. | numpy, matplotlib, Pillow |
+| `snapshot` | JSON | The circuit viewer's stop point (see [Snapshot](#snapshot)): the gate at op N, width, cost so far and to come, phase against the target with and without measurement kickback, register values, idle wires and the ledger at the cut. Same object as the viewer's "Copy snapshot JSON". `--print` puts the object itself on stdout. | numpy |
 | `doctor` | none | Python, numpy, matplotlib, Pillow, kickmix, a test render, the cache. | none |
 
 `--spec jobs.json` runs several renders and prints one summary (see [Batch runs](#batch-runs)).
@@ -64,7 +66,7 @@ Exactly one JSON object per run, at most 2 KB and 20 rows (`--all` prints every 
 | Key | Meaning |
 | --- | --- |
 | `ok` | `true`, or `false` with `error` and `hint` (exit code 2 for usage errors, 1 for internal ones) |
-| `verb` | `width`, `diff`, `trace`, `cost`, `ledger`, `doctor` or `spec` |
+| `verb` | `width`, `diff`, `trace`, `cost`, `ledger`, `snapshot`, `doctor` or `spec` |
 | `tier` | evidence tier of the numbers: `static` (read from the op stream, nothing run), `sampled(n)` (n simulated shots), `exact-all-x` (bit-parallel run over every legal invsqrt input) |
 | `basis` | one line on how the numbers were obtained |
 | `files` | `[{path, bytes, kind: png|gif|json|csv, frames}]`; the `json` file holds the full table |
@@ -165,6 +167,39 @@ panel is most of the rest). DQI
 (60 M ops) about 18 s and a 3.2 GB peak footprint; `--compare` of two DQI circuits about 25 s, one circuit at a
 time. On macOS the script re-executes itself once with `MallocLargeCache=0`, because libmalloc otherwise keeps
 about 5 GB of freed large blocks and the footprint reaches 7.6 GB; set `MallocLargeCache` yourself to skip this.
+
+## Snapshot
+
+`python render.py snapshot CIRCUIT --op N [--x X] [--seed S] [--no-kickback] [--stages FILE] [--idle-k K]` gives
+the stop point the circuit viewer shows when its playhead is paused on op N, as one JSON object with the schema
+`kickmix-viewer-snapshot/1`. The viewer's "Copy snapshot JSON" button gives the same object: the viewer computes it
+with `snapshot.js` on `tracer.js`, this verb with a Python port of both, and `tests/test_circuit_render.py` runs the
+viewer's code under Node and compares the two objects field by field on all three demo circuits (x = 1, 161 and
+3,133,452, kickback on and off, two seeds) and on random circuits. Floats compare exactly.
+
+`CIRCUIT` is the viewer's `ops.json` (op indices as in the viewer; `stages.json` beside it is read for stages and
+qubit groups) or a `.kmb` (then INFO_TAG and DEBUG_PRINT are not counted as ops, so indices can differ from
+kickmix's). The state is the one **after op N has run**. Measurement (HMR) outcomes come from the viewer's seeded
+generator (mulberry32, `--seed`, default 1), so the trajectory is the one the viewer shows; `--no-kickback` forces
+every outcome to 0. Without `--print` the object goes to `render-out/<sha12>_op<N>_x<X>_snapshot.json` and stdout
+gets the usual short summary.
+
+| Key | Meaning |
+| --- | --- |
+| `schema`, `circuit` | `kickmix-viewer-snapshot/1`; `{sha12, ops, qubits, bits, x_qubits}` (`sha12` of the source `.kmb`, or null) |
+| `x`, `seed`, `kickback`, `op` | the stop point; `kickback: false` means every HMR outcome was forced to 0 |
+| `position` | `{op, ops, done (= op + 1 ops run), stage: {index, id, title, start, end} or null}` |
+| `gate` | op N: `kind`, `qubits`, `bits` (HMR record or bit operand), `cond` and `cond_value` (its own `if b`), `stack_depth` and `stack_open` (condition stack before it), `ran`, `toffoli_class`, `outcome` and `kicked` (HMR), `angle_turns` (Z_POW), `changed_qubits`, `changed_bits`, `phase_changed` |
+| `width.ones` | non-x qubits holding 1 for this x: `now`, `peak_so_far` (and `_op`), `peak` over the whole run (and `_op`), `of` |
+| `width.live` | certified width, the `width` verb's lifetime rule (registers always live): `now`, `peak_so_far`, `peak`, ops, `registers` |
+| `cost` | `so_far`, `remaining`, `total` for this x, and `static_remaining`, `static_total` in the file; each `{toffolis (CCX/CCZ/CSWAP that ran), rotations (Z_POW), measurements (HMR), resets (R)}` |
+| `phase` | `outcomes` (`seeded` or `zero`), `units` (exact, 2^-128 turn, decimal string), `turns`, `target_turns` (1/√x mod 1), `error_turns` (wrapped to ±½), `tolerance_turns` (2^-24/√x), `share_of_tolerance`, `without_kickback` `{units, turns}` (the same x and seed with every HMR outcome 0), `kickback_turns` (seeded minus zero-outcome phase, mod 1: kickback not yet repaid) |
+| `registers` | per qubit group (`stages.json` groups, else the file's registers): `name`, `qubits`, `value` (little-endian; null above 53 bits), `bits` (most significant first), `changed` (bit positions op N changed) |
+| `idle` | `{k, wires: [{wire, register, next_touch, idle_for}]}`: wires live after op N with no touch in the next k ops (default 1,000) |
+| `ledger` | at the cut after op N, with the `ledger` verb's semantics: `trial_balance` `{live, registers, open_values, closing_here, opened, closed: {contra, accrual, dead-tail}, records, repaid, open_debts, never_repaid, open_debts_kicked, fixups_so_far}`; `line`, the two identities as text (`live = registers + open values + closing here`, `records = repaid + open debts + never repaid`); `open_values` `[{wire, opened, closes, held, settlement}]`; `open_debts` `[{wire, hmr, repaid_at, fixups, kicked}]` (HMR records whose last fix-up is still to come; `kicked`: this HMR measured 1 on a qubit holding 1 for this x, so it really added half a turn); `longest_held` (the open value opened earliest) |
+
+The static parts (width profile, values, liabilities) come from this script's own `width` and `ledger` code run on
+the op list, and the viewer's JavaScript port of them is compared with it array by array in the same test.
 
 ## Batch runs
 

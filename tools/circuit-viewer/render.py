@@ -13,6 +13,7 @@ key numbers and their evidence tier) and nothing else, so agents can parse it.
   cost    static cost dashboard: Q, Toffolis, cost and score ratio per stage (PNG)
   ledger  double-entry view: values, phase debts, capital and expense, trial balance per stage (PNG + CSV);
           `ledger --compare A B` reconciles two circuits
+  snapshot  the circuit viewer's stop point as JSON (gate, width, cost, phase, registers, ledger at the cut)
   doctor  check dependencies (numpy, matplotlib, Pillow; kickmix only for `trace --engine kickmix`)
 
 Quick start:
@@ -3315,6 +3316,480 @@ def draw_reconcile_png(keep, labs, rows, facts, args, base):
     return save_png(fig, str(base) + '.png')
 
 
+# ------------------------------------------------------------------------------------------------ verb: snapshot
+# The circuit viewer's stop point, headless. The viewer (snapshot.js on tracer.js) and this verb build the same JSON
+# object (schema below, documented in RENDER.md); tests/test_circuit_render.py runs both and compares them. Op indices
+# are the viewer's: INFO_TAG and DEBUG_PRINT are not ops. Measurement outcomes come from the viewer's PRNG (mulberry32,
+# seeded), not from Python's `random`, so the trajectory is the one the viewer shows for the same x and seed.
+SNAPSHOT_SCHEMA = 'kickmix-viewer-snapshot/1'
+VIEWER_KINDS = ['X', 'CX', 'CCX', 'Z', 'CZ', 'CCZ', 'SWAP', 'CSWAP', 'R', 'HMR', 'NEG', 'Z_POW',
+                'BIT_INVERT', 'BIT_STORE0', 'BIT_STORE1', 'PUSH_CONDITION', 'POP_CONDITION']
+VIEWER_TO_KMB = [X, CX, CCX, Z, CZ, CCZ, SWAP, CSWAP, R, HMR, NEG, Z_POW, BIT_INVERT, BIT_STORE0, BIT_STORE1, PUSH, POP]
+KMB_TO_VIEWER = {b: i for i, b in enumerate(VIEWER_TO_KMB)}
+SNAPSHOT_IDLE_K = 1000
+_M32 = 0xFFFFFFFF
+
+
+def v_qubits(o):
+    c = o[0]
+    if c in (15, 16, 10) or c >= 12:
+        return list()
+    if c in (11, 9):
+        return [o[1]]
+    return list(o[1:-1])
+
+
+def v_cond(o):
+    c = o[0]
+    return -1 if c in (15, 16) else o[-2 if c == 11 else -1]
+
+
+def v_bits(o):
+    c = o[0]
+    return [o[2]] if c == 9 else [o[1]] if 12 <= c <= 15 else []
+
+
+def viewer_data_from_kmb(c: Circuit):
+    """A .kmb circuit as the viewer's op list (ops.json layout): INFO_TAG and DEBUG_PRINT dropped."""
+    t = c.types.tolist()
+    rq, _, qs = op_major_refs(c, 'q')
+    rb, _, bs = op_major_refs(c, 'b')
+    rq, qs, rb, bs = rq.tolist(), qs.tolist(), rb.tolist(), bs.tolist()
+    angles = c.angle_units()
+    ops, zp, ai = [], {}, 0
+    for i, op in enumerate(t):
+        base = op & 0x7F
+        if op == PUSH:
+            ops.append([15, rb[bs[i]]])
+            continue
+        if base == Z_POW:
+            units = angles[ai]
+            ai += 1
+        if op == INFO_TAG or base in (0x07, 0x17, 0x47):
+            continue
+        if base not in KMB_TO_VIEWER:
+            raise UserError(f'op {i}: {op_name(op)} has no viewer equivalent')
+        code = KMB_TO_VIEWER[base]
+        if code == 16:
+            ops.append([16, -1])
+            continue
+        cond = rb[bs[i + 1] - 1] if op & HAS_COND else -1
+        o = [code] + [rq[k] for k in range(qs[i], qs[i + 1])]
+        if op & HAS_1B:
+            o.append(rb[bs[i]])
+        o.append(cond)
+        if code == 11:
+            o.append(float(units) / 2.0 ** 128)
+            zp[str(len(ops))] = str(units)
+        ops.append(o)
+    regs = c.qubit_registers()
+    xname = 'x' if 'x' in regs else (next(iter(regs)) if regs else None)
+    return dict(ops=ops, zpow_exact=zp, x_qubits=regs.get(xname, []) if xname else [], n_qubits=c.num_qubits,
+                n_bits=max(1, c.num_bits), source_kmb_sha256=c.sha256,
+                registers=[dict(r=k, name=nm, qubits=q) for k, (nm, q) in enumerate(regs.items())])
+
+
+def kmb_from_viewer_data(data, path):
+    """Write the viewer's op list as a .kmb (same op indices), so render.py's own width and ledger code reads it."""
+    types, st, angles = [], {k: [] for k in QSTREAMS + BSTREAMS}, bytearray()
+    zp = data.get('zpow_exact', {})
+    for i, o in enumerate(data['ops']):
+        c = o[0]
+        if c == 15:
+            types.append(PUSH)
+            st['bc'].append(o[1])
+            continue
+        if c == 16:
+            types.append(POP)
+            continue
+        cond = v_cond(o)
+        types.append(VIEWER_TO_KMB[c] | (HAS_COND if cond >= 0 else 0))
+        q = v_qubits(o)
+        for j, w in enumerate(q):
+            st[(['q0'], ['qq0', 'qq1'], ['qqq0', 'qqq1', 'qqq2'])[len(q) - 1][j]].append(w)
+        if c == 9 or 12 <= c <= 14:
+            st['b0'].append(v_bits(o)[0])
+        if cond >= 0:
+            st['bc'].append(cond)
+        if c == 11:
+            u = int(zp[str(i)]) if str(i) in zp else int(round(o[3] * 2.0 ** 128)) % PHASE_MOD
+            angles += struct.pack('<2Q', u & (2**64 - 1), u >> 64)
+    regs = [('x', [(True, q) for q in data['x_qubits']])]
+    for r in data.get('registers') or []:
+        if (r.get('name') or '') != 'x' and r['qubits'] != data['x_qubits']:
+            regs.append((r.get('name') or f"r{r['r']}", [(True, q) for q in r['qubits']]))
+    write_kmb(path, np.array(types, np.uint8), {k: np.array(v, np.uint32) for k, v in st.items()}, bytes(angles),
+              registers=regs, num_qubits=data.get('n_qubits') or 63, num_bits=data.get('n_bits') or 8288)
+
+
+def load_viewer_data(path):
+    p = Path(path)
+    if not p.exists():
+        raise UserError(f'circuit file not found: {path}', 'pass a viewer ops.json or a .kmb file')
+    if p.suffix.lower() == '.json':
+        try:
+            d = json.loads(p.read_text())
+        except json.JSONDecodeError as e:
+            raise UserError(f'{path} is not valid JSON: {e}') from None
+        if not isinstance(d, dict) or 'ops' not in d or 'x_qubits' not in d:
+            raise UserError(f'{path} is not a viewer op list', 'expected the viewer\'s ops.json (keys ops, x_qubits, '
+                            'zpow_exact)')
+        return d
+    return viewer_data_from_kmb(read_kmb(path))
+
+
+def load_viewer_stages(spec, circuit_path):
+    """Viewer stages.json (stages and qubit groups). Default: stages.json beside an ops.json, if there is one."""
+    if spec in (None, 'auto'):
+        cand = Path(circuit_path).with_name('stages.json')
+        if Path(circuit_path).suffix.lower() != '.json' or not cand.exists():
+            return [], []
+        spec = cand
+    elif spec == 'none':
+        return [], []
+    p = Path(spec)
+    if not p.exists():
+        raise UserError(f'--stages file not found: {spec}', "pass the viewer's stages.json, or 'none'")
+    d = json.loads(p.read_text())
+    stages = d.get('stages', d) if isinstance(d, dict) else d
+    out = []
+    for s in stages:
+        a, b = s.get('start', s.get('a')), s.get('end', s.get('b'))
+        sid = s.get('id', s.get('name'))
+        out.append(dict(id=sid, title=s.get('title', sid), start=int(a), end=int(b)))
+    groups = [dict(name=g['name'], qubits=list(g['qubits'])) for g in (d.get('groups') or [])] if isinstance(d, dict) \
+        else []
+    return out, groups
+
+
+class ViewerMachine:
+    """Port of tracer.js (start/exec) with the viewer's per-op bookkeeping (snapshot.js stepD): one basis trajectory,
+    exact phase in units of 2^-128 turn, HMR outcomes from mulberry32 (seeded) or forced to 0 (kickback off)."""
+
+    def __init__(self, data, x, seed, kick):
+        self.ops = data['ops']
+        self.zp = {int(k): int(v) for k, v in data.get('zpow_exact', {}).items()}
+        self.nq, self.nb = data.get('n_qubits') or 63, data.get('n_bits') or 8288
+        self.q, self.b = bytearray(self.nq), bytearray(self.nb)
+        for k, w in enumerate(data['x_qubits']):
+            self.q[w] = (x >> k) & 1
+        self.xset = set(data['x_qubits'])
+        self.stack, self.nfalse, self.phase, self.rs = [], 0, 0, seed & _M32
+        self.tof, self.dirty, self.kick = 0, 0, kick
+        self.t, self.ran, self.m = 0, 1, -1
+        self.ones, self.peak, self.peak_op = 0, 0, -1
+        self.rotations = self.measurements = self.resets = 0
+        self.kicked = bytearray(len(self.ops))
+
+    def rnd(self):
+        self.rs = (self.rs + 0x6D2B79F5) & _M32
+        t = self.rs
+        t = ((t ^ (t >> 15)) * (t | 1)) & _M32
+        t ^= (t + (((t ^ (t >> 7)) * (t | 61)) & _M32)) & _M32
+        return ((t ^ (t >> 14)) & _M32) & 1
+
+    def step(self, i):
+        o, q, b = self.ops[i], self.q, self.b
+        c = o[0]
+        qs = v_qubits(o)
+        before = [q[w] for w in qs]
+        hq = q[o[1]] if c == 9 else 0
+        t, ran, m = 0, 1, -1
+        if c == 15:
+            v = b[o[1]]
+            self.stack.append(v)
+            self.nfalse += v == 0
+        elif c == 16:
+            if self.stack and not self.stack.pop():
+                self.nfalse -= 1
+        else:
+            cond = o[-2 if c == 11 else -1]
+            if self.nfalse or (cond >= 0 and not b[cond]):
+                ran = 0
+            elif c == 1:
+                if q[o[1]]:
+                    q[o[2]] ^= 1
+            elif c == 4:
+                if q[o[1]] and q[o[2]]:
+                    self.phase ^= HALF_TURN
+            elif c == 3:
+                if q[o[1]]:
+                    self.phase ^= HALF_TURN
+            elif c == 0:
+                q[o[1]] ^= 1
+            elif c == 2:
+                t = 1
+                if q[o[1]] and q[o[2]]:
+                    q[o[3]] ^= 1
+            elif c == 9:
+                m = self.rnd() if self.kick else 0
+                b[o[2]] = m
+                if q[o[1]]:
+                    if m:
+                        self.phase ^= HALF_TURN
+                    q[o[1]] = 0
+            elif c == 7:
+                t = 1
+                if q[o[1]]:
+                    q[o[2]], q[o[3]] = q[o[3]], q[o[2]]
+            elif c == 8:
+                if q[o[1]]:
+                    self.dirty += 1
+                    if self.rnd():
+                        self.phase ^= HALF_TURN
+                    q[o[1]] = 0
+            elif c == 11:
+                if q[o[1]]:
+                    self.phase = (self.phase + self.zp[i]) % PHASE_MOD
+            elif c == 5:
+                t = 1
+                if q[o[1]] and q[o[2]] and q[o[3]]:
+                    self.phase ^= HALF_TURN
+            elif c == 10:
+                self.phase ^= HALF_TURN
+            elif c == 6:
+                q[o[1]], q[o[2]] = q[o[2]], q[o[1]]
+            elif c == 12:
+                b[o[1]] ^= 1
+            elif c == 13:
+                b[o[1]] = 0
+            elif c == 14:
+                b[o[1]] = 1
+            if ran:
+                self.tof += t
+        self.t, self.ran, self.m = t, ran, m
+        for w, was in zip(qs, before):
+            if q[w] != was and w not in self.xset:
+                self.ones += 1 if q[w] else -1
+        if self.ones > self.peak:
+            self.peak, self.peak_op = self.ones, i
+        if ran:
+            if c == 11:
+                self.rotations += 1
+            elif c == 9:
+                self.measurements += 1
+                if m == 1 and hq:
+                    self.kicked[i] = 1
+            elif c == 8:
+                self.resets += 1
+
+    def run(self, stop):
+        """Run every op; return the state just before and just after op `stop`."""
+        o = self.ops[stop]
+        qs, bits, cond = v_qubits(o), v_bits(o), v_cond(o)
+        at = None
+        for i in range(len(self.ops)):
+            if i == stop:
+                pre = dict(q=[self.q[w] for w in qs], b=[self.b[w] for w in bits],
+                           cond=self.b[cond] if cond >= 0 else None, depth=len(self.stack), open=self.nfalse == 0,
+                           phase=self.phase)
+            self.step(i)
+            if i == stop:
+                at = dict(pre=pre, q=bytes(self.q), b=bytes(self.b), phase=self.phase, tof=self.tof, ran=self.ran,
+                          m=self.m, ones=self.ones, peak=self.peak, peak_op=self.peak_op, rotations=self.rotations,
+                          measurements=self.measurements, resets=self.resets)
+        return at
+
+
+def _turns(p):
+    return float(p >> 64) / 2.0 ** 64
+
+
+class ViewerStatic:
+    """Static facts for snapshots, from this script's own width (sweep) and ledger (ledger_core) code run on the
+    op list."""
+
+    def __init__(self, data, stages, groups):
+        ops = data['ops']
+        self.n = len(ops)
+        with tempfile.TemporaryDirectory(prefix='kickmix-render-') as td:
+            kp = Path(td) / 'viewer.kmb'
+            kmb_from_viewer_data(data, kp)
+            c = read_kmb(kp)
+            self.profile = [int(v) for v in sweep(c)['profile']]
+            core = ledger_core(c, np.asarray(self.profile, np.int16))
+            self.regs = register_qubit_ids(c)
+            v, li = core['values'], core['liab']
+            self.values = [dict(q=int(q), a=int(a), b=int(b), kind=int(k), reg=bool(r), init=bool(i))
+                           for q, a, b, k, r, i in zip(v['q'], v['a'], v['b'], v['kind'], v['reg'], v['init'])]
+            self.liab = [dict(op=int(o), qubit=int(q), settle=int(s), reads=int(r))
+                         for o, q, s, r in zip(li['op'], li['qubit'], li['settle'], li['reads'])]
+            self.fix = [int(f) for f in li['fixups']]
+            del c, core
+        self.nq = data.get('n_qubits') or 63
+        self.nb = data.get('n_bits') or 8288
+        self.xq = list(data['x_qubits'])
+        opq = [v_qubits(o) for o in ops]
+        self.maxq = max([self.nq, (max(self.regs) + 1) if self.regs else 0] + [w + 1 for qs in opq for w in qs])
+        self.touches = [[] for _ in range(self.maxq)]
+        for i, qs in enumerate(opq):
+            for w in qs:
+                self.touches[w].append(i)
+        self.is_reg = set(self.regs)
+        self.static = {k: [0] * (self.n + 1) for k in ('toffolis', 'rotations', 'measurements', 'resets')}
+        for i, o in enumerate(ops):
+            c = o[0]
+            for k, hit in (('toffolis', c in (2, 5, 7)), ('rotations', c == 11), ('measurements', c == 9),
+                           ('resets', c == 8)):
+                self.static[k][i + 1] = self.static[k][i] + hit
+        self.stages = [dict(index=j, **s) for j, s in enumerate(stages)]
+        self.groups = groups or ([dict(name='x', qubits=self.xq)] + [
+            dict(name=r.get('name') or f"r{r['r']}", qubits=r['qubits']) for r in data.get('registers') or []
+            if r['qubits'] != self.xq and (r.get('name') or '') != 'x'])
+        sha = data.get('source_kmb_sha256')
+        self.sha12 = sha[:12] if sha else None
+
+
+def viewer_snapshot(data, st: ViewerStatic, op, x, seed=1, kick=True, idle_k=SNAPSHOT_IDLE_K):
+    """The viewer's snapshot object at stop point `op` (the state after op `op` ran) for input x."""
+    import bisect
+    n, ops = st.n, data['ops']
+    if not 0 <= op < n:
+        raise UserError(f'--op {op} is outside the circuit (0..{n - 1})')
+    xmax = 2 ** len(st.xq) - 1
+    if not 1 <= x <= xmax:
+        raise UserError(f'--x {x} is outside 1..{xmax:,} (the input register has {len(st.xq)} qubits)')
+    mk, mz = ViewerMachine(data, x, seed, True), ViewerMachine(data, x, seed, False)
+    ak, az = mk.run(op), mz.run(op)
+    mode, a = (mk, ak) if kick else (mz, az)
+    o = ops[op]
+    c, qs, bits, cond = o[0], v_qubits(o), v_bits(o), v_cond(o)
+    pre = a['pre']
+    changed_q = [w for w, was in zip(qs, pre['q']) if a['q'][w] != was]
+    changed_b = [w for w, was in zip(bits, pre['b']) if a['b'][w] != was]
+    stg = next((s for s in st.stages if s['start'] <= op < s['end']), None)
+    gate = dict(op=op, kind=VIEWER_KINDS[c], qubits=qs, bits=bits, cond=cond if cond >= 0 else None,
+                cond_value=pre['cond'], stack_depth=pre['depth'], stack_open=pre['open'], ran=a['ran'] == 1,
+                toffoli_class=c in (2, 5, 7), outcome=a['m'] if c == 9 and a['ran'] == 1 else None,
+                kicked=c == 9 and a['ran'] == 1 and a['m'] == 1 and pre['q'][0] == 1,
+                angle_turns=o[3] if c == 11 else None, changed_qubits=changed_q, changed_bits=changed_b,
+                phase_changed=a['phase'] != pre['phase'])
+    prof = st.profile
+    gpk = max(prof)
+    lpk = max(prof[:op + 1])
+    width = dict(
+        ones=dict(now=a['ones'], peak_so_far=a['peak'], peak_so_far_op=a['peak_op'] if a['peak_op'] >= 0 else None,
+                  peak=mode.peak, peak_op=mode.peak_op if mode.peak_op >= 0 else None, of=st.nq - len(st.xq)),
+        live=dict(now=prof[op], peak_so_far=lpk, peak_so_far_op=prof.index(lpk), peak=gpk, peak_op=prof.index(gpk),
+                  registers=len(st.regs)))
+    cls = ('toffolis', 'rotations', 'measurements', 'resets')
+    so = dict(toffolis=a['tof'], rotations=a['rotations'], measurements=a['measurements'], resets=a['resets'])
+    tot = dict(toffolis=mode.tof, rotations=mode.rotations, measurements=mode.measurements, resets=mode.resets)
+    cost = dict(so_far=so, remaining={k: tot[k] - so[k] for k in cls}, total=tot,
+                static_remaining={k: st.static[k][n] - st.static[k][op + 1] for k in cls},
+                static_total={k: st.static[k][n] for k in cls})
+    ph = a['phase']
+    tgt = math.fmod(1 / math.sqrt(x), 1)
+    tol = 2 ** -24 / math.sqrt(x)
+    err = math.fmod(math.fmod(_turns(ph) - tgt, 1) + 1.5, 1) - 0.5
+    phase = dict(outcomes='seeded' if kick else 'zero', units=str(ph), turns=_turns(ph), target_turns=tgt,
+                 error_turns=err, tolerance_turns=tol, share_of_tolerance=abs(err) / tol,
+                 without_kickback=dict(units=str(az['phase']), turns=_turns(az['phase'])),
+                 kickback_turns=_turns((ak['phase'] - az['phase']) % PHASE_MOD))
+    chg = set(changed_q)
+    registers = []
+    for g in st.groups:
+        vals = [a['q'][w] for w in g['qubits']]
+        registers.append(dict(name=g['name'], qubits=list(g['qubits']),
+                              value=sum(v << j for j, v in enumerate(vals)) if len(vals) <= 53 else None,
+                              bits=''.join(str(v) for v in reversed(vals)),
+                              changed=[j for j, w in enumerate(g['qubits']) if w in chg]))
+    by_wire = {}
+    for v in st.values:
+        by_wire.setdefault(v['q'], []).append(v)
+    wires = []
+    for w in range(st.maxq):
+        tl = st.touches[w]
+        j = bisect.bisect_right(tl, op)
+        nxt = tl[j] if j < len(tl) else None
+        live = w in st.is_reg
+        if not live:
+            for v in reversed(by_wire.get(w, [])):
+                if v['a'] <= op:
+                    live = v['b'] > op
+                    break
+        if live and (nxt is None or nxt - op > idle_k):
+            wires.append(dict(wire=w, register=w in st.is_reg, next_touch=nxt,
+                              idle_for=None if nxt is None else nxt - op))
+    cut = op + 1
+    open_v, closed = [], {nm: 0 for nm in KIND_NAMES.values()}
+    opened = closing = 0
+    for v in st.values:
+        if v['reg']:
+            continue
+        if v['b'] == op:
+            closing += 1
+        if v['init']:
+            continue
+        if v['a'] < cut:
+            opened += 1
+        if v['b'] < cut:
+            closed[KIND_NAMES[v['kind']]] += 1
+        elif v['a'] < cut:
+            open_v.append(dict(wire=v['q'], opened=v['a'], closes=v['b'], held=op - v['a'],
+                               settlement=KIND_NAMES[v['kind']]))
+    open_v.sort(key=lambda r: (r['opened'], r['wire']))
+    debts, records, repaid, never = [], 0, 0, 0
+    for li in st.liab:
+        if li['op'] >= cut:
+            continue
+        records += 1
+        if li['settle'] < 0:
+            never += 1
+        elif li['settle'] < cut:
+            repaid += 1
+        else:
+            debts.append(dict(wire=li['qubit'], hmr=li['op'], repaid_at=li['settle'], fixups=li['reads'],
+                              kicked=bool(mode.kicked[li['op']])))
+    tb = dict(live=prof[op], registers=len(st.regs), open_values=len(open_v), closing_here=closing, opened=opened,
+              closed=closed, records=records, repaid=repaid, open_debts=len(debts), never_repaid=never,
+              open_debts_kicked=sum(1 for d in debts if d['kicked']), fixups_so_far=bisect.bisect_right(st.fix, op))
+    line = (f"live {tb['live']} = {tb['registers']} registers + {tb['open_values']} open values + "
+            f"{tb['closing_here']} closing here; records {records} = {repaid} repaid + {len(debts)} open debts + "
+            f"{never} never repaid")
+    return dict(
+        schema=SNAPSHOT_SCHEMA,
+        circuit=dict(sha12=st.sha12, ops=n, qubits=st.nq, bits=st.nb, x_qubits=len(st.xq)),
+        x=x, seed=seed, kickback=bool(kick), op=op,
+        position=dict(op=op, ops=n, done=op + 1, stage=dict(index=stg['index'], id=stg['id'], title=stg['title'],
+                                                             start=stg['start'], end=stg['end']) if stg else None),
+        gate=gate, width=width, cost=cost, phase=phase, registers=registers, idle=dict(k=idle_k, wires=wires),
+        ledger=dict(trial_balance=tb, line=line, open_values=open_v, open_debts=debts,
+                    longest_held=open_v[0] if open_v else None))
+
+
+def cmd_snapshot(args):
+    data = load_viewer_data(args.circuit)
+    stages, groups = load_viewer_stages(args.stages, args.circuit)
+    st = ViewerStatic(data, stages, groups)
+    x = args.x if args.x is not None else min(161, 2 ** len(st.xq) - 1)
+    snap = viewer_snapshot(data, st, args.op, x, args.seed, not args.no_kickback, args.idle_k)
+    if args.print:
+        return dict(_print=snap)
+    out = Path(args.out)
+    out.mkdir(parents=True, exist_ok=True)
+    stem_ = args.name or f"{st.sha12 or Path(args.circuit).stem}_op{args.op}_x{x}"
+    path = out / f'{stem_}_snapshot.json'
+    path.write_text(json.dumps(snap, indent=1) + '\n')
+    g, tb = snap['gate'], snap['ledger']['trial_balance']
+    stg = snap['position']['stage']
+    facts = dict(op=args.op, gate=f"{g['kind']} {' '.join('q%d' % w for w in g['qubits'])}".strip() +
+                 ('' if g['ran'] else ' (skipped)'), stage=stg['id'] if stg else None, x=x, seed=args.seed,
+                 kickback=snap['kickback'], phase_turns=round(snap['phase']['turns'], 12),
+                 share_of_tolerance=round(snap['phase']['share_of_tolerance'], 6),
+                 ones=snap['width']['ones']['now'], live=snap['width']['live']['now'],
+                 toffolis_so_far=snap['cost']['so_far']['toffolis'], line=snap['ledger']['line'],
+                 open_debts_kicked=tb['open_debts_kicked'], idle_wires=len(snap['idle']['wires']))
+    return dict(ok=True, verb='snapshot', tier='sampled(1)',
+                basis='viewer tracer (tracer.js port), HMR outcomes '
+                      + (f'mulberry32 seed {args.seed}' if not args.no_kickback else 'forced to 0') + '; '
+                      'one basis trajectory; ledger and width static (render.py ledger/width semantics)',
+                files=[file_entry(path, kind='json')],
+                circuits=[dict(path=str(args.circuit), sha12=st.sha12, ops=st.n, qubits=st.nq)], facts=facts,
+                next=[f'python render.py snapshot {args.circuit} --op {min(st.n - 1, args.op + 1)} --x {x}',
+                      f'python render.py snapshot {args.circuit} --op {args.op} --x {x} --print'])
+
+
 # ------------------------------------------------------------------------------------------------ verb: doctor
 def cmd_doctor(args):
     checks, ok = [], True
@@ -3394,6 +3869,11 @@ shot.json: {"x": 161} or {"S*": [2500, 2667, ...], "E*": [...]} (NAME* fills NAM
   python render.py ledger invsqrt.kmb --no-exact --rate 26      # static only, own exchange rate
 Bookkeeping: accounts = wires (registers grouped), entries = ops, values = wire lifetimes settled by
 contra (unitary uncompute), accrual (HMR + later phase fix-ups) or dead tail (R, or HMR never repaid).""",
+    'snapshot': """examples:
+  python render.py snapshot ops.json --op 15213 --x 161              # end of the coefficient lookup
+  python render.py snapshot ops.json --op 15213 --x 161 --print      # the JSON object itself on stdout
+  python render.py snapshot ops.json --op 15213 --x 161 --no-kickback
+  python render.py snapshot a.kmb --op 1000 --x 3133452 --seed 7""",
     'doctor': """examples:
   python render.py doctor
   python render.py doctor --kickmix-python /path/to/venv/bin/python""",
@@ -3432,7 +3912,7 @@ def build_parser():
     ap.add_argument('--spec', help='JSON file of several renders: [["width","a.kmb"], {"argv": [...]}, "cost a.kmb"]')
     ap.add_argument('--debug', action='store_true', help='show Python tracebacks on errors')
     ap.add_argument('--version', action='version', version=f'kickmix-render {TOOL_VERSION}')
-    sub = ap.add_subparsers(dest='verb', metavar='{width,diff,trace,cost,ledger,doctor}')
+    sub = ap.add_subparsers(dest='verb', metavar='{width,diff,trace,cost,ledger,snapshot,doctor}')
     fmt = argparse.RawDescriptionHelpFormatter
 
     p = sub.add_parser('width', help='live-qubit profile, stage by stage, with zoom', epilog=EXAMPLES['width'],
@@ -3513,6 +3993,28 @@ def build_parser():
     p.add_argument('--dqi-r', type=float, default=DQI_R_ZERO_FAIL, help=argparse.SUPPRESS)
     p.set_defaults(fn=cmd_ledger)
 
+    p = sub.add_parser('snapshot', help="the viewer's stop point as JSON: gate, width, cost, phase, registers, ledger",
+                       epilog=EXAMPLES['snapshot'], formatter_class=fmt,
+                       description="The circuit viewer's snapshot at one stop point, headless: the same JSON object "
+                       "the viewer's 'Copy snapshot JSON' button gives (schema kickmix-viewer-snapshot/1, RENDER.md). "
+                       'The state is the one after op N has run, for input x. Takes the viewer\'s ops.json (op indices '
+                       'as in the viewer) or a .kmb (INFO_TAG and DEBUG_PRINT are not counted as ops).')
+    p.add_argument('circuit', metavar='CIRCUIT', help="the viewer's ops.json, or a .kmb file")
+    p.add_argument('--op', type=int, required=True, help='stop point: the op that has just run (0-based)')
+    p.add_argument('--x', type=int, help='input x (default 161, or the largest x if the register is narrower)')
+    p.add_argument('--seed', type=int, default=1, help="HMR outcome seed, the viewer's PRNG (default 1)")
+    p.add_argument('--no-kickback', action='store_true',
+                   help='force every HMR outcome to 0 (the viewer\'s "phase without kickback" toggle)')
+    p.add_argument('--stages', default='auto',
+                   help="viewer stages.json (stages and qubit groups); auto = stages.json beside an ops.json; 'none'")
+    p.add_argument('--idle-k', type=int, default=SNAPSHOT_IDLE_K,
+                   help=f'idle wires: live but untouched for more than this many ops (default {SNAPSHOT_IDLE_K})')
+    p.add_argument('--print', action='store_true', help='print the snapshot object itself instead of the summary')
+    p.add_argument('--out', default=DEFAULT_OUT, help=f'output directory (default ./{DEFAULT_OUT})')
+    p.add_argument('--name', help='file name stem')
+    p.add_argument('--all', action='store_true', help=argparse.SUPPRESS)
+    p.set_defaults(fn=cmd_snapshot)
+
     p = sub.add_parser('doctor', help='check dependencies', epilog=EXAMPLES['doctor'], formatter_class=fmt)
     p.add_argument('--kickmix-python', help='also check this interpreter for kickmix')
     p.add_argument('--cache')
@@ -3540,7 +4042,7 @@ def run_argv(argv):
         res['tool'] = f'kickmix-render {TOOL_VERSION} ({tool_sha()})'
         return res, False
     if not a.verb:
-        raise UserError('no verb given', 'python render.py {width,diff,trace,cost,ledger,doctor} --help')
+        raise UserError('no verb given', 'python render.py {width,diff,trace,cost,ledger,snapshot,doctor} --help')
     t0 = time.time()
     res = a.fn(a)
     res.setdefault('rerun', rerun_cmd(argv))
@@ -3596,6 +4098,9 @@ def main(argv=None):
         argv.remove('--debug')
     try:
         res, all_rows = run_argv(argv)
+        if '_print' in res:  # snapshot --print: the snapshot object itself
+            print(json.dumps(res['_print'], ensure_ascii=False, separators=(',', ':')))
+            return 0
         if res.get('files'):  # keep stdout short: drop the per-file extras beyond path/bytes/kind/frames
             res['files'] = [{k: v for k, v in f.items() if k in ('path', 'bytes', 'kind', 'frames')}
                             for f in res['files']]

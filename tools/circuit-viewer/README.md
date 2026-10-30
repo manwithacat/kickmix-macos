@@ -51,7 +51,7 @@ previous or next Toffoli, <kbd>[</kbd>/<kbd>]</kbd> stage boundaries, <kbd>M</kb
 address bar keeps the stop point, so `?circuit=9a8627&op=14000&x=161` opens exactly there (`seed` and `kick=0` too).
 
 While paused, the "At the playhead" panel shows the state after that op has run: the gate (type, operands,
-condition; its wires are outlined in the raster), width now and its peaks, cost so far and still to come, the phase
+condition; its wires are marked in the raster while paused), width now and its peaks, cost so far and still to come, the phase
 against the target, register values with the bits the gate changed, wires that are live but idle for the next
 1,000 ops, and the ledger at that cut (open values, open phase debts, the trial-balance line, the longest-held
 value). The tracer keeps a checkpoint every 1,000 ops, so stepping backwards replays at most 1,000 ops.
@@ -66,6 +66,47 @@ this x.
 "Copy snapshot JSON" copies the panel as one JSON object, and `python render.py snapshot ops.json --op N --x X`
 gives the same object headlessly (schema in [RENDER.md](RENDER.md#snapshot)); a test runs the viewer's code under
 Node and checks the two agree.
+
+## Zoom, pan and highlighted qubits
+
+The diagram (stage ribbon, gate tracks, qubit raster and occupancy, and the phase track, all on one op axis) zooms
+and pans on its own, without zooming the page:
+
+- **Zoom**: pinch on a touch screen or trackpad, <kbd>Ctrl</kbd>/<kbd>⌘</kbd> + scroll (zooms at the cursor), the
+  − and + buttons, or the keys <kbd>+</kbd> and <kbd>−</kbd>; <kbd>0</kbd> or "Whole circuit" goes back to the whole
+  circuit. Clicking a stage band (or a stage-table row) zooms to that stage.
+- **Pan**: drag, scroll sideways, <kbd>Shift</kbd> + scroll, or a plain scroll while zoomed in (it hands back to the
+  page at either end of the circuit). The overview strip above the ribbon shows the whole circuit with the visible
+  window boxed: drag the box, click to centre it, or focus the strip and use the arrow keys, Page Up/Down, Home, End.
+- One-finger vertical swipes over the diagram still scroll the page (`touch-action: pan-y`), so the diagram cannot
+  trap the page on a tablet; horizontal drags and pinches go to the diagram.
+- Every zoom level is redrawn from the trace, not scaled: the tracer runs once per x, seed and outcome mode and keeps
+  the state after every op (bit-packed, about 0.4 MB for invsqrt), so zooming and panning only re-bin the ops in the
+  window. Zoomed in to about 5 pixels per op or more, each gate gets a glyph across its wires: dots on controls (and
+  on Z-type gates), a ring on an X target, crosses on swapped wires, a square for R/HMR, a diamond for a rotation;
+  red for Toffoli-class, gold for measurement-based, grey when its condition skipped it. The deepest zoom is about
+  24 pixels per op.
+- Play runs within the visible window. Stepping or jumping out of it moves the window (into the next stage when a
+  stage was picked). The scrubber covers the visible window.
+- The address bar keeps the window: `&view=18000-18400`.
+
+"Taller lanes" doubles the lane height, which makes lanes easier to tap and glyphs easier to read.
+
+**Highlighting qubits.** Click or tap a qubit's lane to pin a highlight on it, and click again to clear it; or type
+its number into "Highlight qubit". Up to four qubits can be pinned (a fifth drops the oldest), each with its own
+outline colour and its name at the left edge of its lane, in both themes. Each pinned qubit has a chip that removes
+it. The address bar keeps them (`&hl=14,51`), and the "At the playhead" panel lists each one's value after the op at
+the playhead, its lifetime at that op (`render.py width` semantics), and its last and next touch.
+
+**Why the gate outlines no longer flash.** While playing, the playhead moves through hundreds of ops per second,
+so the current gate's wires changed on every frame and the outlines flickered without telling you anything. The
+outlines are now drawn only when paused or stepping, where they are steady and mark one gate. To follow particular
+wires while playing, highlight them: those outlines do not change from frame to frame.
+
+The zoom maths, gestures, highlight state and URL round-trips are in `view.js` and tested under Node
+(`tests/viewer/view.test.js`), including a check that re-binning the stored trace gives exactly the columns that a
+fresh tracer pass gave before. The pinch and drag tests feed simulated pointer positions to the gesture reducer;
+real multi-touch was not tried on a tablet.
 
 ## Headless pictures and GIFs: `render.py`
 
@@ -109,6 +150,7 @@ python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
 | File | What it is |
 |---|---|
 | `snapshot.js` | the playhead state machine, the static analysis (lifetimes, liabilities) and the snapshot object |
+| `view.js` | the zoom window, pointer gestures (drag, pinch), highlighted qubits, and the per-op trace the diagram is binned from |
 | `ops.json` | the 62-qubit invsqrt circuit (kmb SHA-256 `67482db6…37ae4997`) as a compact op list, with `n_qubits` and `n_bits` |
 | `stages.json` | busyaprime's 17 named stages and qubit groups, carried over to this circuit. Where the two op streams run the same gate sequence on relabelled wires (front decoder and its phase repair, `lookup_b`, most of `arith_b`, `lookup_c`, the seed retirement: 36,700 ops in aligned blocks) a boundary moves with its block. Elsewhere it sits at the matching op pattern, checked against live-wire value sets and the stage anchors of the 62-qubit mechanism analysis. Stage notes say what changed against 9a8627: the lookup builds 27 of its 32 products in place and ends with an HMR block with Clifford fix-ups, later stages move fix-up parities into classical logic on measurement bits, plus yoyobar's four AND rewrites in `arith_a` and Özer's patch in `unnormalize` |
 | `errcurve.json` | error ÷ tolerance for all 3,133,452 inputs, computed with kickmix, binned. It is identical, input for input, to 9a8627's; 308 inputs were re-checked with a bit-level tracer |
@@ -128,4 +170,4 @@ mrmeows' hybrid invsqrt design (public Kaggle dataset `mrmeows/qcc-1375-open-cir
 which is itself on the public line of busyaprime, Phuc Thai, Dmitrii Gluzdov and marsyas. Simulator and
 verifier: Google Quantum AI's kickmix (Qualtran, Apache-2.0). Viewer written with AI assistance (Claude)
 under the repository owner's direction; the playhead and snapshot (`snapshot.js`, `render.py snapshot`) were
-written the same way, from the owner's plan.
+written the same way, from the owner's plan, as were the zoom, pan and qubit highlighting (`view.js`), from the owner's feedback.

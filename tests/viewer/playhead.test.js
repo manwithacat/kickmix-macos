@@ -1,5 +1,6 @@
 // Playhead state machine and checkpointed replay of the circuit viewer (tools/circuit-viewer/snapshot.js).
-// Run: node --test tests/viewer/   (tests/test_circuit_render.py runs it too when Node is installed).
+// Run: node --test tests/viewer/playhead.test.js   (name the files: older Node treats a directory as a module path;
+//      tests/test_circuit_render.py runs every tests/viewer/*.test.js when Node is installed).
 // Written with AI assistance (Claude, Anthropic) under the repository owner's direction.
 'use strict';
 const test = require('node:test');

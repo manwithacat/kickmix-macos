@@ -1,0 +1,135 @@
+{
+ "verb": "cost",
+ "circuits": [
+  {
+   "path": "circuits/9a8627c81283.kmb",
+   "sha12": "9a8627c81283",
+   "ops": 45576,
+   "qubits": 63
+  },
+  {
+   "path": "circuits/6dbb98b34c3b.kmb",
+   "sha12": "6dbb98b34c3b",
+   "ops": 47201,
+   "qubits": 62
+  }
+ ],
+ "models": [
+  {
+   "task": "invsqrt",
+   "Q": 63,
+   "toffoli_static": 1397,
+   "toffoli_used": 1328.66,
+   "toffoli_basis": "sampled mean over 200 random x (python tracer, seed 1)",
+   "t_angles": 1,
+   "rotations": 41,
+   "rot_t": 25.0,
+   "toffoli_equiv": 1585.16,
+   "formula": "Q \u00d7 (Toffolis + (T + rotations \u00d7 rot_t) / 4)",
+   "cost": 99865.08,
+   "reference_cost": 2076774.23,
+   "score_ratio": 20.7958
+  },
+  {
+   "task": "invsqrt",
+   "Q": 62,
+   "toffoli_static": 1501,
+   "toffoli_used": 1330.93,
+   "toffoli_basis": "sampled mean over 200 random x (python tracer, seed 1)",
+   "t_angles": 13,
+   "rotations": 41,
+   "rot_t": 25.0,
+   "toffoli_equiv": 1590.43,
+   "formula": "Q \u00d7 (Toffolis + (T + rotations \u00d7 rot_t) / 4)",
+   "cost": 98606.66,
+   "reference_cost": 2076774.23,
+   "score_ratio": 21.0612
+  }
+ ],
+ "facts": {
+  "models": [
+   {
+    "task": "invsqrt",
+    "Q": 63,
+    "toffoli_used": 1328.66,
+    "cost": 99865.08,
+    "score_ratio": 20.7958
+   },
+   {
+    "task": "invsqrt",
+    "Q": 62,
+    "toffoli_used": 1330.93,
+    "cost": 98606.66,
+    "score_ratio": 21.0612
+   }
+  ],
+  "certified_width": [
+   63,
+   62
+  ],
+  "stages": "rot",
+  "b_over_a_score": 1.01276
+ },
+ "rows": [
+  {
+   "stage": "pre",
+   "ops": 16698,
+   "toffoli": 253,
+   "toffoli_cond": 0,
+   "peak": 63,
+   "share": 0.1811,
+   "toffoli_mean": 253.0,
+   "toffoli_b": 258,
+   "peak_b": 62,
+   "toffoli_mean_b": 258.0
+  },
+  {
+   "stage": "rot1",
+   "ops": 360,
+   "toffoli": 55,
+   "toffoli_cond": 0,
+   "peak": 63,
+   "share": 0.0394,
+   "toffoli_mean": 55.0,
+   "toffoli_b": 57,
+   "peak_b": 62,
+   "toffoli_mean_b": 57.0
+  },
+  {
+   "stage": "mid1",
+   "ops": 9897,
+   "toffoli": 408,
+   "toffoli_cond": 0,
+   "peak": 63,
+   "share": 0.2921,
+   "toffoli_mean": 408.0,
+   "toffoli_b": 411,
+   "peak_b": 62,
+   "toffoli_mean_b": 399.0
+  },
+  {
+   "stage": "rot2",
+   "ops": 256,
+   "toffoli": 90,
+   "toffoli_cond": 0,
+   "peak": 63,
+   "share": 0.0644,
+   "toffoli_mean": 90.0,
+   "toffoli_b": 91,
+   "peak_b": 62,
+   "toffoli_mean_b": 91.0
+  },
+  {
+   "stage": "post",
+   "ops": 18365,
+   "toffoli": 591,
+   "toffoli_cond": 112,
+   "peak": 63,
+   "share": 0.423,
+   "toffoli_mean": 522.7,
+   "toffoli_b": 684,
+   "peak_b": 62,
+   "toffoli_mean_b": 526.0
+  }
+ ]
+}

@@ -1,0 +1,17 @@
+{
+  "defaults": ["--out", "examples", "--px", "800", "--max-mb", "2"],
+  "jobs": [
+    ["width", "circuits/9a8627c81283.kmb", "circuits/6dbb98b34c3b.kmb", "--labels", "9a8627 (63 q),6dbb98 (62 q)", "--name", "invsqrt_63_vs_62"],
+    ["diff",  "circuits/9a8627c81283.kmb", "circuits/6dbb98b34c3b.kmb", "--labels", "9a8627 (63 q),6dbb98 (62 q)", "--name", "invsqrt_63_vs_62", "--max-frames", "24"],
+    ["trace", "circuits/9a8627c81283.kmb", "--set", "x=161", "--labels", "9a8627 (63 q)", "--name", "invsqrt_x161"],
+    ["cost",  "circuits/9a8627c81283.kmb", "circuits/6dbb98b34c3b.kmb", "--labels", "9a8627 (63 q),6dbb98 (62 q)", "--name", "invsqrt_63_vs_62"],
+    ["width", "circuits/7f3d64c1b4aa.kmb", "circuits/40fa4ebf25b2.kmb", "--labels", "7f3d64c1 (889 q),40fa4ebf (888 q)", "--name", "dqi_889_vs_888"],
+    ["diff",  "circuits/7f3d64c1b4aa.kmb", "circuits/40fa4ebf25b2.kmb", "--labels", "7f3d64c1 (889 q),40fa4ebf (888 q)", "--name", "dqi_889_vs_888", "--max-frames", "24"],
+    ["trace", "circuits/40fa4ebf25b2.kmb", "--set-json", "dqi_shot_sweep5.json", "--watch", "S*", "--engine", "kickmix", "--labels", "40fa4ebf (888 q)", "--name", "dqi_fail_sweep5"],
+    ["cost",  "circuits/7f3d64c1b4aa.kmb", "circuits/40fa4ebf25b2.kmb", "--labels", "7f3d64c1 (889 q),40fa4ebf (888 q)", "--name", "dqi_889_vs_888"],
+    ["ledger", "circuits/9a8627c81283.kmb", "--labels", "9a8627 (63 q)", "--name", "invsqrt_9a8627"],
+    ["ledger", "--compare", "circuits/9a8627c81283.kmb", "circuits/a568bc793481.kmb", "--labels", "9a8627 (63 q),a568bc (62 q)", "--name", "invsqrt_63_vs_a568"],
+    ["ledger", "circuits/40fa4ebf25b2.kmb", "--labels", "40fa4ebf (888 q)", "--name", "dqi_40fa4ebf", "--no-csv"],
+    ["ledger", "--compare", "circuits/7f3d64c1b4aa.kmb", "circuits/40fa4ebf25b2.kmb", "--labels", "7f3d64c1 (889 q),40fa4ebf (888 q)", "--name", "dqi_889_vs_888"]
+  ]
+}

@@ -23,6 +23,10 @@ whose shipped `kickmix.so` is an x86-64 Linux / CPython 3.13 binary only.
   63-qubit invsqrt circuit, with qubit values, stages, Toffolis, qubit lifetimes, the precision curve over every
   input and the phase building to 1/√x. Load your own `.kmx` too. Source and local instructions:
   [`tools/circuit-viewer/`](tools/circuit-viewer/).
+- **Circuit pictures from the command line**: `tools/circuit-viewer/render.py` makes PNGs and animated GIFs of
+  qubit width, circuit diffs, one-shot traces, cost and a double-entry ledger from any `.kmb`, headless, with a
+  JSON summary for agents
+  ([RENDER.md](tools/circuit-viewer/RENDER.md)).
 - **[Project site](https://manwithacat.github.io/kickmix-macos/)**: install routes, Kaggle notebooks and datasets.
 
 ## Need the fastest verification? See kickmix-engine

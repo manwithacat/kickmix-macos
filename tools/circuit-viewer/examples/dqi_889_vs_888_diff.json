@@ -1,0 +1,1520 @@
+{
+ "verb": "diff",
+ "circuits": [
+  {
+   "path": "circuits/7f3d64c1b4aa.kmb",
+   "sha12": "7f3d64c1b4aa",
+   "ops": 59851905,
+   "qubits": 889
+  },
+  {
+   "path": "circuits/40fa4ebf25b2.kmb",
+   "sha12": "40fa4ebf25b2",
+   "ops": 59864413,
+   "qubits": 888
+  }
+ ],
+ "facts": {
+  "stages": "tags",
+  "alignment": "stage alignment by name + module hashes",
+  "stages_same": 9,
+  "stages_changed": 2,
+  "edits": 57,
+  "ops": [
+   59851905,
+   59864413
+  ],
+  "toffoli_static": [
+   444334,
+   444830
+  ],
+  "certified_width": [
+   889,
+   888
+  ],
+  "header_qubits": [
+   889,
+   888
+  ]
+ },
+ "stages": [
+  {
+   "stage": "mask_projection",
+   "status": "same",
+   "ops": [
+    2388214,
+    2388214
+   ],
+   "toffoli": [
+    0,
+    0
+   ],
+   "hmr": [
+    0,
+    0
+   ],
+   "peak": [
+    840,
+    840
+   ]
+  },
+  {
+   "stage": "initial",
+   "status": "same",
+   "ops": [
+    255759,
+    255759
+   ],
+   "toffoli": [
+    0,
+    0
+   ],
+   "hmr": [
+    0,
+    0
+   ],
+   "peak": [
+    840,
+    840
+   ]
+  },
+  {
+   "stage": "extract",
+   "status": "same",
+   "ops": [
+    4412559,
+    4412559
+   ],
+   "toffoli": [
+    65834,
+    65834
+   ],
+   "hmr": [
+    7345,
+    7345
+   ],
+   "peak": [
+    888,
+    888
+   ]
+  },
+  {
+   "stage": "synthesis",
+   "status": "same",
+   "ops": [
+    5180828,
+    5180828
+   ],
+   "toffoli": [
+    33037,
+    33037
+   ],
+   "hmr": [
+    1535,
+    1535
+   ],
+   "peak": [
+    888,
+    888
+   ]
+  },
+  {
+   "stage": "convert",
+   "status": "same",
+   "ops": [
+    5025131,
+    5025131
+   ],
+   "toffoli": [
+    63336,
+    63336
+   ],
+   "hmr": [
+    11957,
+    11957
+   ],
+   "peak": [
+    888,
+    888
+   ]
+  },
+  {
+   "stage": "scan",
+   "status": "same",
+   "ops": [
+    23493565,
+    23493565
+   ],
+   "toffoli": [
+    44275,
+    44275
+   ],
+   "hmr": [
+    44275,
+    44275
+   ],
+   "peak": [
+    863,
+    863
+   ]
+  },
+  {
+   "stage": "unconvert",
+   "status": "changed",
+   "ops": [
+    5128825,
+    5128829
+   ],
+   "toffoli": [
+    65674,
+    65674
+   ],
+   "hmr": [
+    13185,
+    13185
+   ],
+   "peak": [
+    888,
+    888
+   ],
+   "level": "module"
+  },
+  {
+   "stage": "unsynthesis",
+   "status": "same",
+   "ops": [
+    6139859,
+    6139859
+   ],
+   "toffoli": [
+    54128,
+    54128
+   ],
+   "hmr": [
+    14811,
+    14811
+   ],
+   "peak": [
+    888,
+    884
+   ]
+  },
+  {
+   "stage": "unextract",
+   "status": "changed",
+   "ops": [
+    7477309,
+    7489813
+   ],
+   "toffoli": [
+    118050,
+    118546
+   ],
+   "hmr": [
+    11022,
+    11278
+   ],
+   "peak": [
+    889,
+    888
+   ],
+   "level": "module"
+  },
+  {
+   "stage": "uninitial",
+   "status": "same",
+   "ops": [
+    255669,
+    255669
+   ],
+   "toffoli": [
+    0,
+    0
+   ],
+   "hmr": [
+    0,
+    0
+   ],
+   "peak": [
+    840,
+    840
+   ]
+  },
+  {
+   "stage": "restore_masks",
+   "status": "same",
+   "ops": [
+    94187,
+    94187
+   ],
+   "toffoli": [
+    0,
+    0
+   ],
+   "hmr": [
+    0,
+    0
+   ],
+   "peak": [
+    840,
+    840
+   ]
+  }
+ ],
+ "edits": [
+  {
+   "stage": "unconvert",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    45837493,
+    45837498
+   ],
+   "b": [
+    45837493,
+    45837502
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    5,
+    9
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    52234934,
+    52234978
+   ],
+   "b": [
+    52234938,
+    52234961
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    44,
+    23
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    52235092,
+    52235109
+   ],
+   "b": [
+    52235075,
+    52235092
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    52624239,
+    52624239
+   ],
+   "b": [
+    52624222,
+    52624234
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    52837683,
+    52837707
+   ],
+   "b": [
+    52837678,
+    52837842
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    52838493,
+    52838512
+   ],
+   "b": [
+    52838628,
+    52840090
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    52838943,
+    52838955
+   ],
+   "b": [
+    52840521,
+    52840529
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    52844404,
+    52844426
+   ],
+   "b": [
+    52845978,
+    52845993
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53056072,
+    53056114
+   ],
+   "b": [
+    53057639,
+    53057660
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    42,
+    21
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53056230,
+    53056247
+   ],
+   "b": [
+    53057776,
+    53057793
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    53423028,
+    53423028
+   ],
+   "b": [
+    53424574,
+    53424586
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53624324,
+    53624348
+   ],
+   "b": [
+    53625882,
+    53626046
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53625134,
+    53625153
+   ],
+   "b": [
+    53626832,
+    53628294
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53625584,
+    53625596
+   ],
+   "b": [
+    53628725,
+    53628733
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53631045,
+    53631067
+   ],
+   "b": [
+    53634182,
+    53634197
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53831257,
+    53831300
+   ],
+   "b": [
+    53834387,
+    53834409
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    43,
+    22
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    53831363,
+    53831380
+   ],
+   "b": [
+    53834472,
+    53834489
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    54174290,
+    54174290
+   ],
+   "b": [
+    54177399,
+    54177411
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    54361782,
+    54361806
+   ],
+   "b": [
+    54364903,
+    54365067
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    54362592,
+    54362611
+   ],
+   "b": [
+    54365853,
+    54367315
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    54363042,
+    54363054
+   ],
+   "b": [
+    54367746,
+    54367754
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    54368503,
+    54368525
+   ],
+   "b": [
+    54373203,
+    54373218
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    54554795,
+    54554839
+   ],
+   "b": [
+    54559488,
+    54559511
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    44,
+    23
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    54554953,
+    54554970
+   ],
+   "b": [
+    54559625,
+    54559642
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    54874411,
+    54874411
+   ],
+   "b": [
+    54879083,
+    54879095
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55048679,
+    55048703
+   ],
+   "b": [
+    55053363,
+    55053527
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55049489,
+    55049508
+   ],
+   "b": [
+    55054313,
+    55055775
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55049939,
+    55049951
+   ],
+   "b": [
+    55056206,
+    55056214
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55055400,
+    55055422
+   ],
+   "b": [
+    55061663,
+    55061678
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55228464,
+    55228504
+   ],
+   "b": [
+    55234720,
+    55234739
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    40,
+    19
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55228622,
+    55228639
+   ],
+   "b": [
+    55234857,
+    55234874
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    55524159,
+    55524159
+   ],
+   "b": [
+    55530394,
+    55530406
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55684627,
+    55684651
+   ],
+   "b": [
+    55690874,
+    55691038
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55685437,
+    55685456
+   ],
+   "b": [
+    55691824,
+    55693286
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55685887,
+    55685899
+   ],
+   "b": [
+    55693717,
+    55693725
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55691348,
+    55691370
+   ],
+   "b": [
+    55699174,
+    55699189
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55850514,
+    55850558
+   ],
+   "b": [
+    55858333,
+    55858356
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    44,
+    23
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    55850672,
+    55850689
+   ],
+   "b": [
+    55858470,
+    55858487
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    56122420,
+    56122420
+   ],
+   "b": [
+    56130218,
+    56130230
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56269818,
+    56269842
+   ],
+   "b": [
+    56277628,
+    56277792
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56270628,
+    56270647
+   ],
+   "b": [
+    56278578,
+    56280040
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56271078,
+    56271090
+   ],
+   "b": [
+    56280471,
+    56280479
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56276539,
+    56276561
+   ],
+   "b": [
+    56285928,
+    56285943
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56422637,
+    56422680
+   ],
+   "b": [
+    56432019,
+    56432041
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    43,
+    22
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56422743,
+    56422760
+   ],
+   "b": [
+    56432104,
+    56432121
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    56670426,
+    56670426
+   ],
+   "b": [
+    56679787,
+    56679799
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56804116,
+    56804140
+   ],
+   "b": [
+    56813489,
+    56813653
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56804926,
+    56804945
+   ],
+   "b": [
+    56814439,
+    56815901
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56805376,
+    56805388
+   ],
+   "b": [
+    56816332,
+    56816340
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56810837,
+    56810859
+   ],
+   "b": [
+    56821789,
+    56821804
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56943111,
+    56943152
+   ],
+   "b": [
+    56954056,
+    56954076
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    41,
+    20
+   ],
+   "d_toffoli": -24,
+   "d_hmr": 1
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    56943269,
+    56943286
+   ],
+   "b": [
+    56954193,
+    56954210
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    17,
+    17
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "insert",
+   "a": [
+    57167563,
+    57167563
+   ],
+   "b": [
+    57178487,
+    57178499
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    0,
+    12
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 12
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    57287981,
+    57288005
+   ],
+   "b": [
+    57298917,
+    57299081
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    24,
+    164
+   ],
+   "d_toffoli": 41,
+   "d_hmr": 22
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    57288791,
+    57288810
+   ],
+   "b": [
+    57299867,
+    57301329
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    19,
+    1462
+   ],
+   "d_toffoli": 42,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    57289241,
+    57289253
+   ],
+   "b": [
+    57301760,
+    57301768
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    12,
+    8
+   ],
+   "d_toffoli": 0,
+   "d_hmr": 0
+  },
+  {
+   "stage": "unextract",
+   "level": "op",
+   "kind": "replace",
+   "a": [
+    57294702,
+    57294724
+   ],
+   "b": [
+    57307217,
+    57307232
+   ],
+   "names": [
+    "ops between modules"
+   ],
+   "ops": [
+    22,
+    15
+   ],
+   "d_toffoli": 3,
+   "d_hmr": -3
+  }
+ ]
+}

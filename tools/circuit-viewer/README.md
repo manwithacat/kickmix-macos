@@ -36,6 +36,17 @@ then use "Load your own .kmx" on the page. Uploaded circuits get equal-width sli
 stages. Circuits much larger than invsqrt (about 50,000 ops) will be slow in a browser; a local
 summariser for large circuits is planned.
 
+## Headless pictures and GIFs: `render.py`
+
+For figures you can post or put in a notebook, `render.py` renders the same kind of views from `.kmb` files on
+the command line, with no browser: live-qubit width profiles with stage-by-stage zoom GIFs, a stage-aligned diff
+of two circuits, one-shot traces, a cost dashboard and a bookkeeping ledger. It prints a short JSON summary for agents.
+See [RENDER.md](RENDER.md); examples are in [`examples/`](examples/).
+
+```sh
+python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
+```
+
 ## What it is, and is not
 
 - A viewer, not a verifier. The official verifiers decide correctness and cost.

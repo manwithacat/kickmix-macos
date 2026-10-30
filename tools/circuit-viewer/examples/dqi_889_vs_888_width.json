@@ -1,0 +1,123 @@
+{
+ "verb": "width",
+ "circuits": [
+  {
+   "path": "circuits/7f3d64c1b4aa.kmb",
+   "sha12": "7f3d64c1b4aa",
+   "ops": 59851905,
+   "qubits": 889
+  },
+  {
+   "path": "circuits/40fa4ebf25b2.kmb",
+   "sha12": "40fa4ebf25b2",
+   "ops": 59864413,
+   "qubits": 888
+  }
+ ],
+ "facts": {
+  "certified_width": [
+   889,
+   888
+  ],
+  "header_qubits": [
+   889,
+   888
+  ],
+  "ops": [
+   59851905,
+   59864413
+  ],
+  "stages": "tags",
+  "n_stages": 11
+ },
+ "rows": [
+  {
+   "stage": "mask_projection",
+   "ops": 2388214,
+   "peak": 840,
+   "at_full_width": 0,
+   "peak_b": 840,
+   "at_full_width_b": 0
+  },
+  {
+   "stage": "initial",
+   "ops": 255759,
+   "peak": 840,
+   "at_full_width": 0,
+   "peak_b": 840,
+   "at_full_width_b": 0
+  },
+  {
+   "stage": "extract",
+   "ops": 4412559,
+   "peak": 888,
+   "at_full_width": 0,
+   "peak_b": 888,
+   "at_full_width_b": 222993
+  },
+  {
+   "stage": "synthesis",
+   "ops": 5180828,
+   "peak": 888,
+   "at_full_width": 0,
+   "peak_b": 888,
+   "at_full_width_b": 4190
+  },
+  {
+   "stage": "convert",
+   "ops": 5025131,
+   "peak": 888,
+   "at_full_width": 0,
+   "peak_b": 888,
+   "at_full_width_b": 2029418
+  },
+  {
+   "stage": "scan",
+   "ops": 23493565,
+   "peak": 863,
+   "at_full_width": 0,
+   "peak_b": 863,
+   "at_full_width_b": 0
+  },
+  {
+   "stage": "unconvert",
+   "ops": 5128825,
+   "peak": 888,
+   "at_full_width": 0,
+   "peak_b": 888,
+   "at_full_width_b": 2725591
+  },
+  {
+   "stage": "unsynthesis",
+   "ops": 6139859,
+   "peak": 888,
+   "at_full_width": 0,
+   "peak_b": 884,
+   "at_full_width_b": 0
+  },
+  {
+   "stage": "unextract",
+   "ops": 7477309,
+   "peak": 889,
+   "at_full_width": 1552246,
+   "peak_b": 888,
+   "at_full_width_b": 1479383
+  },
+  {
+   "stage": "uninitial",
+   "ops": 255669,
+   "peak": 840,
+   "at_full_width": 0,
+   "peak_b": 840,
+   "at_full_width_b": 0
+  },
+  {
+   "stage": "restore_masks",
+   "ops": 94187,
+   "peak": 840,
+   "at_full_width": 0,
+   "peak_b": 840,
+   "at_full_width_b": 0
+  }
+ ]
+}

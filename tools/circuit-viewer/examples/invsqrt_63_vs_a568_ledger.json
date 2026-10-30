@@ -1,0 +1,669 @@
+{
+ "verb": "ledger",
+ "mode": "compare",
+ "circuits": [
+  {
+   "path": "circuits/9a8627c81283.kmb",
+   "sha12": "9a8627c81283",
+   "ops": 45576,
+   "qubits": 63
+  },
+  {
+   "path": "circuits/a568bc793481.kmb",
+   "sha12": "a568bc793481",
+   "ops": 47190,
+   "qubits": 62
+  }
+ ],
+ "facts": {
+  "width": [
+   63,
+   62
+  ],
+  "rate_teq_per_qubit": 25.17,
+  "capital_teq": -25.2,
+  "expense_teq": 5.98,
+  "net_teq": -19.2,
+  "cost_b_over_a": 0.987839,
+  "d_liabilities": -55,
+  "d_fixups": 1748,
+  "values_matched": 382,
+  "values_b_only": 194,
+  "values_a_only": 239,
+  "reading": "re-packing: 1 wire(s) less for +6.0 T-eq; in pre B opens 28 accumulating values (>= 2 Toffoli entries, open at the cut) before A opens its first (op 1,792); B repays 4 records with 392 fix-ups in one 471-op window at op 14,401 (A at most 24)",
+  "expense_basis": "toffoli_equiv",
+  "paying_twice": [
+   317,
+   294
+  ]
+ },
+ "reconciliation": [
+  {
+   "stage": "pre",
+   "matched": 26,
+   "a_only": 73,
+   "b_only": 45,
+   "d_peak": -1,
+   "d_toffoli": 5,
+   "d_hmr": -27,
+   "d_accrual": -28,
+   "d_fixups": 360,
+   "d_accum": 1,
+   "d_toffoli_mean": 5.0,
+   "b_accum_before_a": 28,
+   "a_first_accum": 1792,
+   "b_accum_span": [
+    23,
+    1724
+   ],
+   "batch_a": [
+    24,
+    88,
+    21
+   ],
+   "batch_b": [
+    392,
+    14401,
+    4
+   ]
+  },
+  {
+   "stage": "rot1",
+   "matched": 9,
+   "a_only": 9,
+   "b_only": 5,
+   "d_peak": -1,
+   "d_toffoli": 2,
+   "d_hmr": -5,
+   "d_accrual": -5,
+   "d_fixups": -5,
+   "d_accum": 0,
+   "d_toffoli_mean": 2.0,
+   "b_accum_before_a": 1,
+   "a_first_accum": 17054,
+   "b_accum_span": [
+    15570,
+    15570
+   ],
+   "batch_a": [
+    9,
+    16767,
+    5
+   ],
+   "batch_b": [
+    4,
+    15362,
+    0
+   ]
+  },
+  {
+   "stage": "mid1",
+   "matched": 161,
+   "a_only": 52,
+   "b_only": 49,
+   "d_peak": -1,
+   "d_toffoli": 3,
+   "d_hmr": -15,
+   "d_accrual": -3,
+   "d_fixups": 64,
+   "d_accum": 0,
+   "d_toffoli_mean": -9.02,
+   "b_accum_before_a": 0,
+   "a_first_accum": 23347,
+   "b_accum_span": [
+    21988,
+    21988
+   ],
+   "batch_a": [
+    455,
+    20246,
+    3
+   ],
+   "batch_b": [
+    471,
+    18983,
+    3
+   ]
+  },
+  {
+   "stage": "rot2",
+   "matched": 20,
+   "a_only": 9,
+   "b_only": 8,
+   "d_peak": -1,
+   "d_toffoli": 1,
+   "d_hmr": -1,
+   "d_accrual": -1,
+   "d_fixups": -1,
+   "d_accum": 0,
+   "d_toffoli_mean": 1.0,
+   "b_accum_before_a": 1,
+   "a_first_accum": 27207,
+   "b_accum_span": [
+    25867,
+    25867
+   ],
+   "batch_a": [
+    6,
+    26957,
+    5
+   ],
+   "batch_b": [
+    5,
+    25632,
+    4
+   ]
+  },
+  {
+   "stage": "post",
+   "matched": 166,
+   "a_only": 96,
+   "b_only": 87,
+   "d_peak": -1,
+   "d_toffoli": 94,
+   "d_hmr": -7,
+   "d_accrual": -9,
+   "d_fixups": 1330,
+   "d_accum": 3,
+   "d_toffoli_mean": 4.0,
+   "batch_a": [
+    455,
+    36323,
+    3
+   ],
+   "batch_b": [
+    471,
+    37022,
+    3
+   ]
+  }
+ ],
+ "trial_balance": [
+  [
+   {
+    "stage": "pre",
+    "ops": 16698,
+    "peak": 63,
+    "live": 63,
+    "open": 41,
+    "debts": 2,
+    "opened": 99,
+    "contra": 0,
+    "accrual": 58,
+    "dead-tail": 0,
+    "accum": 36,
+    "hmr": 60,
+    "fixups": 63,
+    "batch": [
+     24,
+     88,
+     21
+    ],
+    "toffoli": 253,
+    "toffoli_mean": 253.0,
+    "capital": 552.1
+   },
+   {
+    "stage": "rot1",
+    "ops": 360,
+    "peak": 63,
+    "live": 62,
+    "open": 40,
+    "debts": 16,
+    "opened": 18,
+    "contra": 0,
+    "accrual": 19,
+    "dead-tail": 0,
+    "accum": 14,
+    "hmr": 19,
+    "fixups": 9,
+    "batch": [
+     9,
+     16767,
+     5
+    ],
+    "toffoli": 55,
+    "toffoli_mean": 55.0,
+    "capital": 12.4
+   },
+   {
+    "stage": "mid1",
+    "ops": 9897,
+    "peak": 63,
+    "live": 59,
+    "open": 37,
+    "debts": 61,
+    "opened": 213,
+    "contra": 0,
+    "accrual": 214,
+    "dead-tail": 2,
+    "accum": 15,
+    "hmr": 329,
+    "fixups": 2320,
+    "batch": [
+     455,
+     20246,
+     3
+    ],
+    "toffoli": 408,
+    "toffoli_mean": 408.0,
+    "capital": 326.3
+   },
+   {
+    "stage": "rot2",
+    "ops": 256,
+    "peak": 63,
+    "live": 59,
+    "open": 37,
+    "debts": 86,
+    "opened": 29,
+    "contra": 0,
+    "accrual": 29,
+    "dead-tail": 0,
+    "accum": 25,
+    "hmr": 29,
+    "fixups": 6,
+    "batch": [
+     6,
+     26957,
+     5
+    ],
+    "toffoli": 90,
+    "toffoli_mean": 90.0,
+    "capital": 8.7
+   },
+   {
+    "stage": "post",
+    "ops": 18365,
+    "peak": 63,
+    "live": 23,
+    "open": 0,
+    "debts": 0,
+    "opened": 262,
+    "contra": 26,
+    "accrual": 272,
+    "dead-tail": 1,
+    "accum": 31,
+    "hmr": 514,
+    "fixups": 9749,
+    "batch": [
+     455,
+     36323,
+     3
+    ],
+    "toffoli": 591,
+    "toffoli_mean": 523.5,
+    "capital": 552.9
+   }
+  ],
+  [
+   {
+    "stage": "pre",
+    "ops": 15253,
+    "peak": 62,
+    "live": 62,
+    "open": 40,
+    "debts": 2,
+    "opened": 71,
+    "contra": 0,
+    "accrual": 30,
+    "dead-tail": 1,
+    "accum": 37,
+    "hmr": 33,
+    "fixups": 423,
+    "batch": [
+     392,
+     14401,
+     4
+    ],
+    "toffoli": 258,
+    "toffoli_mean": 258.0,
+    "capital": 489.3
+   },
+   {
+    "stage": "rot1",
+    "ops": 321,
+    "peak": 62,
+    "live": 62,
+    "open": 40,
+    "debts": 16,
+    "opened": 14,
+    "contra": 0,
+    "accrual": 14,
+    "dead-tail": 0,
+    "accum": 14,
+    "hmr": 14,
+    "fixups": 4,
+    "batch": [
+     4,
+     15362,
+     0
+    ],
+    "toffoli": 57,
+    "toffoli_mean": 57.0,
+    "capital": 10.8
+   },
+   {
+    "stage": "mid1",
+    "ops": 10056,
+    "peak": 62,
+    "live": 59,
+    "open": 37,
+    "debts": 75,
+    "opened": 210,
+    "contra": 0,
+    "accrual": 211,
+    "dead-tail": 2,
+    "accum": 15,
+    "hmr": 314,
+    "fixups": 2384,
+    "batch": [
+     471,
+     18983,
+     3
+    ],
+    "toffoli": 411,
+    "toffoli_mean": 398.98,
+    "capital": 320.8
+   },
+   {
+    "stage": "rot2",
+    "ops": 241,
+    "peak": 62,
+    "live": 59,
+    "open": 37,
+    "debts": 100,
+    "opened": 28,
+    "contra": 0,
+    "accrual": 28,
+    "dead-tail": 0,
+    "accum": 25,
+    "hmr": 28,
+    "fixups": 5,
+    "batch": [
+     5,
+     25632,
+     4
+    ],
+    "toffoli": 91,
+    "toffoli_mean": 91.0,
+    "capital": 8.0
+   },
+   {
+    "stage": "post",
+    "ops": 21319,
+    "peak": 62,
+    "live": 23,
+    "open": 0,
+    "debts": 0,
+    "opened": 253,
+    "contra": 26,
+    "accrual": 263,
+    "dead-tail": 1,
+    "accum": 34,
+    "hmr": 507,
+    "fixups": 11079,
+    "batch": [
+     471,
+     37022,
+     3
+    ],
+    "toffoli": 685,
+    "toffoli_mean": 527.5,
+    "capital": 622.1
+   }
+  ]
+ ],
+ "summaries": [
+  {
+   "task": "invsqrt",
+   "Q": 63,
+   "width": 63,
+   "rate": 25.17,
+   "rate_basis": "(Toffolis + T/4) / Q: cost = Q \u00d7 (Toffolis + T/4)",
+   "values": {
+    "contra": 26,
+    "accrual": 592,
+    "dead-tail": 3
+   },
+   "liabilities": 951,
+   "fixups": 12147,
+   "registers": 22,
+   "capital_charged": 1586.0,
+   "capital_used": 1452.4,
+   "utilisation": 0.9158,
+   "model": {
+    "task": "invsqrt",
+    "Q": 63,
+    "toffoli_static": 1397,
+    "toffoli_used": 1329.5,
+    "toffoli_basis": "caller-supplied mean (--mean-toffolis)",
+    "t_angles": 1,
+    "rotations": 41,
+    "rot_t": 25.0,
+    "toffoli_equiv": 1586.0,
+    "formula": "Q \u00d7 (Toffolis + (T + rotations \u00d7 rot_t) / 4)",
+    "cost": 99917.97,
+    "reference_cost": 2076774.23,
+    "score_ratio": 20.78479
+   }
+  },
+  {
+   "task": "invsqrt",
+   "Q": 62,
+   "width": 62,
+   "rate": 25.68,
+   "rate_basis": "(Toffolis + T/4) / Q: cost = Q \u00d7 (Toffolis + T/4)",
+   "values": {
+    "contra": 26,
+    "accrual": 546,
+    "dead-tail": 4
+   },
+   "liabilities": 896,
+   "fixups": 13895,
+   "registers": 22,
+   "capital_charged": 1592.0,
+   "capital_used": 1451.1,
+   "utilisation": 0.9115,
+   "model": {
+    "task": "invsqrt",
+    "Q": 62,
+    "toffoli_static": 1502,
+    "toffoli_used": 1332.48,
+    "toffoli_basis": "caller-supplied mean (--mean-toffolis)",
+    "t_angles": 13,
+    "rotations": 41,
+    "rot_t": 25.0,
+    "toffoli_equiv": 1591.98,
+    "formula": "Q \u00d7 (Toffolis + (T + rotations \u00d7 rot_t) / 4)",
+    "cost": 98702.88,
+    "reference_cost": 2076774.23,
+    "score_ratio": 21.04067
+   }
+  }
+ ],
+ "paying_twice": [
+  {
+   "static": {
+    "tier": "static",
+    "groups": 17,
+    "recomputed": 17,
+    "uncompute_pairs": 11,
+    "basis": "CCX whose controls hold the same wire versions as an earlier CCX"
+   },
+   "exact": {
+    "tier": "exact-all-x",
+    "groups": 300,
+    "recomputed": 317,
+    "toffoli_per_shot": 317.0,
+    "zero_products": 1,
+    "models": [
+     "zero",
+     "7",
+     "11"
+    ],
+    "basis": "CCX whose AND is equal on every legal x in every outcome model"
+   }
+  },
+  {
+   "static": {
+    "tier": "static",
+    "groups": 15,
+    "recomputed": 15,
+    "uncompute_pairs": 13,
+    "basis": "CCX whose controls hold the same wire versions as an earlier CCX"
+   },
+   "exact": {
+    "tier": "exact-all-x",
+    "groups": 273,
+    "recomputed": 294,
+    "toffoli_per_shot": 294.0,
+    "zero_products": 0,
+    "models": [
+     "zero",
+     "7",
+     "11"
+    ],
+    "basis": "CCX whose AND is equal on every legal x in every outcome model"
+   }
+  }
+ ],
+ "close": [
+  {
+   "tier": "exact-all-x",
+   "unpaid_records": 7,
+   "open_debts": 0,
+   "contra_unverified": 26,
+   "x_restored": true,
+   "nonzero_lines": [],
+   "models": [
+    "zero",
+    "7",
+    "11"
+   ],
+   "balanced": true
+  },
+  {
+   "tier": "exact-all-x",
+   "unpaid_records": 8,
+   "open_debts": 0,
+   "contra_unverified": 26,
+   "x_restored": true,
+   "nonzero_lines": [],
+   "models": [
+    "zero",
+    "7",
+    "11"
+   ],
+   "balanced": true
+  }
+ ],
+ "aged_top": [
+  [
+   {
+    "wire": "q56",
+    "open": 16678,
+    "close": 45313,
+    "span": 28636,
+    "idle": 17133,
+    "idle_from": 28016,
+    "idle_to": 45149,
+    "idle_at_peak": 5216,
+    "settle": "contra",
+    "toffoli_entries": 1,
+    "capital": 15.8,
+    "idle_capital": 9.5,
+    "stages": "pre\u2192post"
+   },
+   {
+    "wire": "q23",
+    "open": 23,
+    "close": 17411,
+    "span": 17389,
+    "idle": 16439,
+    "idle_from": 225,
+    "idle_to": 16664,
+    "idle_at_peak": 9857,
+    "settle": "accrual",
+    "toffoli_entries": 1,
+    "capital": 9.6,
+    "idle_capital": 9.1,
+    "stages": "pre\u2192mid1"
+   },
+   {
+    "wire": "q23",
+    "open": 28678,
+    "close": 45110,
+    "span": 16433,
+    "idle": 16415,
+    "idle_from": 28690,
+    "idle_to": 45105,
+    "idle_at_peak": 2389,
+    "settle": "dead-tail",
+    "toffoli_entries": 1,
+    "capital": 9.1,
+    "idle_capital": 9.1,
+    "stages": "post\u2192post"
+   }
+  ],
+  [
+   {
+    "wire": "q23",
+    "open": 29330,
+    "close": 46732,
+    "span": 17403,
+    "idle": 17223,
+    "idle_from": 29485,
+    "idle_to": 46708,
+    "idle_at_peak": 2392,
+    "settle": "dead-tail",
+    "toffoli_entries": 2,
+    "capital": 9.5,
+    "idle_capital": 9.4,
+    "stages": "post\u2192post"
+   },
+   {
+    "wire": "q23",
+    "open": 23,
+    "close": 25319,
+    "span": 25297,
+    "idle": 14996,
+    "idle_from": 225,
+    "idle_to": 15221,
+    "idle_at_peak": 13393,
+    "settle": "accrual",
+    "toffoli_entries": 4,
+    "capital": 13.8,
+    "idle_capital": 8.2,
+    "stages": "pre\u2192mid1"
+   },
+   {
+    "wire": "q49",
+    "open": 1378,
+    "close": 44235,
+    "span": 42858,
+    "idle": 7111,
+    "idle_from": 24099,
+    "idle_to": 31210,
+    "idle_at_peak": 15814,
+    "settle": "accrual",
+    "toffoli_entries": 5,
+    "capital": 23.3,
+    "idle_capital": 3.9,
+    "stages": "pre\u2192post"
+   }
+  ]
+ ],
+ "definitions": {
+  "account": "a wire; register wires grouped by register (numbered families folded: S0..S69 -> S*)",
+  "entry": "an op touching the account: toffoli (CCX/CSWAP target), data (CX/X/SWAP target), phase (Z/CZ/CCZ/Z_POW), control, settle (R/HMR)",
+  "value": "one lifetime of a non-register wire (the width verb's interval): opened at its first touch after a reset, closed at an unconditional R/HMR or at its last touch",
+  "contra": "value closed at its last touch: erased by unitary uncompute (presumed statically; checked exactly for invsqrt)",
+  "accrual": "value closed by HMR whose record later conditions fix-ups: a phase liability until the last one",
+  "dead-tail": "value closed by R, or by HMR whose record nothing reads",
+  "liability": "one HMR record, open from the HMR to the last op it (or a bit derived from it) conditions",
+  "trial balance": "at each stage cut: values open across the cut, liabilities open across it, live width",
+  "capital": "qubit-ops \u00d7 rate / ops: T-eq of width used; charged = certified width \u00d7 rate",
+  "paying twice": "a CCX computing the same AND as an earlier one (exact: equal on every x; static: same wire versions)"
+ }
+}

@@ -1,0 +1,179 @@
+{
+ "verb": "cost",
+ "circuits": [
+  {
+   "path": "circuits/7f3d64c1b4aa.kmb",
+   "sha12": "7f3d64c1b4aa",
+   "ops": 59851905,
+   "qubits": 889
+  },
+  {
+   "path": "circuits/40fa4ebf25b2.kmb",
+   "sha12": "40fa4ebf25b2",
+   "ops": 59864413,
+   "qubits": 888
+  }
+ ],
+ "models": [
+  {
+   "task": "dqi",
+   "Q": 889,
+   "toffoli_static": 444334,
+   "toffoli_used": 444334.0,
+   "toffoli_basis": "static count (upper bound)",
+   "R": 1.1913,
+   "formula": "R \u00d7 Q\u00b2 \u00d7 Toffolis",
+   "cost": 418344640983.24,
+   "reference_cost": 24439463583672.93,
+   "score_ratio": 58.41945
+  },
+  {
+   "task": "dqi",
+   "Q": 888,
+   "toffoli_static": 444830,
+   "toffoli_used": 444830.0,
+   "toffoli_basis": "static count (upper bound)",
+   "R": 1.1913,
+   "formula": "R \u00d7 Q\u00b2 \u00d7 Toffolis",
+   "cost": 417869951184.58,
+   "reference_cost": 24439463583672.93,
+   "score_ratio": 58.48581
+  }
+ ],
+ "facts": {
+  "models": [
+   {
+    "task": "dqi",
+    "Q": 889,
+    "toffoli_used": 444334.0,
+    "cost": 418344640983.24,
+    "score_ratio": 58.41945
+   },
+   {
+    "task": "dqi",
+    "Q": 888,
+    "toffoli_used": 444830.0,
+    "cost": 417869951184.58,
+    "score_ratio": 58.48581
+   }
+  ],
+  "certified_width": [
+   889,
+   888
+  ],
+  "stages": "tags",
+  "b_over_a_score": 1.00114
+ },
+ "rows": [
+  {
+   "stage": "mask_projection",
+   "ops": 2388214,
+   "toffoli": 0,
+   "toffoli_cond": 0,
+   "peak": 840,
+   "share": 0.0,
+   "toffoli_b": 0,
+   "peak_b": 840
+  },
+  {
+   "stage": "initial",
+   "ops": 255759,
+   "toffoli": 0,
+   "toffoli_cond": 0,
+   "peak": 840,
+   "share": 0.0,
+   "toffoli_b": 0,
+   "peak_b": 840
+  },
+  {
+   "stage": "extract",
+   "ops": 4412559,
+   "toffoli": 65834,
+   "toffoli_cond": 0,
+   "peak": 888,
+   "share": 0.1482,
+   "toffoli_b": 65834,
+   "peak_b": 888
+  },
+  {
+   "stage": "synthesis",
+   "ops": 5180828,
+   "toffoli": 33037,
+   "toffoli_cond": 0,
+   "peak": 888,
+   "share": 0.0744,
+   "toffoli_b": 33037,
+   "peak_b": 888
+  },
+  {
+   "stage": "convert",
+   "ops": 5025131,
+   "toffoli": 63336,
+   "toffoli_cond": 0,
+   "peak": 888,
+   "share": 0.1425,
+   "toffoli_b": 63336,
+   "peak_b": 888
+  },
+  {
+   "stage": "scan",
+   "ops": 23493565,
+   "toffoli": 44275,
+   "toffoli_cond": 0,
+   "peak": 863,
+   "share": 0.0996,
+   "toffoli_b": 44275,
+   "peak_b": 863
+  },
+  {
+   "stage": "unconvert",
+   "ops": 5128825,
+   "toffoli": 65674,
+   "toffoli_cond": 160,
+   "peak": 888,
+   "share": 0.1478,
+   "toffoli_b": 65674,
+   "peak_b": 888
+  },
+  {
+   "stage": "unsynthesis",
+   "ops": 6139859,
+   "toffoli": 54128,
+   "toffoli_cond": 12672,
+   "peak": 888,
+   "share": 0.1218,
+   "toffoli_b": 54128,
+   "peak_b": 884
+  },
+  {
+   "stage": "unextract",
+   "ops": 7477309,
+   "toffoli": 118050,
+   "toffoli_cond": 1648,
+   "peak": 889,
+   "share": 0.2657,
+   "toffoli_b": 118546,
+   "peak_b": 888
+  },
+  {
+   "stage": "uninitial",
+   "ops": 255669,
+   "toffoli": 0,
+   "toffoli_cond": 0,
+   "peak": 840,
+   "share": 0.0,
+   "toffoli_b": 0,
+   "peak_b": 840
+  },
+  {
+   "stage": "restore_masks",
+   "ops": 94187,
+   "toffoli": 0,
+   "toffoli_cond": 0,
+   "peak": 840,
+   "share": 0.0,
+   "toffoli_b": 0,
+   "peak_b": 840
+  }
+ ]
+}

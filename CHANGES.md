@@ -15,6 +15,32 @@
 
 ## Tooling changes
 
+- 2026-10-30, `tools/circuit-viewer/render.py`: new verb `ledger`, a double-entry bookkeeping view of a
+  reversible circuit. Wires are accounts (registers grouped), ops are entries, and every wire lifetime is a value
+  settled by unitary uncompute (contra), by HMR with later phase fix-ups (accrual: the HMR record is a liability
+  until the last op it conditions, followed through `BIT_INVERT_IF` copies) or by a dead tail. Width is capital,
+  priced at the task's exchange rate from the cost formula, and Toffolis are expenses. Outputs: T-accounts, the
+  trial balance at each stage cut, aged liabilities (values held longest without an entry), ANDs paid for twice and
+  the closing balance (PNG, a per-value CSV, a JSON table). invsqrt circuits also get an exact bit-parallel run over
+  all 3,133,452 inputs, which gives value identity for repeated ANDs and the close check. `ledger --compare A B`
+  reconciles two ledgers stage by stage and reads the change as capital against expense. On macOS the script
+  re-executes itself once with `MallocLargeCache=0`: freed large blocks were held in libmalloc's cache, and the
+  peak footprint of a 60 M-op DQI ledger falls from about 7.6 GB to 3.2 GB. Tests and examples were added
+  alongside the earlier ones. It was written with AI assistance (Claude, Anthropic) under the repository owner's
+  direction, from the owner's design.
+- 2026-10-30, `tools/circuit-viewer/render.py` 0.1.0 (new; no change to kickmix itself): a headless renderer of
+  explanatory PNGs and GIFs from `.kmb` circuits, with verbs `width` (certified live-qubit profiles, one or two
+  circuits, stage-by-stage zoom GIF), `diff` (stage-aligned structural diff: relabel-invariant hashes, recursive
+  module comparison for tagged circuits, op-level edits), `trace` (one shot's qubits, registers and phase; pure
+  Python engine, or kickmix's simulator run segment by segment, optionally in another interpreter), `cost`
+  (dashboard from the official invsqrt and DQI cost formulas) and `doctor`, plus `--spec` batch runs. Every run
+  prints one JSON summary of at most 2 KB with an evidence tier. Needs numpy, matplotlib and Pillow; kickmix only
+  for `trace --engine kickmix`. Documentation `tools/circuit-viewer/RENDER.md`, examples in
+  `tools/circuit-viewer/examples/` (invsqrt 63 vs 62 qubits, DQI 889 vs 888), tests
+  `tests/test_circuit_render.py` (synthetic circuits; the width profile is checked against an independent port
+  of the certified lifetime allocator, and the Python tracer against kickmix when it is installed). Written with
+  AI assistance (Claude, Anthropic) under the repository owner's direction; it ports ideas from the owner's own
+  competition scripts (lifetime allocator, surgery hashes, figure builders).
 - 2026-10-28, `tools/kickmix_tools.py` 0.3.0 (no change to kickmix itself): kickmix-engine support.
   `install_engine(source)` installs the engine into its own directory from a wheel folder (default: found under
   `/kaggle/input`, e.g. the dataset `manwithacat/kickmix-engine-wheels`), a `.whl`, `"latest"` or a release tag

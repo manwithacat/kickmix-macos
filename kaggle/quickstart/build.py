@@ -75,7 +75,7 @@ CELLS = [
         - Optional: dataset [`{CIRCUITS}`](https://www.kaggle.com/datasets/{CIRCUITS}) to also verify the best
           public DQI circuit.
 
-        **Run time.** The defaults are sized for roughly 15-25 minutes on Kaggle's 4-vCPU CPU notebook: the
+        **Run time.** The defaults take about 30 minutes on Kaggle's 4-vCPU CPU notebook (28.5 minutes measured on 2026-10-28): the
         sample DQI circuit with all three builds; the public DQI circuit and the sample invsqrt circuit with the
         fork and the engine. The official build is the slowest, especially on invsqrt; set `RUN_LONG = True`
         to include it everywhere (roughly 25 minutes more). Each run prints its own time.

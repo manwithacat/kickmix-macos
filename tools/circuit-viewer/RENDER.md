@@ -162,6 +162,9 @@ What it found on known circuits (the gate in the design card; 4 of 5 reproduced 
   carried from `extract` to `unextract`, but it cannot price the recomputation behind them. That needs the source
   map.
 
+The ledger PNG is fitted to its contents with a small margin, so its labels and titles are never cropped; it is
+therefore about `--px` wide (880 px at `--px 800` for 9a8627c81283), not exactly `--px`.
+
 Cost (Apple M2 Pro): invsqrt about 10 s, of which the exact run is about 5 s (`--no-exact` skips it; the T-account
 panel is most of the rest). DQI
 (60 M ops) about 18 s and a 3.2 GB peak footprint; `--compare` of two DQI circuits about 25 s, one circuit at a

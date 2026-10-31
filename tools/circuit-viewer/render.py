@@ -1067,6 +1067,7 @@ SURF, INK, INK2, MUTED, GRID = '#fcfcfb', '#0b0b0b', '#52514e', '#8c8b86', '#e8e
 BLUE, ORANGE, AQUA, VIOLET, RED, YELLOW = '#2a78d6', '#eb6834', '#1baf7a', '#6250d6', '#e34948', '#eda100'
 BAND, BAND_ON = '#f1f0ec', '#dbe8f8'
 DPI = 100
+FIT_PAD_IN = 0.15  # margin round a fitted PNG (save_png(fit=True)), inches
 _PLT = None
 
 
@@ -1112,8 +1113,16 @@ def fig_image(fig):
     return pil_().open(buf).convert('RGB')
 
 
-def save_png(fig, path):
-    fig.savefig(path, dpi=DPI, metadata={'Software': None})
+def save_png(fig, path, fit=False):
+    # fit=True grows (or trims) the canvas to every artist plus a fixed margin, so labels drawn with clip_on=False
+    # or titles wider than --px are not cropped; the PNG is then about --px wide rather than exactly --px. Every
+    # visible text is passed explicitly: matplotlib's tight box otherwise ignores the width of a long axis label.
+    kw = {}
+    if fit:
+        from matplotlib.text import Text
+        texts = [t for t in fig.findobj(Text) if t.get_visible() and t.get_text()]
+        kw = dict(bbox_inches='tight', pad_inches=FIT_PAD_IN, bbox_extra_artists=texts)
+    fig.savefig(path, dpi=DPI, metadata={'Software': None}, **kw)
     plt_().close(fig)
     return path
 
@@ -3260,7 +3269,7 @@ def draw_ledger_png(A, lab, args, base):
     for k, (txt, bold) in enumerate(lines):
         ax.text(0, 1 - k * 0.15, txt, transform=ax.transAxes, fontsize=9.5 if bold else 8.5,
                 fontweight='bold' if bold else 'normal', color=INK if bold else INK2, va='top')
-    return save_png(fig, str(base) + '.png')
+    return save_png(fig, str(base) + '.png', fit=True)
 
 
 def draw_reconcile_png(keep, labs, rows, facts, args, base):

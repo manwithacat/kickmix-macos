@@ -455,6 +455,23 @@ def test_cli_ledger_deterministic(tmp_path):
     assert outs[0] == outs[1]
 
 
+@needs_mpl
+def test_ledger_png_labels_not_cropped(tmp_path):
+    """The ledger PNG draws labels past its axes (idle-capital notes, a long title); none may touch the image edge:
+    a margin of FIT_PAD_IN of plain background must surround everything drawn."""
+    a = str(random_circuit(tmp_path / 'a.kmb', 44))
+    label = 'a deliberately long display label that runs the title past the right edge'
+    code, text = run_cli(['ledger', a, '--out', str(tmp_path / 'o'), '--px', '400', '--no-cache', '--labels', label])
+    assert code == 0, text
+    png = [f['path'] for f in json.loads(text)['files'] if f['kind'] == 'png'][0]
+    im = np.asarray(R.pil_().open(png).convert('RGB')).astype(int)
+    assert im.shape[1] > 400  # the title alone is wider than --px, so the canvas grew to hold it
+    surf = np.array([int(R.SURF[k:k + 2], 16) for k in (1, 3, 5)])
+    m = int(R.FIT_PAD_IN * R.DPI) - 2
+    for edge in (im[:m], im[-m:], im[:, :m], im[:, -m:]):
+        assert np.abs(edge - surf).max() <= 2
+
+
 # ------------------------------------------------------------------------------------------------ viewer snapshot
 # The viewer's "Copy snapshot JSON" (tools/circuit-viewer/snapshot.js on tracer.js, run here under Node) and
 # `render.py snapshot` must give the same object at the same stop point. Static parts (width profile, values,

@@ -12,6 +12,7 @@ key numbers and their evidence tier) and nothing else, so agents can parse it.
   trace   follow one shot's qubit and register values through the circuit (PNG + GIF)
   cost    static cost dashboard: Q, Toffolis, cost and score ratio per stage (PNG)
   ledger  double-entry view: values, phase debts, capital and expense, trial balance per stage (PNG + CSV);
+          values idle at the peak, full-width runs no release can narrow, fewest releases covering the rest;
           `ledger --compare A B` reconciles two circuits
   snapshot  the circuit viewer's stop point as JSON (gate, width, cost, phase, registers, ledger at the cut)
   doctor  check dependencies (numpy, matplotlib, Pillow; kickmix only for `trace --engine kickmix`)
@@ -2468,21 +2469,31 @@ def ledger_core(c: Circuit, prof, nbins=240):
     gap[1:] = op[1:] - op[:-1]
     gap[start] = 0
     idle_max = np.maximum.reduceat(gap, seg).astype(np.int64)
-    gap_at = {}  # where the longest idle gap sits, for the 40 values idle longest
-    for i in np.argsort(-idle_max, kind='stable')[:40].tolist():
-        if idle_max[i] > 0:
-            j = int(seg[i]) + int(np.argmax(gap[seg[i]:endr[i] + 1]))
-            gap_at[i] = (int(op[j - 1]), int(op[j]))
-    del gap
     top = int(prof.max())
     atpk = np.asarray(prof == top)
-    pk = np.zeros(n + 1, np.int32)
+    pk = np.zeros(n + 1, np.int32)  # pk[k] = ops at full width before op k
     np.cumsum(atpk, out=pk[1:])
     # ops at full width strictly inside the value's idle gaps = full-width ops in [a, b) minus the touches made at
     # full width (all touches but the last)
     touched_pk = seg_sum(atpk[op], seg, endr) - atpk[lt_b]
     idle_peak = pk[lt_b].astype(np.int64) - pk[lt_a] - touched_pk
     del touched_pk
+    # release candidates: scratch values (not register wires, not a reset on a fresh wire)
+    regq = register_qubit_ids(c)
+    isr = np.zeros(max(int(q.max()) + 1 if N else 1, regq[-1] + 1 if regq else 0), bool)
+    isr[regq] = True
+    cand = ~isr[lt_q] & ~((touches == 1) & reset[lt_b])
+    gap_at = {}  # for the 64 candidates ranked first: (longest idle gap) + (the gap holding most full-width ops)
+    for i in peak_order(np.flatnonzero(cand), idle_peak, idle_max, lt_a)[:64].tolist():
+        if idle_max[i] > 0:
+            s0, s1 = int(seg[i]), int(endr[i]) + 1
+            j = s0 + int(np.argmax(gap[s0:s1]))
+            o = op[s0:s1].astype(np.int64)
+            k = int(np.argmax(pk[o[1:]] - pk[o[:-1] + 1]))
+            gap_at[i] = (int(op[j - 1]), int(op[j]), int(o[k]), int(o[k + 1]))
+    ra, rb = full_width_runs(atpk)
+    pgaps = peak_covering_gaps(op, seg, gap, pk, ra, rb, cand)
+    del gap
     # entries per value by class
     tab = entry_table()
     ec = np.empty(N, np.uint8)
@@ -2547,7 +2558,147 @@ def ledger_core(c: Circuit, prof, nbins=240):
                 tof=counts[E_TOF], data=counts[E_DATA], phase=counts[E_PHASE], ctrl=counts[E_CTRL],
                 kind=kind, liab_end=liab_end, reg=reg_lt, init=init)
     return dict(values=vals, gap_at=gap_at, liab=liab, repeats=rep, taccounts=tacc, accounts=names + bands, n_reg_accounts=len(names), top=top,
-                regs=len(regs))
+                regs=len(regs), runs=dict(a=ra, b=rb, **pgaps))
+
+
+def peak_order(idx, idle_peak, idle_max, a):
+    """Values ranked for release at the peak: most ops idle at full width first, then longest idle, then earliest."""
+    idx = np.asarray(idx, np.int64)
+    return idx[np.lexsort((a[idx], -idle_max[idx], -idle_peak[idx]))]
+
+
+def full_width_runs(atpk):
+    """Maximal op ranges [a, b] at full width (inclusive)."""
+    d = np.diff(np.r_[0, np.asarray(atpk, np.int8), 0])
+    return np.flatnonzero(d == 1).astype(np.int64), np.flatnonzero(d == -1).astype(np.int64) - 1
+
+
+def peak_covering_gaps(op, seg, gap, pk, ra, rb, cand, chunk=8_000_000):
+    """Idle gaps of candidate values that contain whole full-width runs. A gap is the stretch between two consecutive
+    touches p < n of one value; it covers runs i0..i1 when p < ra[i0] and rb[i1] < n (no touch inside any of them).
+    Returns value index, first and last run covered, per gap (gaps of one value are disjoint, so no run twice)."""
+    gv, g0, g1 = [], [], []
+    for s in range(0, len(op), chunk):
+        j = s + np.flatnonzero(gap[s:s + chunk] > 1)  # a non-empty interior; lifetime starts have gap 0
+        if not len(j) or not len(ra):
+            continue
+        p, nn = op[j - 1].astype(np.int64), op[j].astype(np.int64)
+        k = (pk[nn] - pk[p + 1]) > 0
+        j, p, nn = j[k], p[k], nn[k]
+        i0 = np.searchsorted(ra, p, side='right')
+        i1 = np.searchsorted(rb, nn, side='left') - 1
+        k = i1 >= i0
+        v = np.searchsorted(seg, j[k], side='right') - 1
+        ok = cand[v]
+        gv.append(v[ok]), g0.append(i0[k][ok]), g1.append(i1[k][ok])
+    cat = (lambda xs: np.concatenate(xs).astype(np.int64) if xs else np.zeros(0, np.int64))
+    return dict(gap_value=cat(gv), gap_first=cat(g0), gap_last=cat(g1))
+
+
+def run_cover(runs, nvals):
+    """Per run: how many candidate values are idle across it; the (value, run) cover pairs, sorted by run; per value:
+    how many full-width runs it is idle across."""
+    nr = len(runs['a'])
+    gv, g0, g1 = runs['gap_value'], runs['gap_first'], runs['gap_last']
+    ln = g1 - g0 + 1
+    d = np.zeros(nr + 1, np.int64)
+    np.add.at(d, g0, 1)
+    np.add.at(d, g1 + 1, -1)
+    through = np.cumsum(d)[:nr]
+    tot = int(ln.sum())
+    off = np.repeat(np.cumsum(ln) - ln, ln)
+    pr = np.arange(tot, dtype=np.int64) - off + np.repeat(g0, ln)
+    pv = np.repeat(gv, ln)
+    o = np.lexsort((pv, pr))
+    per_value = np.bincount(gv, weights=ln, minlength=nvals).astype(np.int64)
+    return through, pv[o], pr[o], per_value
+
+
+def min_hitting_set(sets, rank=None, budget=200_000):
+    """Fewest candidates whose sets together contain every element (unit cost per candidate).
+
+    sets: {candidate: iterable of elements}; rank: {candidate: tie-break, lower first} (default: key order).
+    Greedy gives an upper bound. The instance is then reduced (an element whose candidates include all of another
+    element's is dropped: hitting the smaller hits it; candidates with equal or dominated sets are dropped) and
+    solved by branch and bound, with a disjoint-element packing as the lower bound, within `budget` nodes.
+    Returns dict(chosen, size, exact, method, lower_bound, elements, candidates, kernel)."""
+    sets = {k: frozenset(v) for k, v in sets.items() if v}
+    rank = rank or {k: i for i, k in enumerate(sets)}
+    U = frozenset().union(*sets.values()) if sets else frozenset()
+    res = dict(elements=len(U), candidates=len(sets))
+    if not U:
+        return dict(res, chosen=[], size=0, exact=True, method='empty', lower_bound=0, kernel=[0, 0])
+    keys = sorted(sets, key=lambda k: rank[k])
+    unc, greedy = set(U), []
+    while unc:
+        k = max(keys, key=lambda k: (len(sets[k] & unc), -rank[k]))
+        greedy.append(k)
+        unc -= sets[k]
+    cov = {}
+    for k in keys:
+        for e in sets[k]:
+            cov.setdefault(e, []).append(k)
+    cov = {e: frozenset(v) for e, v in cov.items()}
+    kept = []
+    for e in sorted(U, key=lambda e: (len(cov[e]), repr(e))):
+        if not any(cov[x] <= cov[e] for x in kept):
+            kept.append(e)
+    E = frozenset(kept)
+    red, seen = {}, set()
+    for k in keys:
+        s = sets[k] & E
+        if s and s not in seen:
+            red[k] = s
+            seen.add(s)
+    cands = sorted(red, key=lambda k: (-len(red[k]), rank[k]))
+    maxi = []
+    for k in cands:
+        if not any(red[k] <= red[x] for x in maxi):
+            maxi.append(k)
+    red = {k: red[k] for k in maxi}
+    kcov = {e: [k for k in maxi if e in red[k]] for e in kept}
+
+    def packing(elems):
+        used, m = set(), 0
+        for e in sorted(elems, key=lambda e: (len(kcov[e]), repr(e))):
+            if not used.intersection(kcov[e]):
+                used.update(kcov[e])
+                m += 1
+        return m
+    lb = packing(kept)
+    best, nodes, aborted = list(greedy), 0, False
+
+    def rec(un, chosen):
+        nonlocal best, nodes, aborted
+        if not un:
+            if len(chosen) < len(best):
+                best = list(chosen)
+            return
+        nodes += 1
+        if nodes > budget:
+            aborted = True
+            return
+        if len(chosen) + packing(un) >= len(best):
+            return
+        e = min(un, key=lambda e: (len(kcov[e]), repr(e)))
+        for k in sorted(kcov[e], key=lambda k: (-len(red[k] & un), rank[k])):
+            chosen.append(k)
+            rec(un - red[k], chosen)
+            chosen.pop()
+            if aborted:
+                return
+    if lb < len(greedy):
+        rec(frozenset(kept), [])
+    exact = not aborted
+    if lb == len(greedy):
+        method = 'greedy, equal to the packing lower bound (optimal)'
+    elif exact:
+        method = f'exact: branch and bound on the reduced instance ({nodes:,} nodes)'
+    else:
+        method = f'greedy upper bound; exact search stopped at {budget:,} nodes'
+    chosen = sorted(best, key=lambda k: rank[k])
+    return dict(res, chosen=chosen, size=len(chosen), exact=exact, method=method,
+                lower_bound=len(chosen) if exact else lb, kernel=[len(kept), len(maxi)])
 
 
 def identical_operand_repeats(op, slot, q, ver, c: Circuit):
@@ -2817,23 +2968,25 @@ def ledger_analyse(c: Circuit, args, mean_t=None):
             r['toffoli_mean'] = round(float(fval[i0:i1].sum()), 2)
         r['capital'] = round(float(psum[b] - psum[a]) / n * rate, 1)
         rows.append(r)
-    # aged liabilities: values ranked by the longest stretch held without an entry (capital tied up idle)
-    idx = np.flatnonzero(inv)
-    order = idx[np.lexsort((v['a'][idx], -v['idle_max'][idx]))][:args.top]
     names = [s['name'] for s in stages]
     starts = np.array([s['a'] for s in stages])
 
     def stage_of(x):
         return names[max(0, int(np.searchsorted(starts, x, side='right')) - 1)]
+    peak = peak_report(core, stage_of)
+    # idle at the peak: values ranked by ops held idle at full width (width is a maximum, so only idleness at the
+    # peak can lower it), then by longest idle stretch
+    order = peak_order(np.flatnonzero(inv), v['idle_peak'], v['idle_max'], v['a'])[:args.top]
     aged = []
     for i in order.tolist():
         span = int(v['b'][i] - v['a'][i] + 1)
         g = core['gap_at'].get(i)
         aged.append(dict(wire=f"q{int(v['q'][i])}", open=int(v['a'][i]), close=int(v['b'][i]), span=span,
+                         idle_at_peak=int(v['idle_peak'][i]), runs_covered=int(peak['per_value'][i]),
                          idle=int(v['idle_max'][i]), idle_from=g[0] if g else None, idle_to=g[1] if g else None,
-                         idle_at_peak=int(v['idle_peak'][i]), settle=KIND_NAMES[int(v['kind'][i])],
-                         toffoli_entries=int(v['tof'][i]), capital=round(span / n * rate, 1),
-                         idle_capital=round(int(v['idle_max'][i]) / n * rate, 1),
+                         peak_gap_from=g[2] if g else None, peak_gap_to=g[3] if g else None,
+                         settle=KIND_NAMES[int(v['kind'][i])], toffoli_entries=int(v['tof'][i]),
+                         idle_capital_teq=round(int(v['idle_max'][i]) / n * rate, 1),
                          stages=f'{stage_of(int(v["a"][i]))}→{stage_of(int(v["b"][i]))}'))
     # aged debts: HMR records repaid latest
     age = np.where(paid, lset - lop, -1)
@@ -2884,14 +3037,74 @@ def ledger_analyse(c: Circuit, args, mean_t=None):
                    utilisation=round(used / max(1, width), 4), model=model)
     return dict(c=c, task=task, prof=prof, stages=stages, stage_src=src, core=core, inv=inv, exact=exact,
                 rate=rate, rows=rows, aged=aged, debts=debts, carried=carried, pay=pay, pay_rows=pay_rows,
-                close=close, summary=summary, stage_of=stage_of, mean_t=mean_t)
+                close=close, summary=summary, stage_of=stage_of, mean_t=mean_t, peak=peak)
+
+
+RUN_ROWS, RUN_COVERERS = 5000, 8  # JSON caps: runs listed, covering values named per run
+
+
+def peak_report(core, stage_of, budget=200_000):
+    """Full-width runs, which candidate values are idle across each, and the fewest releases covering every run
+    that can be covered. A run nobody is idle across cannot be narrowed by any release, so Q cannot fall by
+    releases alone while one exists."""
+    v, runs, top = core['values'], core['runs'], core['top']
+    ra, rb = runs['a'], runs['b']
+    nv = len(v['a'])
+    through, pv, pr, per_value = run_cover(runs, nv)
+    nr = len(ra)
+    ln = rb - ra + 1
+    unc = np.flatnonzero(through == 0)
+    wire = (lambda i: f"q{int(v['q'][i])}@{int(v['a'][i])}")
+    rank_ix = peak_order(np.unique(pv), v['idle_peak'], v['idle_max'], v['a']).tolist()
+    rank = {i: r for r, i in enumerate(rank_ix)}
+    sets = {}
+    ov = np.argsort(pv, kind='stable')
+    spv, spr = pv[ov], pr[ov]
+    bnd = np.flatnonzero(np.r_[True, spv[1:] != spv[:-1], True]) if len(spv) else np.zeros(1, np.int64)
+    for s, e in zip(bnd[:-1].tolist(), bnd[1:].tolist()):
+        sets[int(spv[s])] = spr[s:e].tolist()
+    hs = min_hitting_set(sets, rank, budget)
+    by_stage = {}
+    for k in range(nr):
+        st = by_stage.setdefault(stage_of(int(ra[k])), [0, 0, 0])
+        st[0] += 1
+        st[1] += int(through[k] == 0)
+        st[2] += int(ln[k]) if through[k] == 0 else 0
+    rb_ = np.flatnonzero(np.r_[True, pr[1:] != pr[:-1], True]) if len(pr) else np.zeros(1, np.int64)
+    who = {int(pr[s]): pv[s:e] for s, e in zip(rb_[:-1].tolist(), rb_[1:].tolist())}
+    rows = []
+    for k in range(min(nr, RUN_ROWS)):
+        w = who.get(k, np.zeros(0, np.int64))
+        w = sorted(w.tolist(), key=lambda i: rank[i])[:RUN_COVERERS]
+        rows.append(dict(run=k, start=int(ra[k]), end=int(rb[k]), ops=int(ln[k]), stage=stage_of(int(ra[k])),
+                         idle_values=int(through[k]), covered_by=[wire(i) for i in w]))
+    if not nr:
+        verdict = 'no full-width runs'
+    elif len(unc):
+        verdict = (f'Q cannot fall by releases alone: {len(unc)} of {nr} full-width runs have no idle value '
+                   f'({int(ln[unc].sum()):,} ops); narrowing them needs a different computation, not a release')
+    else:
+        verdict = (f'every full-width run has an idle value; {hs["size"]} release(s) cover all {nr} '
+                   f'({"exact" if hs["exact"] else "greedy upper bound"}): necessary for Q - 1, not sufficient')
+    releases = [dict(value=wire(i), wire=f"q{int(v['q'][i])}", open=int(v['a'][i]), close=int(v['b'][i]),
+                     runs_covered=int(per_value[i]), idle_at_peak=int(v['idle_peak'][i])) for i in hs['chosen']]
+    return dict(width=top, runs=nr, ops_at_full=int(ln.sum()), coverable=int(nr - len(unc)),
+                uncoverable=int(len(unc)), uncoverable_ops=int(ln[unc].sum()), verdict=verdict,
+                by_stage={k: dict(runs=a, uncoverable=b, uncoverable_ops=c) for k, (a, b, c) in by_stage.items()},
+                uncoverable_runs=[[int(ra[k]), int(rb[k]), int(ln[k]), stage_of(int(ra[k]))] for k in unc.tolist()],
+                hitting_set=dict(size=hs['size'], exact=hs['exact'], lower_bound=hs['lower_bound'],
+                                 method=hs['method'], runs_to_cover=hs['elements'], candidates=hs['candidates'],
+                                 kernel=dict(runs=hs['kernel'][0], candidates=hs['kernel'][1]),
+                                 releases=releases, runs_left_uncovered=int(len(unc))),
+                run_rows=rows, run_rows_total=nr, per_value=per_value)
 
 
 def write_ledger_csv(A, path):
     v, inv, n, rate = A['core']['values'], A['inv'], A['c'].n, A['rate']
     so = A['stage_of']
+    pv = A['peak']['per_value']
     cols = ['wire', 'open_op', 'close_op', 'span', 'touches', 'toffoli_entries', 'data_entries', 'phase_entries',
-            'control_entries', 'settlement', 'debt_repaid_at', 'idle_max', 'idle_at_full_width', 'capital_teq',
+            'control_entries', 'settlement', 'debt_repaid_at', 'idle_max', 'idle_at_full_width', 'full_width_runs_idle', 'capital_teq',
             'open_stage', 'close_stage']
     idx = np.flatnonzero(inv)
     idx = idx[np.lexsort((v['q'][idx], v['a'][idx]))]
@@ -2902,7 +3115,7 @@ def write_ledger_csv(A, path):
             f.write(f"q{int(v['q'][i])},{a},{b},{b - a + 1},{int(v['touches'][i])},{int(v['tof'][i])},"
                     f"{int(v['data'][i])},{int(v['phase'][i])},{int(v['ctrl'][i])},{KIND_NAMES[int(v['kind'][i])]},"
                     f"{int(v['liab_end'][i]) if v['liab_end'][i] >= 0 else ''},{int(v['idle_max'][i])},"
-                    f"{int(v['idle_peak'][i])},{(b - a + 1) / n * rate:.3f},{so(a)},{so(b)}\n")
+                    f"{int(v['idle_peak'][i])},{int(pv[i])},{(b - a + 1) / n * rate:.3f},{so(a)},{so(b)}\n")
     return path
 
 
@@ -2921,10 +3134,13 @@ def ledger_facts(A):
              liabilities=s['liabilities'], fixups=s['fixups'], utilisation=s['utilisation'])
     if A['aged']:
         a = A['aged'][0]
-        idle_st = (f"{A['stage_of'](a['idle_from'])}→{A['stage_of'](a['idle_to'])}" if a['idle_from'] is not None
-                   else a['stages'])
-        f['aged_top'] = (f"{a['wire']} idle {fmt_ops(a['idle'])} ops ({a['idle'] / A['c'].n:.0%}, "
-                         f"{a['idle_at_peak']:,} at full width) {idle_st}, {a['settle']}")
+        f['idle_at_peak_top'] = f"{a['wire']} {a['idle_at_peak']:,} ops idle at peak, {a['runs_covered']:,} runs"
+    pk = A['peak']
+    hs = pk['hitting_set']
+    f['full_width_runs'] = (f"{pk['runs']:,} runs, {pk['uncoverable']:,} with no idle value; {hs['size']} "
+                            f"release(s) cover the rest ({'exact' if hs['exact'] else 'greedy'})")
+    f['peak_verdict'] = ('Q cannot fall by releases alone' if pk['uncoverable'] else
+                         'all runs coverable (necessary, not sufficient)') if pk['runs'] else 'no full-width runs'
     if A['carried']:
         k, m = max(A['carried'].items(), key=lambda kv: kv[1])
         f['debts_carried'] = f'{sum(A["carried"].values())} across stages; most {k} ({m})'
@@ -2962,6 +3178,7 @@ def cmd_ledger(args):
     facts = ledger_facts(A)
     payload = dict(verb='ledger', circuits=[circuit_entry(c)], summary=A['summary'], facts=facts,
                    trial_balance=A['rows'], aged_values=A['aged'], aged_debts=A['debts'],
+                   full_width_runs={k: x for k, x in A['peak'].items() if k != 'per_value'},
                    debts_carried=A['carried'], paying_twice=A['pay'], paying_twice_groups=A['pay_rows'],
                    close=A['close'], accounts=A['core']['accounts'],
                    account_totals={nm: dict(zip(ENTRY_CLASSES, A['core']['taccounts'][k].sum(0).tolist()))
@@ -2974,6 +3191,7 @@ def cmd_ledger(args):
                 + ','.join(r['outcome'] for r in A['exact']['runs']) if A['exact'] else '')
              + f"; capital {A['rate']:.1f} T-eq/qubit = {A['summary']['rate_basis'].split(':')[0]}")
     nxt = [f'python render.py ledger --compare {Path(c.path).name} OTHER.kmb']
+
     return dict(ok=True, verb='ledger', tier=tier, basis=basis, files=files + [file_entry(table, kind='json')],
                 circuits=[circuit_entry(c)], facts=facts, rows=[compact_row(r) for r in A['rows']], next=nxt)
 
@@ -2991,6 +3209,16 @@ LEDGER_DEFS = {
     'liability': 'one HMR record, open from the HMR to the last op it (or a bit derived from it) conditions',
     'trial balance': 'at each stage cut: values open across the cut, liabilities open across it, live width',
     'capital': 'qubit-ops × rate / ops: T-eq of width used; charged = certified width × rate',
+    'idle at peak': 'ops at full width strictly inside a value\'s idle gaps (no entry on the wire); the aged list is '
+                    'ranked by it, then by the longest idle gap (idle)',
+    'idle capital': 'idle_capital_teq = longest idle gap × rate / ops. Additive bookkeeping, NOT a saving: width is a '
+                    'maximum, so Q falls only if every full-width run is covered by a release',
+    'full-width run': 'a maximal op range at the certified width; a value covers it when one of its idle gaps holds '
+                      'the whole run (static)',
+    'uncoverable run': 'a full-width run no scratch value is idle across: no release can narrow it, so Q cannot fall '
+                       'by releases alone',
+    'hitting set': 'fewest release candidates (values) covering every coverable full-width run, unit cost each; '
+                   'necessary for Q - 1, not sufficient (the release and any recompute must fit below the peak)',
     'paying twice': 'a CCX computing the same AND as an earlier one (exact: equal on every x; static: same wire '
                     'versions)',
 }
@@ -3029,6 +3257,7 @@ def cmd_reconcile(args):
             lsig.append(int(m.sum()))
         keep.append(dict(c=c, rows=A['rows'], stages=st, sigs=sigs, summary=A['summary'], rate=A['rate'],
                          model=A['summary']['model'], pay=A['pay'], close=A['close'], aged=A['aged'][:3],
+                         peak={k: x for k, x in A['peak'].items() if k not in ('per_value', 'run_rows')},
                          prof_max=int(A['prof'].max()), exact=bool(A['exact']), stage_src=A['stage_src']))
         del A
     cs = [k['c'] for k in keep]
@@ -3091,7 +3320,9 @@ def cmd_reconcile(args):
                  capital_teq=round(capital, 1), expense_teq=round(d_exp, 2), net_teq=round(net, 1),
                  cost_b_over_a=round(mb['cost'] / ma['cost'], 6), d_liabilities=d_hmr, d_fixups=d_fix,
                  values_matched=sum(r['matched'] for r in rows), values_b_only=sum(r['b_only'] for r in rows),
-                 values_a_only=sum(r['a_only'] for r in rows), reading=mech, expense_basis=exp_key)
+                 values_a_only=sum(r['a_only'] for r in rows), reading=mech, expense_basis=exp_key,
+                 uncoverable_runs=[KA['peak']['uncoverable'], KB['peak']['uncoverable']],
+                 releases_to_cover=[KA['peak']['hitting_set']['size'], KB['peak']['hitting_set']['size']])
     if KA['pay'].get('exact') and KB['pay'].get('exact'):
         facts['paying_twice'] = [KA['pay']['exact']['recomputed'], KB['pay']['exact']['recomputed']]
     base = out_base(args, cs, 'ledger')
@@ -3101,7 +3332,8 @@ def cmd_reconcile(args):
     payload = dict(verb='ledger', mode='compare', circuits=[circuit_entry(c) for c in cs], facts=facts,
                    reconciliation=rows, trial_balance=[KA['rows'], KB['rows']],
                    summaries=[KA['summary'], KB['summary']], paying_twice=[KA['pay'], KB['pay']],
-                   close=[KA['close'], KB['close']], aged_top=[KA['aged'], KB['aged']], definitions=LEDGER_DEFS)
+                   close=[KA['close'], KB['close']], aged_top=[KA['aged'], KB['aged']],
+                   full_width_runs=[KA['peak'], KB['peak']], definitions=LEDGER_DEFS)
     table = write_table(base, payload)
     tier = 'exact-all-x' if KA['exact'] and KB['exact'] else 'static'
     short = [{k: r[k] for k in ('stage', 'matched', 'a_only', 'b_only', 'd_peak', 'd_toffoli', 'd_hmr', 'd_fixups')
@@ -3212,21 +3444,31 @@ def draw_ledger_png(A, lab, args, base):
         y = len(aged) - 1 - k
         ax.plot([a['open'] / sc, a['close'] / sc], [y, y], color=KIND_COLOURS[{'contra': 0, 'accrual': 1}.get(
             a['settle'], 2)], lw=2.2, solid_capstyle='butt')
-        if a['idle_from'] is not None:
-            ax.plot([a['idle_from'] / sc, a['idle_to'] / sc], [y, y], color=INK, lw=5.5, solid_capstyle='butt')
-        ax.text(a['close'] / sc, y, f"  {a['idle_capital']:,.0f} T-eq idle", va='center', fontsize=7.5, color=INK2,
-                clip_on=False)
+        if a['peak_gap_from'] is not None:
+            ax.plot([a['peak_gap_from'] / sc, a['peak_gap_to'] / sc], [y, y], color=INK, lw=5.5,
+                    solid_capstyle='butt')
+        ax.text(a['close'] / sc, y, f"  {fmt_ops(a['idle_at_peak'])} idle at peak, {a['runs_covered']:,} runs",
+                va='center', fontsize=7.5, color=INK2, clip_on=False)
     for k, d in enumerate(A['debts'][:3]):
         y = -1 - k * 0.6
         ax.plot([d['hmr'] / sc, d['repaid'] / sc], [y, y], color=VIOLET, lw=1.3, ls=(0, (3, 2)))
     ax.set_yticks(list(range(len(aged))) + [-1 - k * 0.6 for k in range(min(3, len(A['debts'])))],
                   [a['wire'] for a in aged][::-1] + [f"debt {d['wire']}" for d in A['debts'][:3]], fontsize=8)
     draw_bands(ax, A['stages'], 0, n, sc, len(aged) - 0.2, None)
+    pk = A['peak']
+    y_lo = -1 - 0.6 * min(3, len(A['debts'])) - 0.2
+    for r in pk['uncoverable_runs']:  # full-width runs nobody is idle across: no release can narrow them
+        ax.axvspan(r[0] / sc, (r[1] + 1) / sc, color=RED, alpha=0.35, lw=0)
+        ax.plot([(r[0] + r[1]) / 2 / sc], [y_lo + 0.05], marker='^', color=RED, ms=4, clip_on=False)
     ax.set_xlim(0, n / sc)
-    ax.set_ylim(-1 - 0.6 * min(3, len(A['debts'])) - 0.2, len(aged) + 0.6)
+    ax.set_ylim(y_lo, len(aged) + 0.6)
     ax.grid(axis='y', visible=False)
-    ax.set_xlabel(f'position ({unit}); thick black = longest stretch with no entry; dashed = longest-open phase debts')
-    ax.set_title('Aged liabilities: values held longest without an entry (capital tied up idle)', fontsize=11)
+    ax.set_xlabel(f'position ({unit}); thick black = idle gap holding most full-width ops; red = full-width run with '
+                  f'no idle value; dashed = longest-open phase debts', fontsize=8.5)
+    hs = pk['hitting_set']
+    ax.set_title(f"Idle at peak: values ranked by ops idle at full width. {pk['runs']:,} full-width runs, "
+                 f"{pk['uncoverable']:,} with no idle value; {hs['size']} release(s) cover the rest "
+                 f"({'exact' if hs['exact'] else 'greedy'})", fontsize=10)
     # paying twice
     ax = fig.add_subplot(gs[3, 0])
     pr = A['pay_rows']
@@ -3265,7 +3507,9 @@ def draw_ledger_png(A, lab, args, base):
                   ('phase debts open at close: 0 (all repaid inside the circuit)', False),
                   ('[static] verify values with: render.py trace, or the official verifier', False)]
     lines += [(f"capital charged {s['capital_charged']:,.0f} T-eq (width × rate), used {s['capital_used']:,.0f} "
-               f"({s['utilisation']:.0%})", False)]
+               f"({s['utilisation']:.0%})", False),
+              (('Q cannot fall by releases alone' if pk['uncoverable'] else
+                'every full-width run has an idle value') + f" ({pk['uncoverable']} uncoverable runs)", True)]
     for k, (txt, bold) in enumerate(lines):
         ax.text(0, 1 - k * 0.15, txt, transform=ax.transAxes, fontsize=9.5 if bold else 8.5,
                 fontweight='bold' if bold else 'normal', color=INK if bold else INK2, va='top')
@@ -3985,8 +4229,10 @@ def build_parser():
                        description='Treat the circuit as double-entry bookkeeping: wires are accounts, ops are '
                        'entries, every wire lifetime is a value settled by unitary uncompute (contra), by HMR plus '
                        'later phase fix-ups (accrual) or by a dead tail. Width is capital priced at the task\'s '
-                       'exchange rate; Toffolis are expenses. Reports the trial balance at each stage cut, aged '
-                       'liabilities, ANDs computed twice and the closing balance. invsqrt circuits also get an exact '
+                       'exchange rate; Toffolis are expenses. Reports the trial balance at each stage cut, values '
+                       'ranked by ops idle at full width, the full-width runs (those with no idle value cannot be '
+                       'narrowed by any release) and the fewest releases covering the rest, ANDs computed twice and '
+                       'the closing balance. invsqrt circuits also get an exact '
                        'run over all 3,133,452 x (value identity, close check). --compare reconciles two circuits.')
     common(p, gif=False)
     p.add_argument('--compare', action='store_true', help='reconcile two circuits A B (stage by stage)')
@@ -3997,7 +4243,7 @@ def build_parser():
                    help='invsqrt exact run: HMR outcome models, zero and/or integer seeds (default zero,7,11)')
     p.add_argument('--no-exact', action='store_true', help='skip the exact all-x run (invsqrt)')
     p.add_argument('--no-csv', action='store_true', help='skip the per-value CSV')
-    p.add_argument('--top', type=int, default=20, help='aged values and debts to list (default 20)')
+    p.add_argument('--top', type=int, default=20, help='values (idle at peak) and debts to list (default 20)')
     p.add_argument('--rot-t', type=float, default=INVSQRT_ROT_T, help='T count per invsqrt rotation')
     p.add_argument('--dqi-r', type=float, default=DQI_R_ZERO_FAIL, help=argparse.SUPPRESS)
     p.set_defaults(fn=cmd_ledger)

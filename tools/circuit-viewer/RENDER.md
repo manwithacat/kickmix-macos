@@ -31,7 +31,7 @@ Files go to `./render-out/` (`--out DIR`), named `<A>_vs_<B>_<verb>.png|gif|json
 | `diff` | PNG, GIF | Stage-aligned structural diff A → B: stages identical up to qubit renaming, changed modules (tagged circuits, compared recursively), and op-level insertions and replacements. The GIF zooms into each edit with op-class barcodes of A and B. | same |
 | `trace` | PNG, GIF | One shot in the computational basis: every qubit's value along the circuit, qubits holding 1 against the static width, the phase, and register values (`--show`). `--watch 'S*'` tracks registers that hit 0 (DQI chance-zero failures). | python engine: same. kickmix engine: kickmix |
 | `cost` | PNG | Dashboard: Q, Toffolis per shot, cost and score ratio from the official formulas, Toffolis and peak width per stage, Toffolis accumulated along the circuit. | same |
-| `ledger` | PNG, CSV | Double-entry view (see [Ledger](#ledger)): T-accounts per register, trial balance at each stage cut, aged liabilities, ANDs paid for twice, closing balance. `--compare A B` reconciles two circuits. | numpy, matplotlib, Pillow |
+| `ledger` | PNG, CSV | Double-entry view (see [Ledger](#ledger)): T-accounts per register, trial balance at each stage cut, values idle at the peak, full-width runs and the fewest releases covering them, ANDs paid for twice, closing balance. `--compare A B` reconciles two circuits. | numpy, matplotlib, Pillow |
 | `snapshot` | JSON | The circuit viewer's stop point (see [Snapshot](#snapshot)): the gate at op N, width, cost so far and to come, phase against the target with and without measurement kickback, register values, idle wires and the ledger at the cut. Same object as the viewer's "Copy snapshot JSON". `--print` puts the object itself on stdout. | numpy |
 | `doctor` | none | Python, numpy, matplotlib, Pillow, kickmix, a test render, the cache. | none |
 
@@ -133,7 +133,10 @@ the phase is right, so the circuit can be read as double-entry bookkeeping.
 | capital | width priced at the exchange rate: invsqrt (Toffolis + T/4)/Q, DQI 2T/Q (d(R Q² T)/dQ), generic T/Q; `--rate` overrides |
 | expense | Toffoli-class ops (static count; invsqrt: exact mean over all x; `--mean-toffolis` to supply one) |
 | trial balance | at each stage cut: values open across it, phase debts open across it, live width, plus per stage the values closed by kind, HMR records, fix-ups, the densest fix-up window, Toffolis and capital used |
-| aged liabilities | values ranked by their longest stretch with no entry (capital tied up idle), with the ops at full width inside it; the longest-open debts |
+| idle at peak | values ranked by the ops at full width inside their idle gaps (`idle_at_peak`), then by their longest idle gap (`idle`); the longest-open debts. Width is a maximum, not a sum, so only idleness at the peak can lower it |
+| full-width run | a maximal op range at the certified width. A value covers it when one idle gap of the value holds the whole run (no entry on the wire inside it). A run no scratch value covers is uncoverable: no release can narrow it, so Q cannot fall by releases alone |
+| hitting set | the fewest values whose release covers every coverable run, unit cost each. Greedy, then exact branch and bound on the reduced instance (dominated runs and values removed) within 200,000 nodes; `method` says which answered. Necessary for Q − 1, not sufficient: each release, and any recomputation it needs, must itself fit below the peak |
+| idle capital | `idle_capital_teq` = longest idle gap × rate / ops. Additive bookkeeping, **not a saving**: it is realised only if every full-width run is covered |
 | paying twice | a CCX computing the same AND as an earlier CCX. Exact (invsqrt): equal on every x in every outcome model (`--models`, default `zero,7,11`, the outcome RNG of the competition's `qhdl_bitsim`). Static: both controls hold the same wire versions |
 | closing balance | exact (invsqrt): x restored and every scratch wire zero on every x, per model; static: records never repaid, values closed by contra |
 | reconciliation | `--compare`: stages aligned by name; values matched by signature (settlement, entry counts, span); capital (ΔQ × A's rate) against expense; a one-line reading |
@@ -150,8 +153,15 @@ What it found on known circuits (the gate in the design card; 4 of 5 reproduced 
 - invsqrt 9a8627c81283: 300 groups, 317 recomputed ANDs (exact, all x, models zero/7/11), the same numbers as
   the hand-built extra-qubit ledger; mean 1,329.50 Toffolis per shot; the books close in all three models.
   a568bc793481 (yoyobar): 273 groups, 294 recomputed ANDs.
-- DQI 40fa4ebf25b2: the top aged value is q847, idle for 44.7 M ops (synthesis → unsynthesis, 4.76 M of them at
-  full width), about 749 T-eq of capital tied up. 2ed7ccf189f1 shows the same q847 hold.
+- DQI 40fa4ebf25b2: 1,590 full-width runs at 888, of which **19** (270,509 ops; 9 in `extract`, 10 in
+  `unextract`) have no idle scratch value: the same op ranges as the hand census, so Q cannot fall by releases
+  alone. The other 1,571 need at least 40 releases (exact). The top value idle at peak is q847 (4.76 M ops idle at
+  full width across 1,383 runs), then q852, q842, q851 (the held norm block, about 4.76 M each). 5faba4591853: 34
+  uncoverable runs (14 + 20, 477,384 ops), 54 releases for the rest. Its parent 7f3d64c1b4aa (889) has none
+  uncoverable and 16 releases cover all, consistent with the 888 step. On the hand census of 7f3d64c1b4aa the earlier
+  ranking by longest idle found 0 of 4 blocker classes; ranking by idle at full width found 3 of 4, with
+  precision@10 = 1.0 (the miss is a fresh allocation, not an idle value).
+- invsqrt 9a8627c81283 (63): 122 full-width runs, none uncoverable, 3 releases cover all (a568bc793481 reached 62).
 - `--compare 7f3d64c1b4aa 40fa4ebf25b2`: "accrual: B releases values by HMR (+256 records, repaid by +208
   fix-ups) and pays +496 T-eq to recompute, to hold 1 wire less"; all of it is in `unextract`.
 - `--compare 9a8627c81283 a568bc793481`: re-packing. In `pre`, a568 opens 28 accumulating values (at least two
@@ -162,12 +172,28 @@ What it found on known circuits (the gate in the design card; 4 of 5 reproduced 
   carried from `extract` to `unextract`, but it cannot price the recomputation behind them. That needs the source
   map.
 
+JSON (`<stem>_ledger.json`) for one circuit, besides `summary`, `facts`, `trial_balance`, `aged_debts`,
+`paying_twice`, `close` and the T-account totals:
+
+| Key | Contents |
+| --- | --- |
+| `aged_values[]` | ranked by `idle_at_peak`, then `idle`: `wire`, `open`, `close`, `span`, `idle_at_peak`, `runs_covered` (full-width runs it is idle across), `idle` with `idle_from`/`idle_to` (longest gap), `peak_gap_from`/`peak_gap_to` (the gap holding most full-width ops), `settle`, `toffoli_entries`, `idle_capital_teq` (not a saving), `stages` |
+| `full_width_runs` | `width`, `runs`, `ops_at_full`, `coverable`, `uncoverable`, `uncoverable_ops`, `verdict`, `by_stage{stage: {runs, uncoverable, uncoverable_ops}}`, `uncoverable_runs[[start, end, ops, stage]]` |
+| `full_width_runs.hitting_set` | `size`, `exact`, `lower_bound`, `method`, `runs_to_cover`, `candidates`, `kernel{runs, candidates}`, `releases[{value, wire, open, close, runs_covered, idle_at_peak}]`, `runs_left_uncovered` |
+| `full_width_runs.run_rows[]` | first 5,000 runs: `run`, `start`, `end`, `ops`, `stage`, `idle_values` (values idle across it), `covered_by` (up to 8, ranked, as `q<wire>@<open op>`); `run_rows_total` |
+
+The stdout `facts` carry `idle_at_peak_top`, `full_width_runs` (one line) and `peak_verdict`
+(`Q cannot fall by releases alone` when any run is uncoverable). The CSV adds `full_width_runs_idle` per value.
+`--compare` adds `full_width_runs` per circuit to the JSON and `uncoverable_runs` and `releases_to_cover` to the
+facts. Breaking change for readers of the old JSON: `aged_values` lost `capital` and `idle_capital` (renamed
+`idle_capital_teq`) and is no longer sorted by `idle`.
+
 The ledger PNG is fitted to its contents with a small margin, so its labels and titles are never cropped; it is
 therefore about `--px` wide (880 px at `--px 800` for 9a8627c81283), not exactly `--px`.
 
 Cost (Apple M2 Pro): invsqrt about 10 s, of which the exact run is about 5 s (`--no-exact` skips it; the T-account
 panel is most of the rest). DQI
-(60 M ops) about 18 s and a 3.2 GB peak footprint; `--compare` of two DQI circuits about 25 s, one circuit at a
+(60 M ops) about 24 s and a 3.2 GB peak footprint; `--compare` of two DQI circuits about 25 s, one circuit at a
 time. On macOS the script re-executes itself once with `MallocLargeCache=0`, because libmalloc otherwise keeps
 about 5 GB of freed large blocks and the footprint reaches 7.6 GB; set `MallocLargeCache` yourself to skip this.
 

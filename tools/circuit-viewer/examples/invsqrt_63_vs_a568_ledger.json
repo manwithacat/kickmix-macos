@@ -32,6 +32,14 @@
   "values_a_only": 239,
   "reading": "re-packing: 1 wire(s) less for +6.0 T-eq; in pre B opens 28 accumulating values (>= 2 Toffoli entries, open at the cut) before A opens its first (op 1,792); B repays 4 records with 392 fix-ups in one 471-op window at op 14,401 (A at most 24)",
   "expense_basis": "toffoli_equiv",
+  "uncoverable_runs": [
+   0,
+   0
+  ],
+  "releases_to_cover": [
+   3,
+   3
+  ],
   "paying_twice": [
    317,
    294
@@ -561,98 +569,266 @@
  "aged_top": [
   [
    {
-    "wire": "q56",
-    "open": 16678,
-    "close": 45313,
-    "span": 28636,
-    "idle": 17133,
-    "idle_from": 28016,
-    "idle_to": 45149,
-    "idle_at_peak": 5216,
-    "settle": "contra",
-    "toffoli_entries": 1,
-    "capital": 15.8,
-    "idle_capital": 9.5,
+    "wire": "q62",
+    "open": 4185,
+    "close": 34309,
+    "span": 30125,
+    "idle_at_peak": 14079,
+    "runs_covered": 73,
+    "idle": 2833,
+    "idle_from": 31444,
+    "idle_to": 34277,
+    "peak_gap_from": 31444,
+    "peak_gap_to": 34277,
+    "settle": "accrual",
+    "toffoli_entries": 6,
+    "idle_capital_teq": 1.6,
     "stages": "pre\u2192post"
    },
    {
-    "wire": "q23",
-    "open": 23,
-    "close": 17411,
-    "span": 17389,
-    "idle": 16439,
-    "idle_from": 225,
-    "idle_to": 16664,
-    "idle_at_peak": 9857,
+    "wire": "q60",
+    "open": 3455,
+    "close": 34288,
+    "span": 30834,
+    "idle_at_peak": 14074,
+    "runs_covered": 71,
+    "idle": 2866,
+    "idle_from": 31415,
+    "idle_to": 34281,
+    "peak_gap_from": 31415,
+    "peak_gap_to": 34281,
     "settle": "accrual",
-    "toffoli_entries": 1,
-    "capital": 9.6,
-    "idle_capital": 9.1,
-    "stages": "pre\u2192mid1"
+    "toffoli_entries": 4,
+    "idle_capital_teq": 1.6,
+    "stages": "pre\u2192post"
    },
    {
-    "wire": "q23",
-    "open": 28678,
-    "close": 45110,
-    "span": 16433,
-    "idle": 16415,
-    "idle_from": 28690,
-    "idle_to": 45105,
-    "idle_at_peak": 2389,
-    "settle": "dead-tail",
-    "toffoli_entries": 1,
-    "capital": 9.1,
-    "idle_capital": 9.1,
-    "stages": "post\u2192post"
+    "wire": "q58",
+    "open": 3097,
+    "close": 34311,
+    "span": 31215,
+    "idle_at_peak": 14048,
+    "runs_covered": 74,
+    "idle": 2836,
+    "idle_from": 31442,
+    "idle_to": 34278,
+    "peak_gap_from": 31442,
+    "peak_gap_to": 34278,
+    "settle": "accrual",
+    "toffoli_entries": 6,
+    "idle_capital_teq": 1.6,
+    "stages": "pre\u2192post"
    }
   ],
   [
    {
-    "wire": "q23",
-    "open": 29330,
-    "close": 46732,
-    "span": 17403,
-    "idle": 17223,
-    "idle_from": 29485,
-    "idle_to": 46708,
-    "idle_at_peak": 2392,
-    "settle": "dead-tail",
-    "toffoli_entries": 2,
-    "capital": 9.5,
-    "idle_capital": 9.4,
-    "stages": "post\u2192post"
-   },
-   {
-    "wire": "q23",
-    "open": 23,
-    "close": 25319,
-    "span": 25297,
-    "idle": 14996,
-    "idle_from": 225,
-    "idle_to": 15221,
-    "idle_at_peak": 13393,
+    "wire": "q33",
+    "open": 525,
+    "close": 44658,
+    "span": 44134,
+    "idle_at_peak": 15829,
+    "runs_covered": 81,
+    "idle": 6193,
+    "idle_from": 24437,
+    "idle_to": 30630,
+    "peak_gap_from": 32195,
+    "peak_gap_to": 35761,
     "settle": "accrual",
-    "toffoli_entries": 4,
-    "capital": 13.8,
-    "idle_capital": 8.2,
-    "stages": "pre\u2192mid1"
+    "toffoli_entries": 6,
+    "idle_capital_teq": 3.4,
+    "stages": "pre\u2192post"
    },
    {
     "wire": "q49",
     "open": 1378,
     "close": 44235,
     "span": 42858,
+    "idle_at_peak": 15814,
+    "runs_covered": 83,
     "idle": 7111,
     "idle_from": 24099,
     "idle_to": 31210,
-    "idle_at_peak": 15814,
+    "peak_gap_from": 32199,
+    "peak_gap_to": 35759,
     "settle": "accrual",
     "toffoli_entries": 5,
-    "capital": 23.3,
-    "idle_capital": 3.9,
+    "idle_capital_teq": 3.9,
+    "stages": "pre\u2192post"
+   },
+   {
+    "wire": "q36",
+    "open": 649,
+    "close": 45524,
+    "span": 44876,
+    "idle_at_peak": 15810,
+    "runs_covered": 84,
+    "idle": 4626,
+    "idle_from": 25007,
+    "idle_to": 29633,
+    "peak_gap_from": 32165,
+    "peak_gap_to": 35765,
+    "settle": "accrual",
+    "toffoli_entries": 5,
+    "idle_capital_teq": 2.5,
     "stages": "pre\u2192post"
    }
   ]
+ ],
+ "full_width_runs": [
+  {
+   "width": 63,
+   "runs": 122,
+   "ops_at_full": 14736,
+   "coverable": 122,
+   "uncoverable": 0,
+   "uncoverable_ops": 0,
+   "verdict": "every full-width run has an idle value; 3 release(s) cover all 122 (exact): necessary for Q - 1, not sufficient",
+   "by_stage": {
+    "pre": {
+     "runs": 30,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "rot1": {
+     "runs": 11,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "mid1": {
+     "runs": 33,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "rot2": {
+     "runs": 14,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "post": {
+     "runs": 34,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    }
+   },
+   "uncoverable_runs": [],
+   "hitting_set": {
+    "size": 3,
+    "exact": true,
+    "lower_bound": 3,
+    "method": "greedy, equal to the packing lower bound (optimal)",
+    "runs_to_cover": 122,
+    "candidates": 282,
+    "kernel": {
+     "runs": 46,
+     "candidates": 3
+    },
+    "releases": [
+     {
+      "value": "q50@5073",
+      "wire": "q50",
+      "open": 5073,
+      "close": 44056,
+      "runs_covered": 87,
+      "idle_at_peak": 13777
+     },
+     {
+      "value": "q23@23",
+      "wire": "q23",
+      "open": 23,
+      "close": 17411,
+      "runs_covered": 35,
+      "idle_at_peak": 9857
+     },
+     {
+      "value": "q56@16678",
+      "wire": "q56",
+      "open": 16678,
+      "close": 45313,
+      "runs_covered": 66,
+      "idle_at_peak": 5216
+     }
+    ],
+    "runs_left_uncovered": 0
+   },
+   "run_rows_total": 122
+  },
+  {
+   "width": 62,
+   "runs": 92,
+   "ops_at_full": 16127,
+   "coverable": 92,
+   "uncoverable": 0,
+   "uncoverable_ops": 0,
+   "verdict": "every full-width run has an idle value; 3 release(s) cover all 92 (exact): necessary for Q - 1, not sufficient",
+   "by_stage": {
+    "pre": {
+     "runs": 3,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "rot1": {
+     "runs": 12,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "mid1": {
+     "runs": 33,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "rot2": {
+     "runs": 13,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "post": {
+     "runs": 31,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    }
+   },
+   "uncoverable_runs": [],
+   "hitting_set": {
+    "size": 3,
+    "exact": true,
+    "lower_bound": 3,
+    "method": "exact: branch and bound on the reduced instance (4 nodes)",
+    "runs_to_cover": 92,
+    "candidates": 238,
+    "kernel": {
+     "runs": 36,
+     "candidates": 5
+    },
+    "releases": [
+     {
+      "value": "q36@649",
+      "wire": "q36",
+      "open": 649,
+      "close": 45524,
+      "runs_covered": 84,
+      "idle_at_peak": 15810
+     },
+     {
+      "value": "q34@566",
+      "wire": "q34",
+      "open": 566,
+      "close": 44876,
+      "runs_covered": 83,
+      "idle_at_peak": 15773
+     },
+     {
+      "value": "q23@23",
+      "wire": "q23",
+      "open": 23,
+      "close": 25319,
+      "runs_covered": 29,
+      "idle_at_peak": 13393
+     }
+    ],
+    "runs_left_uncovered": 0
+   },
+   "run_rows_total": 92
+  }
  ],
  "definitions": {
   "account": "a wire; register wires grouped by register (numbered families folded: S0..S69 -> S*)",
@@ -664,6 +840,11 @@
   "liability": "one HMR record, open from the HMR to the last op it (or a bit derived from it) conditions",
   "trial balance": "at each stage cut: values open across the cut, liabilities open across it, live width",
   "capital": "qubit-ops \u00d7 rate / ops: T-eq of width used; charged = certified width \u00d7 rate",
+  "idle at peak": "ops at full width strictly inside a value's idle gaps (no entry on the wire); the aged list is ranked by it, then by the longest idle gap (idle)",
+  "idle capital": "idle_capital_teq = longest idle gap \u00d7 rate / ops. Additive bookkeeping, NOT a saving: width is a maximum, so Q falls only if every full-width run is covered by a release",
+  "full-width run": "a maximal op range at the certified width; a value covers it when one of its idle gaps holds the whole run (static)",
+  "uncoverable run": "a full-width run no scratch value is idle across: no release can narrow it, so Q cannot fall by releases alone",
+  "hitting set": "fewest release candidates (values) covering every coverable full-width run, unit cost each; necessary for Q - 1, not sufficient (the release and any recompute must fit below the peak)",
   "paying twice": "a CCX computing the same AND as an earlier one (exact: equal on every x; static: same wire versions)"
  }
 }

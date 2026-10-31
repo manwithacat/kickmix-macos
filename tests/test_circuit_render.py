@@ -419,6 +419,153 @@ def test_exact_ledger_matches_python_tracer(tmp_path):
     assert abs(res['mean_toffoli'] - tof / len(rows)) < 1e-9
 
 
+def peak_hand_circuit(path):
+    """x = q0 (register). Peak 1 (ops 11-12, width 4): q1 and q3 are touched there, q2 sits idle across it
+    (touched at 10 and 14), while q1 has the longest idle gap (ops 0-9) but at width 2. Peak 2 (ops 16-17): q4, q5,
+    q6 are all touched at every op, so no value is idle across it and no release can narrow it."""
+    X1, CX2, CCX3 = R.X, R.CX, R.CCX
+    ops = [X1] + [X1] * 8 + [X1, CX2, CX2, CX2, X1, X1, X1, CCX3, CCX3, X1]
+    q0 = [1] + [0] * 8 + [1, 1, 2, 4, 4]  # op0 q1, ops1-8 q0, op9 q1, op13 q1, op14 q2, op15 q4, op18 q4
+    st = dict(q0=q0, qq0=[1, 1, 1], qq1=[2, 3, 3], qqq0=[4, 4], qqq1=[5, 5], qqq2=[6, 6])
+    R.write_kmb(path, np.array(ops, np.uint8), {k: np.array(v, np.uint32) for k, v in st.items()}, b'', (),
+                [('x', [(True, 0)])], num_qubits=7, num_bits=1)
+    return R.read_kmb(path)
+
+
+def touches_reference(c):
+    """Per op, the qubits it touches (op-major), for brute-force checks."""
+    rq, ro, _ = R.op_major_refs(c, 'q')
+    out = [[] for _ in range(c.n)]
+    for q, o in zip(rq.tolist(), ro.tolist()):
+        out[o].append(q)
+    return out
+
+
+def peak_cover_reference(c, prof, core):
+    """Brute force: full-width runs by scanning the profile; a candidate value covers a run when two consecutive
+    touches p < n of it satisfy p < run start and run end < n."""
+    top = int(prof.max())
+    runs, k = [], 0
+    while k < c.n:
+        if prof[k] == top:
+            e = k
+            while e + 1 < c.n and prof[e + 1] == top:
+                e += 1
+            runs.append((k, e))
+            k = e + 1
+        else:
+            k += 1
+    tch = touches_reference(c)
+    v = core['values']
+    regs = set(R.register_qubit_ids(c))
+    cover = {r: set() for r in range(len(runs))}
+    for i in range(len(v['a'])):
+        q, a, b = int(v['q'][i]), int(v['a'][i]), int(v['b'][i])
+        if q in regs or bool(v['init'][i]):
+            continue
+        t = [o for o in range(a, b + 1) if q in tch[o]]
+        for p, n in zip(t[:-1], t[1:]):
+            for r, (ra, rb) in enumerate(runs):
+                if p < ra and rb < n:
+                    cover[r].add(i)
+    return runs, cover
+
+
+def test_full_width_runs_detection():
+    ra, rb = R.full_width_runs(np.array([1, 1, 0, 1, 0, 0, 1, 1, 1], bool))
+    assert ra.tolist() == [0, 3, 6] and rb.tolist() == [1, 3, 8]
+    ra, rb = R.full_width_runs(np.zeros(4, bool))
+    assert len(ra) == 0 and len(rb) == 0
+
+
+def test_peak_ranking_hand_circuit(tmp_path):
+    c = peak_hand_circuit(tmp_path / 'p.kmb')
+    prof = R.width_profile(c)
+    assert prof.tolist()[9:19] == [2, 3, 4, 4, 3, 2, 2, 4, 4, 2]
+    core = R.ledger_core(c, prof)
+    v = core['values']
+    by_q = {int(q): i for i, q in enumerate(v['q'].tolist())}
+    assert int(v['idle_peak'][by_q[2]]) == 2 and int(v['idle_peak'][by_q[1]]) == 0
+    assert int(v['idle_max'][by_q[1]]) == 9 > int(v['idle_max'][by_q[2]])
+    cand = np.array([by_q[w] for w in (1, 2, 3, 4, 5, 6)])
+    order = R.peak_order(cand, v['idle_peak'], v['idle_max'], v['a']).tolist()
+    assert order[0] == by_q[2] and order[1] == by_q[1]  # idle at peak first; longest idle only breaks ties
+    pk = R.peak_report(core, lambda x: 'all')
+    assert pk['runs'] == 2 and pk['uncoverable'] == 1 and pk['uncoverable_runs'] == [[16, 17, 2, 'all']]
+    assert [r['idle_values'] for r in pk['run_rows']] == [1, 0]
+    assert pk['run_rows'][0]['covered_by'] == ['q2@10']
+    hs = pk['hitting_set']
+    assert hs['size'] == 1 and hs['exact'] and [r['wire'] for r in hs['releases']] == ['q2']
+    assert pk['verdict'].startswith('Q cannot fall by releases alone')
+
+
+@pytest.mark.parametrize('seed', range(6))
+def test_peak_cover_matches_brute_force(tmp_path, seed):
+    c = R.read_kmb(random_circuit(tmp_path / 'c.kmb', 300 + seed, n_ops=500, nq=10))
+    prof = R.width_profile(c)
+    core = R.ledger_core(c, prof)
+    runs, cover = peak_cover_reference(c, prof, core)
+    pk = R.peak_report(core, lambda x: 's')
+    assert [(r['start'], r['end']) for r in pk['run_rows']] == runs
+    assert [r['idle_values'] for r in pk['run_rows']] == [len(cover[r]) for r in range(len(runs))]
+    assert pk['uncoverable'] == sum(1 for r in cover.values() if not r)
+    chosen = {x['value'] for x in pk['hitting_set']['releases']}
+    v = core['values']
+    for cs in cover.values():  # every coverable run is covered by a chosen release
+        assert not cs or chosen & {f"q{int(v['q'][i])}@{int(v['a'][i])}" for i in cs}
+
+
+def brute_hitting(sets):
+    import itertools
+    U = set().union(*sets.values())
+    keys = list(sets)
+    for m in range(len(keys) + 1):
+        for comb in itertools.combinations(keys, m):
+            if set().union(*(sets[k] for k in comb)) >= U:
+                return m
+    return None
+
+
+def test_min_hitting_set_small_cases():
+    sets = {'S1': {1, 2, 3, 4}, 'S2': {1, 3, 5}, 'S3': {2, 4, 6}}  # greedy takes S1 and needs 3; optimum 2
+    h = R.min_hitting_set(sets)
+    assert h['size'] == 2 and h['exact'] and set(h['chosen']) == {'S2', 'S3'}
+    h = R.min_hitting_set(sets, budget=0)
+    assert h['size'] == 3 and not h['exact'] and h['lower_bound'] == 2 and 'greedy' in h['method']
+    assert R.min_hitting_set({})['size'] == 0
+    rng = random.Random(5)
+    for _ in range(60):
+        ne, nk = rng.randint(1, 9), rng.randint(1, 8)
+        sets = {k: {e for e in range(ne) if rng.random() < 0.35} for k in range(nk)}
+        sets = {k: s for k, s in sets.items() if s}
+        if not sets:
+            continue
+        h = R.min_hitting_set(sets)
+        U = set().union(*sets.values())
+        assert set().union(*(sets[k] for k in h['chosen'])) >= U
+        assert h['exact'] and h['size'] == brute_hitting(sets)
+
+
+DQI_40FA = Path('/Volumes/SSD/Kaggle/competitions/google-verifiable-quantum-circuit-compilation/outputs/'
+                'vqcc-public-circuits-dataset-2026-10-28/stage/circuits/dqi/40fa4ebf25b2.kmb')
+
+
+@pytest.mark.skipif(not DQI_40FA.exists(), reason='40fa4ebf25b2.kmb not available locally (public VQCC dataset)')
+def test_peak_report_40fa4ebf_regression():
+    """L1b of the ledger-led theme: 1,590 full-width runs at 888, of which 19 (270,509 ops; 9 in extract, 10 in
+    unextract) have no idle scratch value, the same op ranges as the hand census. About 25 s and 3 GB."""
+    c = R.read_kmb(str(DQI_40FA))
+    prof = R.width_profile(c)
+    core = R.ledger_core(c, prof)
+    del core['taccounts']
+    pk = R.peak_report(core, lambda x: 'all')
+    assert pk['width'] == 888 and pk['runs'] == 1590
+    assert pk['uncoverable'] == 19 and pk['uncoverable_ops'] == 270_509
+    v = core['values']
+    top = R.peak_order(np.flatnonzero(~v['reg'] & ~v['init']), v['idle_peak'], v['idle_max'], v['a'])[:4]
+    assert [int(v['q'][i]) for i in top] == [847, 852, 842, 851]
+
+
 @needs_mpl
 def test_cli_ledger_contract(tmp_path):
     a = str(random_circuit(tmp_path / 'a.kmb', 41, n_ops=500))
@@ -431,7 +578,12 @@ def test_cli_ledger_contract(tmp_path):
     assert {f['kind'] for f in d['files']} == {'png', 'csv', 'json'}
     assert {'values', 'liabilities', 'paying_twice', 'close'} <= set(d['facts'])
     full = json.loads(Path([f['path'] for f in d['files'] if f['kind'] == 'json'][0]).read_text())
-    assert {'trial_balance', 'aged_values', 'aged_debts', 'paying_twice', 'close'} <= set(full)
+    assert {'trial_balance', 'aged_values', 'aged_debts', 'paying_twice', 'close', 'full_width_runs'} <= set(full)
+    assert {'runs', 'uncoverable', 'uncoverable_runs', 'hitting_set', 'run_rows', 'verdict'} <= set(full['full_width_runs'])
+    assert {'full_width_runs', 'peak_verdict'} <= set(d['facts'])
+    ag = full['aged_values']
+    assert all((x['idle_at_peak'], x['idle']) >= (y['idle_at_peak'], y['idle']) for x, y in zip(ag, ag[1:]))
+    assert all('idle_capital' not in x and 'capital' not in x for x in ag)
     code, text = run_cli(['ledger', '--compare', a, b] + common)
     assert code == 0, text
     d = check_summary(text)

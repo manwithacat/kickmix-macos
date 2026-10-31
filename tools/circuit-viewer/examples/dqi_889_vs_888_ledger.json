@@ -31,7 +31,15 @@
   "values_b_only": 1067,
   "values_a_only": 807,
   "reading": "accrual: B releases values by HMR (+256 records, repaid by +208 fix-ups) and pays +496.0 T-eq to recompute, to hold 1 wire(s) less",
-  "expense_basis": "toffoli_used"
+  "expense_basis": "toffoli_used",
+  "uncoverable_runs": [
+   0,
+   19
+  ],
+  "releases_to_cover": [
+   16,
+   40
+  ]
  },
  "reconciliation": [
   {
@@ -890,49 +898,55 @@
  "aged_top": [
   [
    {
-    "wire": "q847",
-    "open": 6947548,
-    "close": 52232848,
-    "span": 45285301,
-    "idle": 44736888,
-    "idle_from": 7167857,
-    "idle_to": 51904745,
-    "idle_at_peak": 3504,
+    "wire": "q859",
+    "open": 52179927,
+    "close": 52845366,
+    "span": 665440,
+    "idle_at_peak": 243627,
+    "runs_covered": 11,
+    "idle": 602725,
+    "idle_from": 52234958,
+    "idle_to": 52837683,
+    "peak_gap_from": 52234958,
+    "peak_gap_to": 52837683,
     "settle": "accrual",
-    "toffoli_entries": 23,
-    "capital": 756.3,
-    "idle_capital": 747.2,
-    "stages": "extract\u2192unextract"
+    "toffoli_entries": 1,
+    "idle_capital_teq": 10.1,
+    "stages": "unextract\u2192unextract"
    },
    {
-    "wire": "q875",
-    "open": 14005965,
-    "close": 44057718,
-    "span": 30051754,
-    "idle": 29933209,
-    "idle_from": 14060273,
-    "idle_to": 43993482,
-    "idle_at_peak": 0,
+    "wire": "q856",
+    "open": 45837452,
+    "close": 52838489,
+    "span": 7001038,
+    "idle_at_peak": 237243,
+    "runs_covered": 2,
+    "idle": 6764952,
+    "idle_from": 45837475,
+    "idle_to": 52602427,
+    "peak_gap_from": 52627180,
+    "peak_gap_to": 52837751,
     "settle": "accrual",
-    "toffoli_entries": 0,
-    "capital": 501.9,
-    "idle_capital": 499.9,
-    "stages": "convert\u2192unconvert"
+    "toffoli_entries": 17,
+    "idle_capital_teq": 113.0,
+    "stages": "unconvert\u2192unextract"
    },
    {
-    "wire": "q874",
-    "open": 13952689,
-    "close": 44107557,
-    "span": 30154869,
-    "idle": 29805286,
-    "idle_from": 14116047,
-    "idle_to": 43921333,
-    "idle_at_peak": 0,
+    "wire": "q857",
+    "open": 45837456,
+    "close": 52838488,
+    "span": 7001033,
+    "idle_at_peak": 236923,
+    "runs_covered": 2,
+    "idle": 6764957,
+    "idle_from": 45837471,
+    "idle_to": 52602428,
+    "peak_gap_from": 52627193,
+    "peak_gap_to": 52837750,
     "settle": "accrual",
-    "toffoli_entries": 0,
-    "capital": 503.6,
-    "idle_capital": 497.8,
-    "stages": "convert\u2192unconvert"
+    "toffoli_entries": 38,
+    "idle_capital_teq": 113.0,
+    "stages": "unconvert\u2192unextract"
    }
   ],
   [
@@ -941,47 +955,704 @@
     "open": 6947548,
     "close": 52232852,
     "span": 45285305,
+    "idle_at_peak": 4764332,
+    "runs_covered": 1383,
     "idle": 44736892,
     "idle_from": 7167857,
     "idle_to": 51904749,
-    "idle_at_peak": 4764332,
+    "peak_gap_from": 7167857,
+    "peak_gap_to": 51904749,
     "settle": "accrual",
     "toffoli_entries": 23,
-    "capital": 757.9,
-    "idle_capital": 748.7,
+    "idle_capital_teq": 748.7,
     "stages": "extract\u2192unextract"
    },
    {
-    "wire": "q875",
-    "open": 14005965,
-    "close": 44057718,
-    "span": 30051754,
-    "idle": 29933209,
-    "idle_from": 14060273,
-    "idle_to": 43993482,
-    "idle_at_peak": 1837300,
+    "wire": "q852",
+    "open": 7056544,
+    "close": 52025455,
+    "span": 44968912,
+    "idle_at_peak": 4759162,
+    "runs_covered": 1379,
+    "idle": 4462133,
+    "idle_from": 41398303,
+    "idle_to": 45860436,
+    "peak_gap_from": 41398303,
+    "peak_gap_to": 45860436,
     "settle": "accrual",
-    "toffoli_entries": 0,
-    "capital": 502.9,
-    "idle_capital": 501.0,
-    "stages": "convert\u2192unconvert"
+    "toffoli_entries": 6,
+    "idle_capital_teq": 74.7,
+    "stages": "synthesis\u2192unextract"
    },
    {
-    "wire": "q874",
-    "open": 13952689,
-    "close": 44107557,
-    "span": 30154869,
-    "idle": 29805286,
-    "idle_from": 14116047,
-    "idle_to": 43921333,
-    "idle_at_peak": 1916298,
-    "settle": "accrual",
-    "toffoli_entries": 0,
-    "capital": 504.7,
-    "idle_capital": 498.8,
-    "stages": "convert\u2192unconvert"
+    "wire": "q842",
+    "open": 7056535,
+    "close": 52025039,
+    "span": 44968505,
+    "idle_at_peak": 4759150,
+    "runs_covered": 1379,
+    "idle": 4462090,
+    "idle_from": 41398336,
+    "idle_to": 45860426,
+    "peak_gap_from": 41398336,
+    "peak_gap_to": 45860426,
+    "settle": "dead-tail",
+    "toffoli_entries": 210,
+    "idle_capital_teq": 74.7,
+    "stages": "synthesis\u2192unextract"
    }
   ]
+ ],
+ "full_width_runs": [
+  {
+   "width": 889,
+   "runs": 82,
+   "ops_at_full": 1552246,
+   "coverable": 82,
+   "uncoverable": 0,
+   "uncoverable_ops": 0,
+   "verdict": "every full-width run has an idle value; 16 release(s) cover all 82 (exact): necessary for Q - 1, not sufficient",
+   "by_stage": {
+    "unextract": {
+     "runs": 82,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    }
+   },
+   "uncoverable_runs": [],
+   "hitting_set": {
+    "size": 16,
+    "exact": true,
+    "lower_bound": 16,
+    "method": "greedy, equal to the packing lower bound (optimal)",
+    "runs_to_cover": 82,
+    "candidates": 678,
+    "kernel": {
+     "runs": 16,
+     "candidates": 16
+    },
+    "releases": [
+     {
+      "value": "q859@52179927",
+      "wire": "q859",
+      "open": 52179927,
+      "close": 52845366,
+      "runs_covered": 11,
+      "idle_at_peak": 243627
+     },
+     {
+      "value": "q853@52845225",
+      "wire": "q853",
+      "open": 52845225,
+      "close": 53632007,
+      "runs_covered": 9,
+      "idle_at_peak": 227471
+     },
+     {
+      "value": "q879@52617844",
+      "wire": "q879",
+      "open": 52617844,
+      "close": 52844606,
+      "runs_covered": 1,
+      "idle_at_peak": 224456
+     },
+     {
+      "value": "q854@53631866",
+      "wire": "q854",
+      "open": 53631866,
+      "close": 54369465,
+      "runs_covered": 9,
+      "idle_at_peak": 213685
+     },
+     {
+      "value": "q874@53416633",
+      "wire": "q874",
+      "open": 53416633,
+      "close": 53631247,
+      "runs_covered": 1,
+      "idle_at_peak": 212246
+     },
+     {
+      "value": "q853@54369324",
+      "wire": "q853",
+      "open": 54369324,
+      "close": 55056362,
+      "runs_covered": 9,
+      "idle_at_peak": 200459
+     },
+     {
+      "value": "q874@54167895",
+      "wire": "q874",
+      "open": 54167895,
+      "close": 54368705,
+      "runs_covered": 1,
+      "idle_at_peak": 198460
+     },
+     {
+      "value": "q854@55056221",
+      "wire": "q854",
+      "open": 55056221,
+      "close": 55692310,
+      "runs_covered": 9,
+      "idle_at_peak": 186681
+     },
+     {
+      "value": "q874@54868016",
+      "wire": "q874",
+      "open": 54868016,
+      "close": 55055602,
+      "runs_covered": 1,
+      "idle_at_peak": 185234
+     },
+     {
+      "value": "q853@55692169",
+      "wire": "q853",
+      "open": 55692169,
+      "close": 56277501,
+      "runs_covered": 9,
+      "idle_at_peak": 173591
+     },
+     {
+      "value": "q874@55517764",
+      "wire": "q874",
+      "open": 55517764,
+      "close": 55691550,
+      "runs_covered": 1,
+      "idle_at_peak": 171456
+     },
+     {
+      "value": "q854@56277360",
+      "wire": "q854",
+      "open": 56277360,
+      "close": 56811799,
+      "runs_covered": 9,
+      "idle_at_peak": 159905
+     },
+     {
+      "value": "q874@56116025",
+      "wire": "q874",
+      "open": 56116025,
+      "close": 56276741,
+      "runs_covered": 1,
+      "idle_at_peak": 158366
+     },
+     {
+      "value": "q853@56811658",
+      "wire": "q853",
+      "open": 56811658,
+      "close": 57295430,
+      "runs_covered": 9,
+      "idle_at_peak": 146635
+     },
+     {
+      "value": "q874@56664031",
+      "wire": "q874",
+      "open": 56664031,
+      "close": 56811039,
+      "runs_covered": 1,
+      "idle_at_peak": 144680
+     },
+     {
+      "value": "q874@57161168",
+      "wire": "q874",
+      "open": 57161168,
+      "close": 57294904,
+      "runs_covered": 1,
+      "idle_at_peak": 131410
+     }
+    ],
+    "runs_left_uncovered": 0
+   },
+   "run_rows_total": 82
+  },
+  {
+   "width": 888,
+   "runs": 1590,
+   "ops_at_full": 6461575,
+   "coverable": 1571,
+   "uncoverable": 19,
+   "uncoverable_ops": 270509,
+   "verdict": "Q cannot fall by releases alone: 19 of 1590 full-width runs have no idle value (270,509 ops); narrowing them needs a different computation, not a release",
+   "by_stage": {
+    "extract": {
+     "runs": 100,
+     "uncoverable": 9,
+     "uncoverable_ops": 128943
+    },
+    "synthesis": {
+     "runs": 5,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "convert": {
+     "runs": 641,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "unconvert": {
+     "runs": 735,
+     "uncoverable": 0,
+     "uncoverable_ops": 0
+    },
+    "unextract": {
+     "runs": 109,
+     "uncoverable": 10,
+     "uncoverable_ops": 141566
+    }
+   },
+   "uncoverable_runs": [
+    [
+     4333462,
+     4347788,
+     14327,
+     "extract"
+    ],
+    [
+     4573321,
+     4587647,
+     14327,
+     "extract"
+    ],
+    [
+     4836577,
+     4850903,
+     14327,
+     "extract"
+    ],
+    [
+     5123702,
+     5138028,
+     14327,
+     "extract"
+    ],
+    [
+     5434714,
+     5449040,
+     14327,
+     "extract"
+    ],
+    [
+     5769377,
+     5783703,
+     14327,
+     "extract"
+    ],
+    [
+     6127509,
+     6141835,
+     14327,
+     "extract"
+    ],
+    [
+     6509308,
+     6523634,
+     14327,
+     "extract"
+    ],
+    [
+     6914948,
+     6929274,
+     14327,
+     "extract"
+    ],
+    [
+     52603053,
+     52617391,
+     14339,
+     "unextract"
+    ],
+    [
+     53403405,
+     53417743,
+     14339,
+     "unextract"
+    ],
+    [
+     54156230,
+     54170568,
+     14339,
+     "unextract"
+    ],
+    [
+     54857914,
+     54872252,
+     14339,
+     "unextract"
+    ],
+    [
+     55509225,
+     55523563,
+     14339,
+     "unextract"
+    ],
+    [
+     56109049,
+     56123387,
+     14339,
+     "unextract"
+    ],
+    [
+     56658618,
+     56672956,
+     14339,
+     "unextract"
+    ],
+    [
+     57157318,
+     57171656,
+     14339,
+     "unextract"
+    ],
+    [
+     57605502,
+     57619840,
+     14339,
+     "unextract"
+    ],
+    [
+     57621215,
+     57633729,
+     12515,
+     "unextract"
+    ]
+   ],
+   "hitting_set": {
+    "size": 40,
+    "exact": true,
+    "lower_bound": 40,
+    "method": "exact: branch and bound on the reduced instance (44 nodes)",
+    "runs_to_cover": 1571,
+    "candidates": 2872,
+    "kernel": {
+     "runs": 148,
+     "candidates": 45
+    },
+    "releases": [
+     {
+      "value": "q847@6947548",
+      "wire": "q847",
+      "open": 6947548,
+      "close": 52232852,
+      "runs_covered": 1383,
+      "idle_at_peak": 4764332
+     },
+     {
+      "value": "q862@6929522",
+      "wire": "q862",
+      "open": 6929522,
+      "close": 14026968,
+      "runs_covered": 564,
+      "idle_at_peak": 1450535
+     },
+     {
+      "value": "q853@52846792",
+      "wire": "q853",
+      "open": 52846792,
+      "close": 53057642,
+      "runs_covered": 4,
+      "idle_at_peak": 208295
+     },
+     {
+      "value": "q855@52631414",
+      "wire": "q855",
+      "open": 52631414,
+      "close": 53055532,
+      "runs_covered": 2,
+      "idle_at_peak": 205290
+     },
+     {
+      "value": "q854@53634996",
+      "wire": "q854",
+      "open": 53634996,
+      "close": 53834390,
+      "runs_covered": 4,
+      "idle_at_peak": 196858
+     },
+     {
+      "value": "q853@53431890",
+      "wire": "q853",
+      "open": 53431890,
+      "close": 53832289,
+      "runs_covered": 2,
+      "idle_at_peak": 194015
+     },
+     {
+      "value": "q864@54374017",
+      "wire": "q864",
+      "open": 54374017,
+      "close": 54559491,
+      "runs_covered": 4,
+      "idle_at_peak": 182937
+     },
+     {
+      "value": "q853@54184679",
+      "wire": "q853",
+      "open": 54184679,
+      "close": 54557389,
+      "runs_covered": 2,
+      "idle_at_peak": 180256
+     },
+     {
+      "value": "q864@55062477",
+      "wire": "q864",
+      "open": 55062477,
+      "close": 55234723,
+      "runs_covered": 4,
+      "idle_at_peak": 169720
+     },
+     {
+      "value": "q853@54886367",
+      "wire": "q853",
+      "open": 54886367,
+      "close": 55232632,
+      "runs_covered": 2,
+      "idle_at_peak": 167201
+     },
+     {
+      "value": "q864@55699988",
+      "wire": "q864",
+      "open": 55699988,
+      "close": 55858336,
+      "runs_covered": 4,
+      "idle_at_peak": 155812
+     },
+     {
+      "value": "q853@55537634",
+      "wire": "q853",
+      "open": 55537634,
+      "close": 55856235,
+      "runs_covered": 2,
+      "idle_at_peak": 153455
+     },
+     {
+      "value": "q864@56286742",
+      "wire": "q864",
+      "open": 56286742,
+      "close": 56432022,
+      "runs_covered": 4,
+      "idle_at_peak": 142755
+     },
+     {
+      "value": "q853@56137498",
+      "wire": "q853",
+      "open": 56137498,
+      "close": 56429932,
+      "runs_covered": 2,
+      "idle_at_peak": 140560
+     },
+     {
+      "value": "q864@56822603",
+      "wire": "q864",
+      "open": 56822603,
+      "close": 56954059,
+      "runs_covered": 4,
+      "idle_at_peak": 128932
+     },
+     {
+      "value": "q853@56687023",
+      "wire": "q853",
+      "open": 56687023,
+      "close": 56951970,
+      "runs_covered": 2,
+      "idle_at_peak": 126899
+     },
+     {
+      "value": "q873@57620276",
+      "wire": "q873",
+      "open": 57620276,
+      "close": 57740348,
+      "runs_covered": 1,
+      "idle_at_peak": 117772
+     },
+     {
+      "value": "q848@57633834",
+      "wire": "q848",
+      "open": 57633834,
+      "close": 57838712,
+      "runs_covered": 1,
+      "idle_at_peak": 104698
+     },
+     {
+      "value": "q868@6142083",
+      "wire": "q868",
+      "open": 6142083,
+      "close": 6914166,
+      "runs_covered": 5,
+      "idle_at_peak": 32587
+     },
+     {
+      "value": "q868@5449288",
+      "wire": "q868",
+      "open": 5449288,
+      "close": 6126727,
+      "runs_covered": 5,
+      "idle_at_peak": 32587
+     },
+     {
+      "value": "q863@4851151",
+      "wire": "q863",
+      "open": 4851151,
+      "close": 5433932,
+      "runs_covered": 5,
+      "idle_at_peak": 32587
+     },
+     {
+      "value": "q880@4348036",
+      "wire": "q880",
+      "open": 4348036,
+      "close": 4835795,
+      "runs_covered": 5,
+      "idle_at_peak": 32587
+     },
+     {
+      "value": "q860@57426113",
+      "wire": "q860",
+      "open": 57426113,
+      "close": 57633743,
+      "runs_covered": 6,
+      "idle_at_peak": 26758
+     },
+     {
+      "value": "q872@4367392",
+      "wire": "q872",
+      "open": 4367392,
+      "close": 4601940,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q874@4607264",
+      "wire": "q874",
+      "open": 4607264,
+      "close": 4865196,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q877@4870521",
+      "wire": "q877",
+      "open": 4870521,
+      "close": 5152321,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q877@5157657",
+      "wire": "q877",
+      "open": 5157657,
+      "close": 5463333,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q877@5468659",
+      "wire": "q877",
+      "open": 5468659,
+      "close": 5797996,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q877@5803333",
+      "wire": "q877",
+      "open": 5803333,
+      "close": 6156128,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q877@6161464",
+      "wire": "q877",
+      "open": 6161464,
+      "close": 6537927,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q877@6543272",
+      "wire": "q877",
+      "open": 6543272,
+      "close": 6943567,
+      "runs_covered": 8,
+      "idle_at_peak": 24034
+     },
+     {
+      "value": "q865@4151135",
+      "wire": "q865",
+      "open": 4151135,
+      "close": 4362081,
+      "runs_covered": 7,
+      "idle_at_peak": 22790
+     },
+     {
+      "value": "q857@53055597",
+      "wire": "q857",
+      "open": 53055597,
+      "close": 53431732,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q856@53832354",
+      "wire": "q856",
+      "open": 53832354,
+      "close": 54184539,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q855@54557454",
+      "wire": "q855",
+      "open": 54557454,
+      "close": 54886225,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q855@55232697",
+      "wire": "q855",
+      "open": 55232697,
+      "close": 55537514,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q855@55856300",
+      "wire": "q855",
+      "open": 55856300,
+      "close": 56137358,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q855@56429997",
+      "wire": "q855",
+      "open": 56429997,
+      "close": 56686905,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q855@56952035",
+      "wire": "q855",
+      "open": 56952035,
+      "close": 57185603,
+      "runs_covered": 7,
+      "idle_at_peak": 20210
+     },
+     {
+      "value": "q856@52235082",
+      "wire": "q856",
+      "open": 52235082,
+      "close": 52631306,
+      "runs_covered": 7,
+      "idle_at_peak": 19916
+     }
+    ],
+    "runs_left_uncovered": 19
+   },
+   "run_rows_total": 1590
+  }
  ],
  "definitions": {
   "account": "a wire; register wires grouped by register (numbered families folded: S0..S69 -> S*)",
@@ -993,6 +1664,11 @@
   "liability": "one HMR record, open from the HMR to the last op it (or a bit derived from it) conditions",
   "trial balance": "at each stage cut: values open across the cut, liabilities open across it, live width",
   "capital": "qubit-ops \u00d7 rate / ops: T-eq of width used; charged = certified width \u00d7 rate",
+  "idle at peak": "ops at full width strictly inside a value's idle gaps (no entry on the wire); the aged list is ranked by it, then by the longest idle gap (idle)",
+  "idle capital": "idle_capital_teq = longest idle gap \u00d7 rate / ops. Additive bookkeeping, NOT a saving: width is a maximum, so Q falls only if every full-width run is covered by a release",
+  "full-width run": "a maximal op range at the certified width; a value covers it when one of its idle gaps holds the whole run (static)",
+  "uncoverable run": "a full-width run no scratch value is idle across: no release can narrow it, so Q cannot fall by releases alone",
+  "hitting set": "fewest release candidates (values) covering every coverable full-width run, unit cost each; necessary for Q - 1, not sufficient (the release and any recompute must fit below the peak)",
   "paying twice": "a CCX computing the same AND as an earlier one (exact: equal on every x; static: same wire versions)"
  }
 }

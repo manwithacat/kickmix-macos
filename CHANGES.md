@@ -15,6 +15,20 @@
 
 ## Tooling changes
 
+- 2026-10-31, `tools/circuit-viewer/render.py ledger` (no change to kickmix itself): rank and report what predicts
+  a width cut. Width cost is a peak, not a sum, so the aged list (now titled "idle at peak") ranks values by ops
+  idle at full width (`idle_at_peak`) with the longest idle gap as the second key; the old ranking by longest idle
+  found none of the hand census's blockers. New `full_width_runs` section: every maximal full-width run, how many
+  scratch values are idle across it and which, the runs nobody is idle across (no release can narrow them, so the
+  verdict is "Q cannot fall by releases alone"), and the fewest releases covering the rest as a hitting set
+  (greedy, then exact branch and bound on the reduced instance; the method used is reported). On 40fa4ebf25b2 it
+  finds the census's 19 uncoverable runs at the same op ranges, and 40 releases (exact) for the other 1,571.
+  The additive "T-eq idle" figure is now `idle_capital_teq`, labelled as not a saving; `aged_values` loses `capital`
+  and `idle_capital`. The CSV gains `full_width_runs_idle`; `--compare` reports both circuits' run counts. Tests:
+  ranking and runs on a hand circuit, run cover against a brute-force reference on random circuits, the hitting set
+  against exhaustive search, and the 40fa4ebf regression (skipped when the file is absent). Ledger examples
+  regenerated. Written with AI assistance (Claude, Anthropic) under the repository owner's direction, from
+  independent reviews of the ledger's step-1 results.
 - 2026-10-30, `tools/circuit-viewer/` (no change to kickmix itself, `tracer.js` unchanged): two playback polish fixes.
   The status line under the transport buttons (op, gate, stage name) wrapped when long, so the diagram jumped up and
   down during play; it is now one line of fixed height with an ellipsis, the full text in its title and in the

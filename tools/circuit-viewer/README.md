@@ -220,6 +220,11 @@ This gives an agent a bounded way to distinguish a division-like field
 product from a tensor with zero divisors or low-rank operand directions.
 The report describes invariants and witnesses; it does not recover a hidden
 formula or a rank-one decomposition.
+When a small set of rank-one directions complements a common annihilator,
+`split_witness` additionally checks whether the interaction block and
+remaining core occupy independent output spaces. It includes exact basis
+products for each block and explicit zero-mixed-product checks. This is a
+verified coordinate split, not an algorithm for the core.
 
 `bilinear-carrier` reports and applies an exact carrier-extension identity.
 It finds a pivot and compensating term with one shared input parity, plus

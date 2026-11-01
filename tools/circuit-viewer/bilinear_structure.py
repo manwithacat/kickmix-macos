@@ -84,6 +84,45 @@ def common_annihilator_basis(table: list[int], width: int, side: str,
     return kernel_basis(joint_columns, width)
 
 
+def product(table: list[int], width: int, left: int, right: int) -> int:
+    return xor(table[i * width + j] for i in range(width) for j in range(width)
+               if left >> i & right >> j & 1)
+
+
+def split_witness(table: list[int], width: int, left_rank_one: list[int],
+                  right_rank_one: list[int]) -> dict | None:
+    """Expose a verified small rank-one interaction block, when present."""
+    count = len(left_rank_one)
+    if not 1 <= count <= 4 or len(right_rank_one) != count:
+        return None
+    left_core = common_annihilator_basis(table, width, "right", right_rank_one)
+    right_core = common_annihilator_basis(table, width, "left", left_rank_one)
+    if (len(left_core) != width - count or len(right_core) != width - count or
+        len(rank_basis(left_core + left_rank_one)) != width or
+        len(rank_basis(right_core + right_rank_one)) != width):
+        return None
+    core_products = [product(table, width, a, b)
+                     for a in left_core for b in right_core]
+    cross_products = [product(table, width, a, b)
+                      for a in left_rank_one for b in right_rank_one]
+    core_output_basis = rank_basis(core_products)
+    cross_output_basis = rank_basis(cross_products)
+    output_split = (len(core_output_basis) + len(cross_output_basis) == width
+                    and len(rank_basis(core_output_basis + cross_output_basis)) == width)
+    return {"left_core_basis": left_core, "right_core_basis": right_core,
+            "left_interaction_basis": left_rank_one,
+            "right_interaction_basis": right_rank_one,
+            "core_basis_products": core_products,
+            "interaction_basis_products": cross_products,
+            "core_output_basis": core_output_basis,
+            "interaction_output_basis": cross_output_basis,
+            "mixed_products_zero": all(product(table, width, a, b) == 0
+                for a in left_core for b in right_rank_one) and all(
+                product(table, width, a, b) == 0
+                for a in left_rank_one for b in right_core),
+            "output_spaces_direct_sum": output_split}
+
+
 def analyze(table: list[int], width: int, *, witness_limit: int = 8) -> dict:
     if not isinstance(width, int) or not 1 <= width <= 12:
         raise ValueError("width must be in 1..12")
@@ -130,6 +169,8 @@ def analyze(table: list[int], width: int, *, witness_limit: int = 8) -> dict:
                 table, width, "left", left_rank_one),
             "common_annihilator_of_rank_one_right": common_annihilator_basis(
                 table, width, "right", right_rank_one),
+            "split_witness": split_witness(table, width, left_rank_one,
+                                            right_rank_one),
             "sides": sides}
 
 

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>kickmix workbench report</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+body{font:14px/1.5 system-ui,sans-serif;margin:2rem;max-width:1200px;color:#17212b;background:#f8fafc}
+h1{font-size:1.5rem}input{font:inherit}#filter{width:20rem;padding:.4rem}table{border-collapse:collapse;width:100%;background:white;margin-top:1rem}
+th,td{padding:.4rem .6rem;border-bottom:1px solid #dae1e8;text-align:left}th{position:sticky;top:0;background:#e9eef5}
+td.num{text-align:right;font-variant-numeric:tabular-nums}tr:hover{background:#eff7ff}code{font-size:.9em}
+.muted{color:#52606d}#detail{white-space:pre-wrap;background:#e9eef5;padding:1rem;margin-top:1rem;overflow:auto}
+</style>
+</head>
+<body>
+<h1>kickmix workbench report</h1>
+<p class="muted">Load a report produced by <code>workbench.py</code>. Large circuit data stays out of the browser; this page reads only the selected JSON file.</p>
+<input id="file" type="file" accept=".json,application/json"> <input id="filter" placeholder="Filter stage path or id">
+<select id="depth"><option value="0">Top-level</option><option value="all">All depths</option><option value="1">Depth 1</option><option value="2">Depth 2</option><option value="3">Depth 3</option></select>
+<p id="summary"></p><div id="boundaries"></div><table><thead><tr id="head"></tr></thead><tbody id="rows"></tbody></table><pre id="detail" hidden></pre>
+<script>
+const $=id=>document.getElementById(id);let data;
+$('file').addEventListener('change',async e=>{const f=e.target.files[0];if(!f)return;data=JSON.parse(await f.text());$('filter').value='';$('depth').value=data.schema==='kickmix-workbench-diff-v1'?'all':'0';render()});
+$('filter').addEventListener('input',render);
+$('depth').addEventListener('change',render);
+function cell(tr,value,number=false){let td=document.createElement('td');td.textContent=value;if(number)td.className='num';tr.append(td)}
+function renderTrace(){const q=$('filter').value.toLowerCase();const entries=data.cuts.flatMap(c=>c.rows.map(r=>({cut:c,record:r})));
+  const matched=entries.filter(x=>x.cut.name.toLowerCase().includes(q)||String(x.record.seed).includes(q));
+  $('summary').textContent=`${data.host_sha256.slice(0,12)} vs ${data.donor_sha256.slice(0,12)} · ${data.shots} fixed inputs · ${data.seeds.length} seeds · ${data.cuts.length} cuts · local prescreen`;
+  $('boundaries').replaceChildren();$('head').replaceChildren(...['Cut','Seed','Syndrome mismatches','By cohort','GF(2) Δ rank','Changed words','Dirty scratch H/D','Raw phase differences'].map(n=>{const th=document.createElement('th');th.textContent=n;return th}));
+  $('rows').replaceChildren();for(const x of matched){const tr=document.createElement('tr'),r=x.record;
+    cell(tr,`${x.cut.name} @${x.cut.host_op}`);cell(tr,r.seed,true);cell(tr,r.syndrome_mismatch_slots,true);
+    cell(tr,Object.entries(r.syndrome_mismatch_by_cohort).map(([k,v])=>`${k}:${v}`).join(' · '));
+    cell(tr,Object.entries(r.xor_rank_by_cohort||{}).map(([k,v])=>`${k}:${v}`).join(' · '));
+    cell(tr,r.changed_words.join(','));cell(tr,`${r.host_dirty_scratch_slots}/${r.donor_dirty_scratch_slots}`,true);
+    cell(tr,r.raw_intermediate_phase_mismatch_slots,true);
+    tr.onclick=()=>{$('detail').hidden=false;$('detail').textContent=JSON.stringify(x,null,2)};$('rows').append(tr)}
+  const note=document.createElement('p');note.className='muted';note.textContent='Phase differences are intermediate measurement-dependent observations, not completed-circuit failures. Click a row for bounded witnesses.';$('boundaries').append(note);
+}
+function renderMap(){const q=$('filter').value.trim().toLowerCase();const groups=new Map();
+  for(const row of data.mappings){const word=Math.floor(row.donor_bit/12);if(!groups.has(word))groups.set(word,[]);groups.get(word).push(row)}
+  $('summary').textContent=`${data.cut} · ${data.fit_candidate_bits}/${data.variable_donor_bits} varying bits fit · ${data.full_holdout_pass_bits} pass all holdouts · local prescreen`;
+  $('boundaries').textContent='One-bit coordinate screen. An aligned word is a sampled pattern; known-failure fixtures remain mandatory. Click a row for bit witnesses.';
+  $('head').replaceChildren(...['Donor word','Aligned host word','Fit bits','Odd pass','Natural pass','Known-failure pass'].map(n=>{const th=document.createElement('th');th.textContent=n;return th}));
+  $('rows').replaceChildren();for(const [word,rows] of groups){if(q&&!String(word).includes(q))continue;
+    const mapped=rows.filter(r=>r.status==='fit_candidate');const aligned=mapped.filter(r=>r.host_bit%12===r.donor_bit%12&&!r.complement);
+    const hostWords=[...new Set(aligned.map(r=>Math.floor(r.host_bit/12)))];const hostWord=rows.length===12&&aligned.length===12&&hostWords.length===1?hostWords[0]:'—';
+    const tr=document.createElement('tr');cell(tr,`S${word}`);cell(tr,hostWord==='—'?'—':`S${hostWord}`);
+    cell(tr,`${mapped.length}/${rows.length}`);for(const name of ['odd_fixed_weight','natural','known_failure'])cell(tr,mapped.filter(r=>r.holdout_errors[name]===0).length,true);
+    tr.onclick=()=>{$('detail').hidden=false;$('detail').textContent=JSON.stringify({donor_word:word,aligned_host_word:hostWord,rows},null,2)};$('rows').append(tr)}
+}
+function renderMapCompare(){const q=$('filter').value.trim().toLowerCase();
+  $('summary').textContent=`${data.before_cut} → ${data.after_cut} · ${data.same_full_words}/${data.common_full_words} common full-word maps unchanged · local prescreen`;
+  $('boundaries').textContent='Only complete 12-bit matches on the fixed regular-input holdouts are shown. Known failures and phase remain separate checks.';
+  $('head').replaceChildren(...['Donor word','Before host word','After host word','Same'].map(n=>{const th=document.createElement('th');th.textContent=n;return th}));
+  $('rows').replaceChildren();for(const r of data.rows){if(q&&!String(r.donor_word).includes(q))continue;const tr=document.createElement('tr');
+    cell(tr,`S${r.donor_word}`);cell(tr,`S${r.before_host_word}`);cell(tr,`S${r.after_host_word}`);cell(tr,r.same?'yes':'no');$('rows').append(tr)}
+}
+function render(){if(!data)return;if(data.schema==='kickmix-trace-diff-v1')return renderTrace();if(data.schema==='kickmix-state-map-v1')return renderMap();if(data.schema==='kickmix-state-map-compare-v1')return renderMapCompare();const diff=data.schema==='kickmix-workbench-diff-v1';
+  const rows=diff?data.changed_regions:data.tag_regions;
+  const q=$('filter').value.toLowerCase(),dep=$('depth').value;
+  const matched=rows.filter(r=>(dep==='all'||r.depth===Number(dep))&&(r.id||r.path||'').toLowerCase().includes(q));
+  const source=diff?`${data.before.sha256.slice(0,12)} → ${data.after.sha256.slice(0,12)}`:`${data.circuit.sha256.slice(0,12)} · Q=${data.circuit.qubits}`;
+  const m=diff?data.total_delta:data.metrics;
+  $('summary').textContent=`${source} · ${m.ops.toLocaleString()} ${diff?'Δ operations':'operations'} · ${m.toffoli.toLocaleString()} ${diff?'Δ Toffolis':'Toffolis'} · ${matched.length}/${rows.length} regions shown · static counts`;
+  $('boundaries').replaceChildren();const bs=(data.context||{}).boundaries||{};
+  for(const [name,row] of Object.entries(bs)){const button=document.createElement('button');button.textContent=`${name} @${row.op} · ${row.tier}`;
+    button.onclick=()=>{$('detail').hidden=false;$('detail').textContent=JSON.stringify(row,null,2)};$('boundaries').append(button)}
+  const names=['Stage path','Depth','Operations','Toffolis','Conditional Toffolis','HMR','Range'];
+  $('head').replaceChildren(...names.map(n=>{const th=document.createElement('th');th.textContent=n;return th}));$('rows').replaceChildren();
+  for(const r of matched.slice(0,500)){const tr=document.createElement('tr'),v=diff?r.delta:r.metrics;
+    cell(tr,r.id);cell(tr,r.depth,true);cell(tr,v.ops.toLocaleString(),true);cell(tr,v.toffoli.toLocaleString(),true);
+    cell(tr,v.conditional_toffoli.toLocaleString(),true);cell(tr,v.hmr.toLocaleString(),true);
+    const range=diff?r.after:r.start===null?null:[r.start,r.end];cell(tr,range?`[${range[0]}, ${range[1]})`:'—');
+    tr.onclick=()=>{$('detail').hidden=false;$('detail').textContent=JSON.stringify(r,null,2)};$('rows').append(tr)}
+}
+</script>
+</body>
+</html>

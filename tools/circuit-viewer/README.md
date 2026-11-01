@@ -206,6 +206,20 @@ This mechanism was identified in a private agent benchmark on two fresh
 six-bit tensors. It is a local exact rewrite; the report makes no optimality
 or competition-score claim.
 
+`bilinear-structure` reads an explicit tensor JSON and reports the exact
+rank of every nonzero left and right multiplication map, its rank histogram,
+small minimum-rank witnesses with kernel and image bases, the number of
+nonzero annihilating input pairs, and the three tensor flattening ranks:
+
+```sh
+tools/circuit-viewer/bilinear-structure target.json --out structure.json
+```
+
+This gives an agent a bounded way to distinguish a division-like field
+product from a tensor with zero divisors or low-rank operand directions.
+The report describes invariants and witnesses; it does not recover a hidden
+formula or a rank-one decomposition.
+
 `bilinear-sieve` reduces a directory of candidate KMBs in two stages:
 
 ```sh

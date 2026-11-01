@@ -40,6 +40,16 @@ def validated_terms(data: dict) -> tuple[int, int, list[tuple[int, int, int]]]:
     limit = 1 << width
     terms = []
     for i, row in enumerate(data["terms"]):
+        if not isinstance(row, dict):
+            raise ValueError(
+                f"term {i}: expected an object with a_mask, b_mask, output_mask "
+                f"(for example {{\"a_mask\": 1, \"b_mask\": 1, "
+                f"\"output_mask\": 1}}); got {type(row).__name__}")
+        missing = [name for name in ("a_mask", "b_mask", "output_mask")
+                   if name not in row]
+        if missing:
+            raise ValueError(f"term {i}: missing {', '.join(missing)}; expected "
+                             "a_mask, b_mask, output_mask")
         values = tuple(row[name] for name in ("a_mask", "b_mask", "output_mask"))
         if any(not isinstance(v, int) or not 0 < v < limit for v in values):
             raise ValueError(f"term {i}: masks must be nonzero width-bit integers")

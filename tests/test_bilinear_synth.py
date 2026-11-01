@@ -33,6 +33,14 @@ def test_synth_rejects_wrong_tensor():
                                "terms": [{"a_mask": 1, "b_mask": 1, "output_mask": 1}]})
 
 
+def test_synth_gives_actionable_term_shape_errors():
+    base = {"width": 4, "modulus": 0x13}
+    with pytest.raises(ValueError, match=r"term 0: expected an object.*got list"):
+        synth.validated_terms({**base, "terms": [[1, 1, 1]]})
+    with pytest.raises(ValueError, match=r"term 0: missing output_mask"):
+        synth.validated_terms({**base, "terms": [{"a_mask": 1, "b_mask": 1}]})
+
+
 def test_explicit_tensor_roundtrip_and_wrong_contract(tmp_path):
     original = cert.analyze(wb.Circuit(Path(__file__).parent / "fixtures/gf16_karatsuba.kmb"),
                             "a", "b", "t", 0x13)

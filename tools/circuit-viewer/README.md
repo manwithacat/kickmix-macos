@@ -209,7 +209,8 @@ or competition-score claim.
 `bilinear-structure` reads an explicit tensor JSON and reports the exact
 rank of every nonzero left and right multiplication map, its rank histogram,
 small minimum-rank witnesses with kernel and image bases, the number of
-nonzero annihilating input pairs, and the three tensor flattening ranks:
+nonzero annihilating input pairs, the three tensor flattening ranks, and
+cross-products and common annihilators of rank-one input directions:
 
 ```sh
 tools/circuit-viewer/bilinear-structure target.json --out structure.json

@@ -14,6 +14,9 @@ def test_two_independent_products_have_rank_one_zero_divisors():
     report = analyze([1, 0, 0, 2], 2)
     assert report["flattening_ranks"] == {"left": 2, "right": 2, "output": 2}
     assert report["nonzero_annihilating_input_pairs"] == 2
+    assert report["common_annihilator_of_rank_one_left"] == []
+    assert report["common_annihilator_of_rank_one_right"] == []
+    assert [row["output_mask"] for row in report["rank_one_cross_products"]] == [1, 0, 0, 2]
     for side in ("left", "right"):
         assert report["sides"][side]["rank_histogram"] == {"1": 2, "2": 1}
         assert report["sides"][side]["rank_one_masks"] == [1, 2]
@@ -24,6 +27,7 @@ def test_field_has_full_rank_for_every_nonzero_operand():
              for i in range(2) for j in range(2)]
     report = analyze(table, 2)
     assert report["nonzero_annihilating_input_pairs"] == 0
+    assert report["rank_one_cross_products"] == []
     for side in ("left", "right"):
         assert report["sides"][side]["rank_histogram"] == {"2": 3}
         assert report["sides"][side]["rank_one_masks"] == []

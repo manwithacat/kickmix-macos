@@ -65,6 +65,17 @@ def flattening_ranks(table: list[int], width: int) -> dict[str, int]:
             "output": len(rank_basis(output))}
 
 
+def common_annihilator_basis(table: list[int], width: int, side: str,
+                             masks: list[int]) -> list[int]:
+    if not masks:
+        return []
+    operators = [operator_columns(table, width, side, mask) for mask in masks]
+    joint_columns = [sum(operator[j] << (index * width)
+                         for index, operator in enumerate(operators))
+                     for j in range(width)]
+    return kernel_basis(joint_columns, width)
+
+
 def analyze(table: list[int], width: int, *, witness_limit: int = 8) -> dict:
     if not isinstance(width, int) or not 1 <= width <= 12:
         raise ValueError("width must be in 1..12")
@@ -95,10 +106,22 @@ def analyze(table: list[int], width: int, *, witness_limit: int = 8) -> dict:
         sides["right"]["nonzero_annihilating_pairs"]
     ):
         raise ValueError("left/right zero-pair counts disagree")
+    left_rank_one = sides["left"]["rank_one_masks"]
+    right_rank_one = sides["right"]["rank_one_masks"]
+    cross = [{"left_mask": left, "right_mask": right,
+              "output_mask": xor(operator_columns(table, width, "left", left)[j]
+                                 for j in range(width) if right >> j & 1)}
+             for left in left_rank_one[:witness_limit]
+             for right in right_rank_one[:witness_limit]]
     return {"schema": "kickmix-bilinear-structure-v1",
             "tier": "static model / projection", "width": width,
             "flattening_ranks": flattening_ranks(table, width),
             "nonzero_annihilating_input_pairs": sides["left"]["nonzero_annihilating_pairs"],
+            "rank_one_cross_products": cross,
+            "common_annihilator_of_rank_one_left": common_annihilator_basis(
+                table, width, "left", left_rank_one),
+            "common_annihilator_of_rank_one_right": common_annihilator_basis(
+                table, width, "right", right_rank_one),
             "sides": sides}
 
 

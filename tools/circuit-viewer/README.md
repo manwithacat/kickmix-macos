@@ -191,6 +191,21 @@ The report retains the initial alternatives and exact move history for an
 agent to inspect. The greedy choice is a search heuristic, not a minimum-rank
 proof; a smaller term count can also increase CX cost.
 
+`bilinear-corner` finds a complementary exact three-term pattern: two terms
+share a left parity, two share a right parity, and the pivot output mask is
+the XOR of the two arm masks. It lists every initial move with source indices
+and replacement terms, then applies the first strict saving repeatedly. The
+optional KMB is checked against the explicit tensor after synthesis:
+
+```sh
+tools/circuit-viewer/bilinear-corner input.kmb --modulus 0x43 \
+  --tensor-json target.json --out corners.json --candidate-out reduced.kmb
+```
+
+This mechanism was identified in a private agent benchmark on two fresh
+six-bit tensors. It is a local exact rewrite; the report makes no optimality
+or competition-score claim.
+
 `bilinear-sieve` reduces a directory of candidate KMBs in two stages:
 
 ```sh

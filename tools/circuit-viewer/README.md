@@ -161,6 +161,22 @@ field-isotopy witness `F(a,b)=H(A(a)*B(b))` when one exists. It exhaustively
 checks every input pair for widths up to eight and reports the three linear
 maps. It does not emit a rank-one decomposition or KMB candidate.
 
+`bilinear-mechanisms` exposes exact same-parity compression opportunities. It
+groups rank-one terms by a common left or right input parity, factors the
+remaining input-to-output binary matrix at GF(2) rank, and reports each
+term-saving replacement with source indices and masks. With `--candidate-out`,
+it repeatedly takes the largest saving, synthesizes a KMB, and byte-certifies
+the result against the pinned tensor:
+
+```sh
+tools/circuit-viewer/bilinear-mechanisms input.kmb --modulus 0x43 \
+  --tensor-json target.json --out mechanisms.json --candidate-out compressed.kmb
+```
+
+The report retains the initial alternatives and exact move history for an
+agent to inspect. The greedy choice is a search heuristic, not a minimum-rank
+proof; a smaller term count can also increase CX cost.
+
 `bilinear-sieve` reduces a directory of candidate KMBs in two stages:
 
 ```sh

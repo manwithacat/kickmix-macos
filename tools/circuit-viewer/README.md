@@ -221,6 +221,22 @@ product from a tensor with zero divisors or low-rank operand directions.
 The report describes invariants and witnesses; it does not recover a hidden
 formula or a rank-one decomposition.
 
+`bilinear-carrier` reports and applies an exact carrier-extension identity.
+It finds a pivot and compensating term with one shared input parity, plus
+one or two carrier terms on the XOR of their other input parities whose
+output masks XOR to the pivot's output. Extending the carriers' shared-side
+input masks and changing the compensator's output mask removes the pivot.
+Both input-axis orientations are searched. Every move is checked against
+the full tensor, and `--candidate-out` emits a byte-certified KMB:
+
+```sh
+tools/circuit-viewer/bilinear-carrier input.kmb --tensor-json target.json \
+  --out carriers.json --candidate-out reduced.kmb
+```
+
+The report lists source indices, replacement terms and each exact move.
+This is a local rewrite heuristic, not a tensor-rank lower bound.
+
 `bilinear-sieve` reduces a directory of candidate KMBs in two stages:
 
 ```sh

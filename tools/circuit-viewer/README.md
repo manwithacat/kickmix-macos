@@ -160,6 +160,18 @@ part of the benchmark input.
 field-isotopy witness `F(a,b)=H(A(a)*B(b))` when one exists. It exhaustively
 checks every input pair for widths up to eight and reports the three linear
 maps. It does not emit a rank-one decomposition or KMB candidate.
+`bilinear-transport` applies that witness to a certified standard-field
+multiplication core, synthesizes an ancilla-free KMB, and byte-certifies it
+against the explicit target tensor:
+
+```sh
+tools/circuit-viewer/bilinear-transport target.json --core tower15.kmb \
+  --candidate-out transported.kmb --out transport-report.json
+```
+
+The report retains the witness, transported terms, source hashes, and gate
+counts. It requires an invertible field isotope and a core for the target's
+modulus; it does not solve general non-field tensors.
 
 `bilinear-mechanisms` exposes exact same-parity compression opportunities. It
 groups rank-one terms by a common left or right input parity, factors the

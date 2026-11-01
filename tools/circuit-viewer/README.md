@@ -158,8 +158,10 @@ This remains a restricted exact tensor contract; the table must be pinned as
 part of the benchmark input.
 `bilinear_basis_explorer.py target.json --out witness.json` recovers a verified
 field-isotopy witness `F(a,b)=H(A(a)*B(b))` when one exists. It exhaustively
-checks every input pair for widths up to eight and reports the three linear
-maps. It does not emit a rank-one decomposition or KMB candidate.
+checks every input pair for widths up to eight. For widths nine through twelve,
+it checks every input basis pair, which is exact for bilinear maps, and labels
+that verification mode in the report. It does not emit a rank-one decomposition
+or KMB candidate.
 `bilinear-transport` applies that witness to a certified standard-field
 multiplication core, synthesizes an ancilla-free KMB, and byte-certifies it
 against the explicit target tensor:

@@ -5,6 +5,8 @@
 
 For an invertible transform F(a,b)=H(A(a)*B(b)), return the three linear maps
 A, B and H as GF(2) column vectors. No rank-one decomposition is produced.
+For widths above eight, check every basis pair; bilinearity makes that an
+exact certificate for all input pairs without enumerating them.
 """
 
 from __future__ import annotations
@@ -26,8 +28,8 @@ def apply(columns: list[int], value: int) -> int:
 
 
 def recover(width: int, modulus: int, basis_products: list[int]) -> dict:
-    if not isinstance(width, int) or not 1 <= width <= 8:
-        raise ValueError("width must be 1..8 for bounded exhaustive recovery")
+    if not isinstance(width, int) or not 1 <= width <= 12:
+        raise ValueError("width must be 1..12 for bounded field-isotopy recovery")
     limit = 1 << width
     if modulus.bit_length() != width + 1 or not modulus & 1:
         raise ValueError("invalid field modulus")
@@ -77,8 +79,10 @@ def recover(width: int, modulus: int, basis_products: list[int]) -> dict:
         raise ValueError("root powers do not span the output field")
     a_columns = [output_inverse[x] for x in left]
     b_columns = [output_inverse[x] for x in right]
-    for a in range(limit):
-        for b in range(limit):
+    exhaustive = width <= 8
+    check_inputs = range(limit) if exhaustive else [1 << i for i in range(width)]
+    for a in check_inputs:
+        for b in check_inputs:
             expected = apply(output, field_mul(apply(a_columns, a),
                                                apply(b_columns, b), width, modulus))
             if product(a, b) != expected:
@@ -89,7 +93,10 @@ def recover(width: int, modulus: int, basis_products: list[int]) -> dict:
             "tensor_sha256": hashlib.sha256(serialized).hexdigest(),
             "normalizing_inputs": [1, 1], "identity": identity,
             "root": root, "a_columns": a_columns, "b_columns": b_columns,
-            "output_columns": output, "verified_pairs": limit * limit,
+            "output_columns": output,
+            "verification_mode": ("all_input_pairs" if exhaustive
+                                  else "complete_bilinear_basis_pairs"),
+            "verified_pairs": (limit * limit if exhaustive else width * width),
             "decomposition_terms": None}
 
 

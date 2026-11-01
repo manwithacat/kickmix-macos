@@ -43,15 +43,23 @@ def xor(values) -> int:
 
 
 def kernel_basis(columns: list[int], width: int) -> list[int]:
-    kernel = [mask for mask in range(1, 1 << width)
-              if xor(columns[j] for j in range(width) if mask >> j & 1) == 0]
-    basis = []
-    span = {0}
-    for mask in kernel:
-        if mask not in span:
-            basis.append(mask)
-            span |= {value ^ mask for value in tuple(span)}
-    return basis
+    """Nullspace basis by elimination, without enumerating 2**width masks."""
+    pivots: dict[int, tuple[int, int]] = {}
+    dependencies = []
+    for j in range(width):
+        value, code = columns[j], 1 << j
+        while value:
+            pivot = value.bit_length() - 1
+            if pivot in pivots:
+                prior_value, prior_code = pivots[pivot]
+                value ^= prior_value
+                code ^= prior_code
+            else:
+                pivots[pivot] = (value, code)
+                break
+        if not value:
+            dependencies.append(code)
+    return dependencies
 
 
 def flattening_ranks(table: list[int], width: int) -> dict[str, int]:

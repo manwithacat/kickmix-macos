@@ -3,6 +3,8 @@
 """Exact rank profiles expose structural zero divisors."""
 
 import sys
+import random
+from functools import reduce
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tools/circuit-viewer"))
@@ -35,3 +37,19 @@ def test_field_has_full_rank_for_every_nonzero_operand():
 
 def test_kernel_basis_spans_nullspace():
     assert kernel_basis([1, 1, 0], 3) == [3, 4]
+
+
+def test_kernel_elimination_matches_exhaustive_nullspace():
+    rng = random.Random(20261101)
+    for width in range(1, 7):
+        for _ in range(20):
+            columns = [rng.randrange(1 << width) for _ in range(width)]
+            basis = kernel_basis(columns, width)
+            span = {0}
+            for vector in basis:
+                span |= {mask ^ vector for mask in tuple(span)}
+            exhaustive = {mask for mask in range(1 << width)
+                          if not reduce(int.__xor__,
+                                        (columns[j] for j in range(width)
+                                         if mask >> j & 1), 0)}
+            assert span == exhaustive

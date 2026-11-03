@@ -55,7 +55,7 @@ __version__ = "0.3.0"
 
 REPO = "manwithacat/kickmix-macos"
 ENGINE_REPO = "manwithacat/kickmix-engine"
-ENGINE_TASKS = ("invsqrt", "dqi")
+ENGINE_TASKS = ("dfthcsos", "invsqrt", "dqi")
 DEFAULT_TAG = "latest"  # the newest GitHub release; pass tag="vX.Y.Z" to pin
 KAGGLE_COMPETITION_DIR = "/kaggle/input/google-verifiable-quantum-circuit-compilation"
 TASKS = ("dfthcsos", "invsqrt", "dqi")
@@ -792,7 +792,7 @@ def _engine_worker(spec: dict) -> None:
         cmd += ["--cache-dir", str(spec["cache_dir"])]
     if spec.get("cross_check"):
         cmd += ["--cross-check"]
-        if spec.get("workers"):
+        if spec.get("workers") and spec["task"] != "dfthcsos":  # the dfthcsos verifier is serial
             cmd += ["--official-workers", str(spec["workers"])]
     t0 = time.monotonic()
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -849,12 +849,14 @@ def verify(task: str, circuit, build: str = "fork", workers: int | None = None, 
     size gives a reduced run whose result is NOT an official verification (the invsqrt shot count
     cannot be reduced: the verifier needs a multiple of its batch size).
 
-    build="engine" (invsqrt and dqi only; install_engine() first) runs `kickmix-engine verify` with the
-    competition's verifier file. The verifier module imports kickmix, so a kickmix build is put on the
-    engine's path: kickmix_build (default: the official build if present, else the fork; it does not
-    simulate). cross_check=True also runs the official verifier CLI on that kickmix build, unchanged,
-    and adds "cross_check" ({"match", "differences", "official", "seconds", ...}) to the result; a
-    FAIL is then returned rather than raised. cache_dir: the engine's program cache (default: its own).
+    build="engine" (all three tasks; install_engine() first) runs `kickmix-engine verify` with the
+    competition's verifier (verifiers/<task>/verify_submission_<task>.py; for dfthcsos the official
+    verifiers/dfthcsos package directory, and circuit is the submission directory). The verifier
+    module imports kickmix, so a kickmix build is put on the engine's path: kickmix_build (default:
+    the official build if present, else the fork; it does not simulate). cross_check=True also runs
+    the official verifier CLI on that kickmix build, unchanged, and adds "cross_check" ({"match",
+    "differences", "official", "seconds", ...}) to the result; a FAIL is then returned rather than raised.
+    cache_dir: the engine's program cache (default: its own).
 
     Returns {"task", "build", "result" (the verifier's own dict), "wall_seconds",
     "peak_rss_sum_mb", "peak_pss_sum_mb" (Linux), "max_single_process_mb", "kickmix_module",
@@ -903,8 +905,17 @@ def _module_file(build: Path) -> str:
     return str(hits[0]) if hits else "?"
 
 
+def _engine_verifier_path(task: str) -> Path:
+    """The official verifier the engine loads: the dfthcsos package directory, else the task's script."""
+    root = competition_dir() / "verifiers" / task
+    if task == "dfthcsos":
+        return root
+    return root / f"verify_submission_{task}.py"
+
+
 def _verify_engine(task, circuit, workers, *, salt, dqi_shots, build_dir, timeout, cross_check,
                    kickmix_build, cache_dir) -> dict:
+    """verify(build="engine") for dfthcsos, invsqrt and dqi: the engine CLI, optionally with --cross-check."""
     if task not in ENGINE_TASKS:
         raise ValueError(f"kickmix-engine verifies {ENGINE_TASKS} only, not {task!r}")
     engine_dir = Path(build_dir) if build_dir else engine_build()
@@ -915,8 +926,8 @@ def _verify_engine(task, circuit, workers, *, salt, dqi_shots, build_dir, timeou
     km_dir = _engine_kickmix_dir(kickmix_build)
     if not _has_module(km_dir):
         raise FileNotFoundError(f"no kickmix extension module in {km_dir} (needed for the verifier imports)")
-    verifier = competition_dir() / "verifiers" / task / f"verify_submission_{task}.py"
-    if not verifier.is_file():
+    verifier = _engine_verifier_path(task)
+    if not (verifier / "verify.py" if task == "dfthcsos" else verifier).is_file():
         raise FileNotFoundError(f"official verifier not found: {verifier}")
     if workers is None:
         workers = default_workers(task)

@@ -39,7 +39,8 @@ if "FAIL" in os.path.basename(circuit):
     sys.exit(1)
 summary = {"status": "PASS", "score": 1.5, "num_qubits": 7, "shot_operation_counts": {"CX": 3},
            "threads": opt("--threads"), "salt": opt("--salt"), "num_shots": opt("--num-shots"),
-           "verifier": opt("--verifier"), "pythonpath": os.environ.get("PYTHONPATH", "")}
+           "verifier": opt("--verifier"), "circuit": circuit, "official_workers": opt("--official-workers"),
+           "pythonpath": os.environ.get("PYTHONPATH", "")}
 kernel = {"kernel": "baseline", "selected_by": "auto", "available": ["baseline"]}
 print(json.dumps({"engine_info": {"kernel": kernel, "total_s": 0.01}}), file=sys.stderr)
 if "--cross-check" in args:
@@ -171,6 +172,8 @@ def engine_env(tmp_path, monkeypatch):
     for task in ("dqi", "invsqrt"):
         (comp / "verifiers" / task).mkdir(parents=True)
         (comp / "verifiers" / task / f"verify_submission_{task}.py").write_text("")
+    (comp / "verifiers" / "dfthcsos").mkdir(parents=True)
+    (comp / "verifiers" / "dfthcsos" / "verify.py").write_text("")
     (comp / "kickmix").mkdir()
     (comp / "kickmix" / "kickmix.so").write_bytes(b"")  # stand-in: the fake engine never imports it
     monkeypatch.setenv("KICKMIX_TOOLS_COMPETITION_DIR", str(comp))
@@ -245,9 +248,31 @@ def test_verify_engine_fail_and_bad_task(engine_env):
     with pytest.raises(RuntimeError, match="x was not restored"):
         kt.verify("dqi", bad, build="engine", workers=1)
     with pytest.raises(ValueError):
-        kt.verify("dfthcsos", engine_env["tmp"], build="engine")
-    with pytest.raises(ValueError):
         kt.verify("dqi", bad, build="fork", cross_check=True)
+    with pytest.raises(ValueError):
+        kt.verify("nope", bad, build="engine")
+
+
+def test_verify_engine_dfthcsos(engine_env):
+    family = engine_env["tmp"] / "family"
+    family.mkdir()
+    r = kt.verify("dfthcsos", family, build="engine", workers=4, salt="s2")
+    res = r["result"]
+    assert r["task"] == "dfthcsos" and r["build"] == "engine" and res["status"] == "PASS"
+    # the official dfthcsos package directory, the submission directory, threads and salt are passed
+    assert res["verifier"] == str(engine_env["comp"] / "verifiers" / "dfthcsos")
+    assert res["circuit"] == str(family) and res["threads"] == "4" and res["salt"] == "s2"
+    assert res["num_shots"] is None and "cross_check" not in r
+    r = kt.verify("dfthcsos", family, build="engine", workers=4, cross_check=True)
+    assert r["cross_check"]["match"] is True
+    assert r["result"]["official_workers"] is None  # the official dfthcsos verifier is serial
+    bad = engine_env["tmp"] / "FAIL_family"
+    bad.mkdir()
+    with pytest.raises(RuntimeError, match="x was not restored"):
+        kt.verify("dfthcsos", bad, build="engine", workers=1)
+    (engine_env["comp"] / "verifiers" / "dfthcsos" / "verify.py").unlink()
+    with pytest.raises(FileNotFoundError, match="official verifier not found"):
+        kt.verify("dfthcsos", family, build="engine", workers=1)
 
 
 def test_engine_kickmix_fallback_to_fork(engine_env, monkeypatch):

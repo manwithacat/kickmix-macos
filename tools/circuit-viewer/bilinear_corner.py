@@ -73,11 +73,13 @@ def reduce_corners(terms: list[dict], width: int, table: list[int],
 
 def run(source: Path, a: str, b: str, target: str, modulus: int,
         tensor_json: Path | None, report_out: Path,
-        candidate_out: Path | None = None, max_moves: int = 32) -> dict:
+        candidate_out: Path | None = None, max_moves: int = 32, *,
+        table: list[int] | None = None) -> dict:
     if report_out.exists() or (candidate_out is not None and candidate_out.exists()):
         raise FileExistsError("report or candidate already exists")
-    tensor = json.loads(tensor_json.read_text()) if tensor_json else None
-    table = tensor["basis_products"] if isinstance(tensor, dict) else tensor
+    if table is None:
+        tensor = json.loads(tensor_json.read_text()) if tensor_json else None
+        table = tensor["basis_products"] if isinstance(tensor, dict) else tensor
     source_report = analyze(Circuit(source), a, b, target, modulus,
                             expected_basis_products=table)
     width = source_report["width"]

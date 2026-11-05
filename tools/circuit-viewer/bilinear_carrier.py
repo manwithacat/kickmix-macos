@@ -73,20 +73,30 @@ def reduce_carriers(terms: list[dict], width: int, table: list[int],
     return terms, initial, history
 
 
-def run(source: Path, target_json: Path, report_out: Path,
-        candidate_out: Path | None = None) -> dict:
+def run(source: Path, target_json: Path | None, report_out: Path,
+        candidate_out: Path | None = None, *, modulus: int | None = None,
+        table: list[int] | None = None,
+        registers: tuple[str, str, str] = ("a", "b", "t")) -> dict:
+    """Without target_json, `modulus` and the full `table` describe the target."""
     if report_out.exists() or (candidate_out is not None and candidate_out.exists()):
         raise FileExistsError("report or candidate already exists")
-    target = json.loads(target_json.read_text())
-    width, modulus, table = (target[key] for key in
-                             ("width", "modulus", "basis_products"))
-    source_report = analyze(Circuit(source), "a", "b", "t", modulus,
+    if target_json is not None:
+        target = json.loads(target_json.read_text())
+        width, modulus, table = (target[key] for key in
+                                 ("width", "modulus", "basis_products"))
+    elif modulus is None or table is None:
+        raise ValueError("carrier search needs a target tensor JSON or a modulus and table")
+    else:
+        width = modulus.bit_length() - 1
+    a, b, t = registers
+    source_report = analyze(Circuit(source), a, b, t, modulus,
                             expected_basis_products=table)
     reduced, initial, history = reduce_carriers(source_report["normalized_terms"],
                                                 width, table)
     result = {"schema": "kickmix-bilinear-carrier-v1",
               "tier": "static model / projection", "source_sha256": digest(source),
-              "target_sha256": digest(target_json), "width": width,
+              "target_sha256": digest(target_json) if target_json else None,
+              "target_tensor_kind": source_report["target_tensor_kind"], "width": width,
               "input_ccx": source_report["gate_counts"].get("ccx", 0),
               "initial_opportunities": initial,
               "move_history": history, "final_terms": len(reduced),

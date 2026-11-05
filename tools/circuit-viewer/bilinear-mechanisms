@@ -1,11 +1,5 @@
 #!/usr/bin/env bash
 # Copyright 2026 James Barlow
 # SPDX-License-Identifier: Apache-2.0
-set -euo pipefail
-here="$(cd "$(dirname "$0")" && pwd)"
-python_bin="$here/../../.venv/bin/python"
-if [[ ! -x "$python_bin" ]]; then
-  echo "bilinear-mechanisms: expected $python_bin; set up the kickmix-macos venv" >&2
-  exit 2
-fi
-exec "$python_bin" "$here/bilinear_mechanisms.py" "$@"
+# Alias kept for existing scripts: same as `workbench bilinear-mechanisms`.
+exec "$(cd "$(dirname "$0")" && pwd)/workbench" bilinear-mechanisms "$@"

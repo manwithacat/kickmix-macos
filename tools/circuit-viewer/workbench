@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
 # Copyright 2026 James Barlow
 # SPDX-License-Identifier: Apache-2.0
+# Runs workbench.py with the fork's .venv (NumPy). WORKBENCH_PYTHON overrides
+# the interpreter, e.g. for a git worktree that shares another checkout's venv.
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
-python_bin="$here/../../.venv/bin/python"
+python_bin="${WORKBENCH_PYTHON:-$here/../../.venv/bin/python}"
 if [[ ! -x "$python_bin" ]]; then
-  echo "workbench: run setup for kickmix-macos; expected $python_bin" >&2
+  printf '{"error": "no Python interpreter at %s", "hint": "set up the kickmix-macos .venv or set WORKBENCH_PYTHON"}\n' "$python_bin"
   exit 2
 fi
 exec "$python_bin" "$here/workbench.py" "$@"

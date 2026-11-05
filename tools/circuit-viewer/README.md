@@ -30,47 +30,63 @@ stages. Circuits much larger than invsqrt (about 50,000 ops) will be slow in thi
 
 ## Large-circuit workbench (agent-first)
 
-From the fork root, run `tools/circuit-viewer/workbench` to use the fork's
-`.venv` automatically. This launcher avoids the system-Python `numpy` import
-failure seen in the first GF(16) agent trial. The underlying `workbench.py`
-remains available for explicit Python environments.
+Agents: read the fork's [`AGENTS.md`](../../AGENTS.md) first. One launcher covers every verb:
+`tools/circuit-viewer/workbench <verb>`, run from the fork root. It uses the fork's `.venv`
+(NumPy) automatically, or the interpreter in `WORKBENCH_PYTHON`. `workbench --help` lists every verb
+by question; `workbench <verb> --help` gives its flags. The older `bilinear-*` launchers are aliases for
+the matching `workbench bilinear-*` verbs, and the bare `bilinear_*.py` scripts remain as standalone entry
+points for staged benchmark packages that copy them.
 
-`workbench.py` indexes a `.kmb` file without expanding its operations to text or running public source code.
-Use a Python environment with NumPy, such as this fork's `.venv`. It produces bounded CLI answers and a
-machine-readable JSON report with stable half-open operation ranges, nested tag paths, resource counts,
-source attribution, and SHA-256. For example:
+Every verb prints one JSON object on stdout. A successful summary carries a short `next` list of commands
+that work on its output. A bad input (wrong modulus, missing file, bad range, unknown verb) prints
+`{"error": ..., "hint": ...}` and exits non-zero, never a Python traceback. Report files are never
+overwritten.
+
+`summarize` indexes a `.kmb` file without expanding its operations to text or running public source code.
+It produces bounded CLI answers and a machine-readable JSON report with stable half-open operation ranges,
+nested tag paths, resource counts, source attribution, and SHA-256. For example:
 
 ```sh
-.venv/bin/python tools/circuit-viewer/workbench.py summarize circuit.kmb --out report.json \
+tools/circuit-viewer/workbench summarize circuit.kmb --out report.json --context context.json \
   --author 'Circuit author' --source 'https://www.kaggle.com/code/author/notebook' \
   --version 1 --licence Apache-2.0
-.venv/bin/python tools/circuit-viewer/workbench.py query report.json --match 'unextract' --depth 1
-.venv/bin/python tools/circuit-viewer/workbench.py boundary report.json reverse_entry
-.venv/bin/python tools/circuit-viewer/workbench.py cut circuit.kmb 60984848 --radius 4
-.venv/bin/python tools/circuit-viewer/workbench.py compare older.json newer.json --out diff.json
-.venv/bin/python tools/circuit-viewer/workbench.py trace-diff pinned-trace-manifest.json --out trace.json
-.venv/bin/python tools/circuit-viewer/workbench.py trace-query trace.json --cut reverse_entry --seed 777
-.venv/bin/python tools/circuit-viewer/workbench.py trace-plan trace.json host.json donor.json \
+tools/circuit-viewer/workbench query report.json --depth 0 --sort toffoli
+tools/circuit-viewer/workbench query report.json --match '^scan/' --group path
+tools/circuit-viewer/workbench boundary report.json reverse_entry
+tools/circuit-viewer/workbench cut circuit.kmb 3 --radius 4
+tools/circuit-viewer/workbench compare older.json newer.json --out diff.json
+tools/circuit-viewer/workbench query diff.json --sort toffoli --limit 10
+tools/circuit-viewer/workbench trace-diff pinned-trace-manifest.json --out trace.json
+tools/circuit-viewer/workbench trace-query trace.json --cut reverse_entry --seed 777
+tools/circuit-viewer/workbench trace-plan trace.json host.json donor.json \
   --cohort fixed_weight --seed 777
-.venv/bin/python tools/circuit-viewer/workbench.py prefix 9094.kmb 42582636 \
+tools/circuit-viewer/workbench prefix 9094.kmb 42582636 \
   --out diagnostic-prefix.kmb
-.venv/bin/python tools/circuit-viewer/workbench.py sample-dqi 9094.kmb diagnostic-prefix.kmb inputs.npz \
+tools/circuit-viewer/workbench sample-dqi 9094.kmb diagnostic-prefix.kmb inputs.npz \
   --seeds 777 778 --engine-package /path/to/compatible/engine-package --out diagnostic-dump.npz
-.venv/bin/python tools/circuit-viewer/workbench.py state-map pinned-trace-manifest.json \
+tools/circuit-viewer/workbench state-map pinned-trace-manifest.json \
   --cut scan_exit --out coordinate-screen.json
-.venv/bin/python tools/circuit-viewer/workbench.py state-map-query coordinate-screen.json --word 6
-.venv/bin/python tools/circuit-viewer/workbench.py state-map-compare before-map.json before-manifest.json \
+tools/circuit-viewer/workbench state-map-query coordinate-screen.json --word 6
+tools/circuit-viewer/workbench state-map-compare before-map.json before-manifest.json \
   after-map.json after-manifest.json --out map-change.json
-.venv/bin/python tools/circuit-viewer/workbench.py stage-contract pinned-trace-manifest.json \
+tools/circuit-viewer/workbench stage-contract pinned-trace-manifest.json \
   scan-entry.json scan-exit.json --out scan-contract.json
-.venv/bin/python tools/circuit-viewer/workbench.py wire-transport circuit.kmb static.json --out transport.json
-.venv/bin/python tools/circuit-viewer/workbench.py transport-compare host-transport.json \
+tools/circuit-viewer/workbench wire-transport 9094.kmb static.json --out transport.json
+tools/circuit-viewer/workbench transport-compare host-transport.json \
   donor-transport.json coordinate-screen.json --out transport-check.json
-.venv/bin/python tools/circuit-viewer/workbench.py bilinear-cert gf16.kmb \
+tools/circuit-viewer/workbench bilinear-cert gf16.kmb \
   --a a --b b --target t --modulus 0x13 --out multiplier-certificate.json
-.venv/bin/python tools/circuit-viewer/workbench.py bilinear-project multiplier-certificate.json \
+tools/circuit-viewer/workbench bilinear-project multiplier-certificate.json \
   --output-mask 0x1 --out scalar-projection.json
 ```
+
+Never print a large report: the frontier DQI report is about 2.8 MB. Use `query`, which is bounded.
+Query `--depth` is tag nesting: 0 selects top-level stages (`unextract`, `scan`, ...), 1 their children,
+and so on; omit it to search every level. `--match` is a case-insensitive regular expression on the
+region id (`path#occurrence`). `--group path` sums every instance of a tag path into one row with an
+`instances` count, so the 8,050 `scan/gf_iadd` instances of the frontier DQI become one row. A query that
+matches nothing reports the depths present and a hint. Circuits without INFO_TAGs (the invsqrt frontier)
+have no regions: `summarize` says so and suggests `cut` instead.
 
 The `query` command returns at most 20 regions by default (maximum 100); its `matched` count shows what was
 omitted. `cut` prints op addresses and operands around one position. `compare` subtracts static stage counts;
@@ -131,7 +147,20 @@ against a sampled coordinate map.
 
 `bilinear-cert` recovers a multiplication tensor directly from KMB gate bytes, ignoring all INFO_TAG labels.
 Give it three equal-width qubit registers by name, or half-open ranges such as `--a 0:4 --b 4:8
---target 8:12`, and the binary polynomial modulus. It follows affine wire forms and each CCX product
+--target 8:12`, and the binary polynomial modulus. Without register flags it uses KMB registers named
+`a`, `b`, `t`. With `--challenge manifest.json --id gf16-06` it reads the modulus, any explicit
+`basis_products`, the register layout (a row's `registers`, else the benchmark contract: `a`, `b`, `t`
+contiguous) and the KMB itself from the bilinear benchmark manifest, so nothing needs guessing:
+
+```sh
+tools/circuit-viewer/workbench bilinear-cert --challenge challenge/manifest.json --id gf16-06 \
+  --out challenge-cert.json --tensor-out field-tensor.json
+```
+
+`--tensor-out` writes the certified target as `{width, modulus, basis_products}`, the input that
+`bilinear-structure`, `bilinear-isotopy`, `bilinear-carrier` and `bilinear-transport` take. Every bilinear
+verb accepts `--modulus`, `--tensor-json` and `--challenge/--id` with the same meaning; the tensor-only
+verbs synthesise the standard field tensor from `--modulus` when no tensor file is given. It follows affine wire forms and each CCX product
 through CX/SWAP, reports the input parity masks and final output mask of every product, and checks all
 input-bit-pair products against independent shift-and-reduce multiplication. It also requires the final
 linear map to restore both operands and an arbitrary dirty target. Its `physical_gates` excludes INFO_TAGs.
@@ -156,7 +185,7 @@ checks the row-major `basis_products` table instead of standard field multiplica
 The Python `analyze` API accepts the same table as `expected_basis_products`.
 This remains a restricted exact tensor contract; the table must be pinned as
 part of the benchmark input.
-`bilinear_basis_explorer.py target.json --out witness.json` recovers a verified
+`workbench bilinear-isotopy target.json --out witness.json` (formerly `bilinear_basis_explorer.py`) recovers a verified
 field-isotopy witness `F(a,b)=H(A(a)*B(b))` when one exists. It exhaustively
 checks every input pair for widths up to eight. For widths nine through twelve,
 it checks every input basis pair, which is exact for bilinear maps, and labels
@@ -167,7 +196,8 @@ multiplication core, synthesizes an ancilla-free KMB, and byte-certifies it
 against the explicit target tensor:
 
 ```sh
-tools/circuit-viewer/bilinear-transport target.json --core tower15.kmb \
+tools/circuit-viewer/workbench bilinear-isotopy target.json --out witness.json
+tools/circuit-viewer/workbench bilinear-transport target.json --core core.kmb \
   --candidate-out transported.kmb --out transport-report.json
 ```
 
@@ -183,8 +213,8 @@ it repeatedly takes the largest saving, synthesizes a KMB, and byte-certifies
 the result against the pinned tensor:
 
 ```sh
-tools/circuit-viewer/bilinear-mechanisms input.kmb --modulus 0x43 \
-  --tensor-json target.json --out mechanisms.json --candidate-out compressed.kmb
+tools/circuit-viewer/workbench bilinear-mechanisms transported.kmb --modulus 0x13 \
+  --tensor-json target.json --out mechanisms.json
 ```
 
 The report retains the initial alternatives and exact move history for an
@@ -198,22 +228,26 @@ and replacement terms, then applies the first strict saving repeatedly. The
 optional KMB is checked against the explicit tensor after synthesis:
 
 ```sh
-tools/circuit-viewer/bilinear-corner input.kmb --modulus 0x43 \
-  --tensor-json target.json --out corners.json --candidate-out reduced.kmb
+tools/circuit-viewer/workbench bilinear-corner gf16.kmb --modulus 0x13 \
+  --out corners.json --candidate-out reduced.kmb
+tools/circuit-viewer/workbench bilinear-corner --challenge challenge/manifest.json --id gf16-06 \
+  --out challenge-corners.json
 ```
 
 This mechanism was identified in a private agent benchmark on two fresh
 six-bit tensors. It is a local exact rewrite; the report makes no optimality
 or competition-score claim.
 
-`bilinear-structure` reads an explicit tensor JSON and reports the exact
+`bilinear-structure` reads an explicit tensor JSON (or, with `--modulus` alone, the standard field
+tensor) and reports the exact
 rank of every nonzero left and right multiplication map, its rank histogram,
 small minimum-rank witnesses with kernel and image bases, the number of
 nonzero annihilating input pairs, the three tensor flattening ranks, and
 cross-products and common annihilators of rank-one input directions:
 
 ```sh
-tools/circuit-viewer/bilinear-structure target.json --out structure.json
+tools/circuit-viewer/workbench bilinear-structure target.json --out structure.json
+tools/circuit-viewer/workbench bilinear-structure --modulus 0x13 --out field-structure.json
 ```
 
 This gives an agent a bounded way to distinguish a division-like field
@@ -235,8 +269,9 @@ Both input-axis orientations are searched. Every move is checked against
 the full tensor, and `--candidate-out` emits a byte-certified KMB:
 
 ```sh
-tools/circuit-viewer/bilinear-carrier input.kmb --tensor-json target.json \
-  --out carriers.json --candidate-out reduced.kmb
+tools/circuit-viewer/workbench bilinear-carrier reduced.kmb --tensor-json field-tensor.json \
+  --out carriers.json
+tools/circuit-viewer/workbench bilinear-carrier gf16.kmb --modulus 0x13 --out field-carriers.json
 ```
 
 The report lists source indices, replacement terms and each exact move.
@@ -245,12 +280,12 @@ This is a local rewrite heuristic, not a tensor-rank lower bound.
 `bilinear-sieve` reduces a directory of candidate KMBs in two stages:
 
 ```sh
-tools/circuit-viewer/bilinear-sieve scan --manifest challenge/manifest.json \
-  --id gf64-transformed-01 --pool candidates/ --review-size 6 --out scan/
+tools/circuit-viewer/workbench bilinear-sieve scan --manifest challenge/manifest.json \
+  --id gf16-06 --pool candidates/ --review-size 6 --out scan/
 # Give scan/review_packet.json to an agent. Its decisions JSON contains one
 # {"id": ..., "disposition": "keep|discard|needs_evidence", "reason": ...}
 # per review candidate.
-tools/circuit-viewer/bilinear-sieve finalize --audit scan/audit.json \
+tools/circuit-viewer/workbench bilinear-sieve finalize --audit scan/audit.json \
   --packet scan/review_packet.json --decisions decisions.json \
   --max-shortlist 4 --out shortlist/
 ```
@@ -263,20 +298,19 @@ retains the best exact CCX candidate. It does not call a model or infer an
 algebraic derivation from successful equivalence. The caller can supply any
 agent reviewer through the JSON handoff and inspect the full audit when needed.
 
-`bilinear_synth.py` accepts a JSON list of rank-one terms, each with
+`workbench bilinear-synth` (also the standalone `bilinear_synth.py`) accepts a JSON list of rank-one terms, each with
 `a_mask`, `b_mask` and `output_mask`, plus `width` and `modulus`. Optional
 `basis_products` selects an explicit transformed target. It checks the
 complete field multiplication tensor, then writes an ancilla-free KMB using
 temporary CX parities around each CCX. For example:
 
 ```sh
-python3 tools/circuit-viewer/bilinear_synth.py proposed-terms.json --out candidate.kmb
-tools/circuit-viewer/workbench bilinear-cert candidate.kmb \
-  --a a --b b --target t --modulus 0x49 --out candidate-cert.json
+tools/circuit-viewer/workbench bilinear-synth multiplier-certificate.json --out candidate.kmb
+tools/circuit-viewer/workbench bilinear-cert candidate.kmb --modulus 0x13 --out candidate-cert.json
 ```
 
 The input may also be a `bilinear-cert` JSON report, since it contains the
-same fields. The synthesizer refuses a tensor mismatch and will not overwrite
+same fields; `--modulus` supplies one when the terms file lacks it. The synthesizer refuses a tensor mismatch and will not overwrite
 an existing output. It does not find decompositions or minimize CX counts;
 the agent must supply a valid multi-output term list. Its tensor precheck is
 not a byte certificate: run `bilinear-cert` on the written KMB.

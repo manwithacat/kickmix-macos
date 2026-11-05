@@ -14,10 +14,15 @@ from collections import Counter
 def _register(circuit, spec: str) -> list[int]:
     if ":" in spec:
         left, right = spec.split(":", 1)
+        if not (left.isdigit() and right.isdigit()) or not (
+                int(left) < int(right) <= circuit.qubits):
+            raise ValueError(f"bad register range {spec!r}: expected START:END with "
+                             f"0 <= START < END <= {circuit.qubits}")
         ids = list(range(int(left), int(right)))
     else:
         if spec not in circuit.register_ids:
-            raise ValueError(f"unknown qubit register {spec!r}")
+            raise ValueError(f"unknown qubit register {spec!r}; KMB registers: "
+                             f"{', '.join(circuit.register_ids) or 'none'}")
         contents = circuit.register_ids[spec]
         if any(not is_qubit for is_qubit, _ in contents):
             raise ValueError(f"register {spec!r} contains classical bits")

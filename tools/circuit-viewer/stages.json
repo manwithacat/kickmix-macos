@@ -1,1 +1,1333 @@
-{"circuit":"67482db6c538 (yoyobar, with Ahmed Berat Özer's patch; on busyaprime's 9a8627 and mrmeows' design)","stages":[{"id":"normalize","start":0,"end":238,"title":"Normalize the input","desc":"Counts the leading zeros of x with an AND chain over the inverted bits and encodes the count in five control qubits (q42..q46). CSWAP ladders controlled by those bits reverse/shift the x register into a normalized mantissa; the prefix flags and count bits are then erased by X-basis measurement with CZ phase repairs. Identical, op for op, to 9a8627.","tof":71,"tof_mean":71.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":25},{"id":"coeff_lookup","start":238,"end":15214,"title":"Coefficient table lookup (256 addresses, built in place)","desc":"Reads the top 8 bits of the normalized mantissa (q14..q21) as an address and XORs the polynomial coefficient bits for that address into scratch qubits; the lookup output is the same as in 9a8627. This is where the 62-qubit build first gives up a wire. 9a8627 keeps all 32 two-input AND products as temporaries and retires one per output word; here 27 of the 32 products are built in place, in the wires that become output words, and only 5 are kept as temporaries, so 39 scratch wires are live at the plateau instead of 40. It costs a few ANDs (177 Toffolis against 172), and the leftover temporaries are erased at the end in one HMR block with classically controlled Z/CZ fix-ups (Clifford).","tof":177,"tof_mean":177.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":5},{"id":"early_phase_taps","start":15214,"end":16166,"title":"Early phase taps (coarse rotations)","desc":"Builds Boolean phase controls (exact gated quadratics of live coefficient bits) into one control qubit (q28 here; q59 and q40 in 9a8627), applies the same 22 Z_POW gates as 9a8627 (the 16 coarse rotations from 2^-18 to 2^-3 turn on that control, including the one T gate, and six on x wires) plus Clifford fix-ups, and erases each control by HMR with feedback. One wire narrower than 9a8627: fix-up parities that 9a8627 computes into fresh ancillas are kept as classical logic on measurement bits (BIT_INVERT, PUSH_CONDITION) and classically controlled CX on live wires. 92 Toffoli-class gates, 79.99 run per input on average.","tof":92,"tof_mean":79.99,"ev":["documented","inferred"],"n_zpow":22,"n_hmr":35},{"id":"front_decoder_compute","start":16166,"end":18996,"title":"Joint coefficient (front) decoder","desc":"mrmeows' frozen block that synthesizes the nine missing output directions of the coefficient decoder from the address, in the live physical wire frame. One window inside it (window S1) was re-synthesised by busyaprime: 25 AND gates instead of 30, so 33 Toffolis here instead of 38. CX-heavy, with 17 independent X-basis measurements whose phase kickback is repaired in the next stage. Same gate sequence as 9a8627 here, on relabelled wires.","tof":33,"tof_mean":33.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":17},{"id":"front_decoder_phase_repair","start":18996,"end":20737,"title":"Front decoder phase repair","desc":"About 1,700 consecutive conditional CZ/Z gates (all conditioned on measurement bits) cancel the phase kickback of the front decoder measurements: a pure-Clifford phase-repair block of rank 256 over the address. Same gate sequence as 9a8627 here, on relabelled wires.","tof":0,"tof_mean":0.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":0},{"id":"arith_a","start":20737,"end":21667,"title":"Polynomial arithmetic, first block","desc":"First arithmetic segment after the decoder: dense Toffoli+HMR activity that begins combining the decoded coefficients with the low mantissa bits. yoyobar's own candidate edits four places here (ops 21333-21635): in each, three ANDs into one target become two ANDs plus CX, one Toffoli fewer per place. 68 Toffolis here against 87 in 9a8627.","tof":68,"tof_mean":68.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":69},{"id":"lookup_b","start":21667,"end":23414,"title":"Second CX-dominated block (lookup / history caches)","desc":"Another run of affine-form lookups with ~7 Toffolis per 250 ops, feeding the quadratic evaluation; consistent with the \"history cache\" idea of reusing earlier AND values through CNOT combinations. Apart from 11 CX at the start of 9a8627's version, the same gate sequence as 9a8627, on relabelled wires.","tof":43,"tof_mean":43.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":0},{"id":"arith_b","start":23414,"end":25425,"title":"Polynomial arithmetic, second block","desc":"The main adder/multiplier region: ~25 Toffolis and ~25 measurement-repaired AND uncomputations per 250 ops, with 8 of the 11 classical BIT_STORE/BIT_INVERT ops (ops 24285-24763). Produces the bits that are streamed into the fine phase rotations. Up to op 25157 the same gate sequence as 9a8627, on relabelled wires.","tof":198,"tof_mean":198.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":188},{"id":"fine_phase_stream","start":25425,"end":25923,"title":"Fine phase rotations (streamed)","desc":"Streams the low output bits through a control qubit with CSWAP and applies 26 Z_POW rotations from 2^-36 to 2^-11 turn, each followed by HMR feedback. q50 carries 21 of the 26 rotations here (q40 carries all 26 in 9a8627). Includes the one-Toffoli guard-bit phase correction F15 xor [Y1 and (e1 xor e2)], on q54, q18 and q27.","tof":133,"tof_mean":133.0,"ev":["documented","inferred"],"n_zpow":26,"n_hmr":52},{"id":"phase_merge_repair","start":25923,"end":28773,"title":"Phase merge repair","desc":"Repairs the phase of the streamed control bits after the rotations (the \"partial-merge\" correction tail). In this circuit the stage also holds fix-up logic that 9a8627 runs on fresh ancillas: parities of measurement bits computed classically (BIT_INVERT, nested PUSH/POP_CONDITION) and linear forms XORed onto live wires under classical control, then undone. That makes it 2,850 ops against 865 in 9a8627. Its 78 Toffoli-class gates sit mostly in measurement-conditioned blocks: 6 run per input on average.","tof":78,"tof_mean":6.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":5},{"id":"arith_c","start":28773,"end":32247,"title":"Late arithmetic with CCZ phase terms","desc":"Dense Toffoli/CCZ/HMR region (about 280 Toffolis) with many X gates and nested PUSH/POP_CONDITION blocks; the measurement-conditioned non-Clifford corrections of the arithmetic live here. This circuit adds 20 classically conditioned Z_POW rotations here (T, S and their inverses) as part of its fix-up logic.","tof":282,"tof_mean":248.323,"ev":["documented","inferred"],"n_zpow":20,"n_hmr":231},{"id":"lookup_c","start":32247,"end":34952,"title":"Third CX-dominated block","desc":"Another long affine-form block (about 60 Toffolis) preparing inputs for the late curvature/normalization stage. Same gate sequence as 9a8627 here, on relabelled wires.","tof":62,"tof_mean":62.0,"ev":["inferred"],"n_zpow":0,"n_hmr":3},{"id":"late_curvature_norm","start":34952,"end":37051,"title":"Late curvature and normalization stream","desc":"Recycles caches with HMR+R pairs and runs the late curvature products and sequential normalization decoder before the final phase-retirement stage.","tof":134,"tof_mean":134.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":188},{"id":"seed_phase_retire","start":37051,"end":43962,"title":"Retained-seed phase retirement","desc":"A single 7,000-op pure Clifford block (CZ/Z/NEG conditioned on measurement bits) that retires the ten retained derivative seed bits and the pending address-dependent sign phases as sums of NEG, Z and CZ terms (quadratic truth-table rank 256). Same gate sequence as 9a8627, under a one-to-one relabelling of wires.","tof":0,"tof_mean":0.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":0},{"id":"seed_helpers","start":43962,"end":44283,"title":"Parity-product helpers","desc":"Tailored AND helpers that give the exact retirement order for the ten seeds with Clifford-only repairs, then are erased. 5 Toffolis here against 7 in 9a8627.","tof":5,"tof_mean":5.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":1},{"id":"seed_phase_retire_2","start":44283,"end":46744,"title":"Seed retirement, remaining phase terms","desc":"Continuation of the Clifford phase retirement (a long CZ/Z run) followed by CX frame restoration of the raw address wires. Unlike 9a8627, it also holds 20 Toffoli-class gates inside measurement-conditioned blocks: 2 run per input on average.","tof":20,"tof_mean":2.0,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":23},{"id":"unnormalize","start":46744,"end":47248,"title":"Normalization unwind (gray-prefix decoder)","desc":"Rebuilds the leading-zero prefix flags from the retained count bits (two low bits measured in a Gray basis, higher bits turned into prefixes with CNOTs), uses them to run the CSWAP ladders backwards so x returns to q0..q21, then resets the last scratch qubits. Contains Ahmed Berat Özer's patch (ops 46845-46854): the controlled swap CSWAP q19 q6 q41 becomes X/CX onto the free wire q60, which equals q19·(q6 xor q41) at that point, a CX pair, and an HMR erase with CZ fix-ups; two CX q2 q60 around the earlier CSWAP q16 q2 q23 (ops 46765, 46767) feed it. One Toffoli fewer.","tof":101,"tof_mean":67.14,"ev":["documented","inferred"],"n_zpow":0,"n_hmr":55}],"groups":[{"name":"x_reg","qubits":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21],"role":"input register \"x\" (little endian); holds the normalized mantissa mid-circuit, restored at the end","evidence":"verifier contract + trace"},{"name":"x_lo","qubits":[0,1,2,3,4,5,6,7,8,9,10,11,12,13],"role":"low 14 mantissa bits, untouched through the front decoder","evidence":"documented (mrmeows' front-decoder interface: the low mantissa wires are untouched)"},{"name":"addr","qubits":[14,15,16,17,18,19,20,21],"role":"top 8 bits of normalized mantissa = 8-bit coefficient-table address (256 entries)","evidence":"documented (truth tables on wires 14..19; 256 raw addresses)"},{"name":"norm_ctrl","qubits":[42,43,44,45,46],"role":"leading-zero count / shift-control bits (CSWAP controls)","evidence":"inferred from op stream; documented as normalization outcomes/count bits"},{"name":"norm_flags","qubits":[22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41],"role":"leading-zero prefix AND chain and an odd-shift flag (q22); erased by HMR in stage 0","evidence":"inferred from op stream"},{"name":"scratch","qubits":[22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61],"role":"all 40 non-input wires: coefficient bits, monomial caches, products, derivative seeds, phase controls; reused many times. There is no persistent output register: the result is the phase","evidence":"verifier contract (all non-x qubits scratch) + op stream"},{"name":"phase_ctrl","qubits":[28,50],"role":"streamed phase-control qubits: q28 for the coarse pass, q50 for most of the fine pass","evidence":"from Z_POW targets"},{"name":"retained_seeds","qubits":[49,32,33,34,53,35,36,38,37,39],"role":"ten retained derivative seed bits at the seed-phase-retirement stage","evidence":"9a8627's documented wires, carried over by the one-to-one relabelling of the seed-retirement block"},{"name":"raw_copy","qubits":[57,50,27,61,51,28,40,41],"role":"the eight raw-address copies kept at the seed-phase entry","evidence":"9a8627's documented wires, carried over by op alignment of the seed-retirement stages"},{"name":"guard_exp","qubits":[54,18,27],"role":"guard bit Y1 (q54) and exponent bits e1,e2 (q18,q27) used by the guard-bit phase correction","evidence":"9a8627's documented wires, carried over by op alignment (ops 25672-25680)"}],"totals":{"toffoli_static":1497,"toffoli_mean_executed_300x":1327.453,"n_ops":47248}}
+{
+ "circuit": "321aff836362 (Syed Asad Ali, working with a team of AI agents; 46 qubits)",
+ "stages": [
+  {
+   "id": "norm",
+   "start": 0,
+   "end": 609,
+   "title": "Normalise the input",
+   "desc": "Normalise x: even shift so the leading bits are in place (builder cut 'normalized'). Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"normalized\"): n (normalised x) on q0–q21; flags (exponent e) on q22–q25.",
+   "tof": 51,
+   "tof_mean": 51,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 4,
+   "n_hmr": 19,
+   "registers": {
+    "n": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ]
+   }
+  },
+  {
+   "id": "root",
+   "start": 609,
+   "end": 1638,
+   "title": "Consuming square root",
+   "desc": "Consuming square root of the normalised input (builder cut 'consumed_root=body_entry'). Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"body_entry\"): v (square-root bits) on q10–q21; h (residual) on q0–q9; flags (exponent e) on q22–q25.",
+   "tof": 96,
+   "tof_mean": 96,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 84,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ]
+   }
+  },
+  {
+   "id": "load1",
+   "start": 1638,
+   "end": 5248,
+   "title": "First table load",
+   "desc": "First table load: coefficient lookup, certificate searched under a 20-wire work cap. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"first_table\"): v (square-root bits) on q10–q21; h (residual) on q0–q9; flags (exponent e) on q22–q25; D (table coefficient) on q26–q38; H (table metadata) on q39–q41.",
+   "tof": 56,
+   "tof_mean": 56,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 37,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38
+    ],
+    "H": [
+     39,
+     40,
+     41
+    ]
+   }
+  },
+  {
+   "id": "coef1",
+   "start": 5248,
+   "end": 5563,
+   "title": "First coefficient arithmetic",
+   "desc": "First coefficient arithmetic. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"first_coefficient\"): v (square-root bits) on q10–q20; h (residual) on q0–q9; flags (exponent e) on q22–q25; D (table coefficient) on q26–q38; H (table metadata) on q21, q39–q41, q45; snapshot bit on q44.",
+   "tof": 44,
+   "tof_mean": 44,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 36,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38
+    ],
+    "H": [
+     21,
+     39,
+     40,
+     41,
+     45
+    ],
+    "snapshot": [
+     44
+    ]
+   }
+  },
+  {
+   "id": "meta1",
+   "start": 5563,
+   "end": 5592,
+   "title": "First metadata retired",
+   "desc": "First metadata retired (measured away, rebuilt later). Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder).",
+   "tof": 1,
+   "tof_mean": 1,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 6
+  },
+  {
+   "id": "seed",
+   "start": 5592,
+   "end": 5704,
+   "title": "Seed ready",
+   "desc": "Seed ready. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"seed_ready\"): v (square-root bits) on q10–q20; h (residual) on q0–q9; flags (exponent e) on q22–q25; D (table coefficient) on q26–q38; seed on q21, q39–q41, q44–q45.",
+   "tof": 10,
+   "tof_mean": 10,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 7,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     9
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38
+    ],
+    "seed": [
+     21,
+     39,
+     40,
+     41,
+     44,
+     45
+    ]
+   }
+  },
+  {
+   "id": "prod",
+   "start": 5704,
+   "end": 6707,
+   "title": "Signed 15-bit product",
+   "desc": "Signed 15-bit product. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"signed_product15\"): v (square-root bits) on q10–q20, q43; P (signed product) on q0–q8, q21, q39–q41, q44–q45; flags (exponent e) on q22–q25; D (table coefficient) on q26–q38.",
+   "tof": 103,
+   "tof_mean": 103,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 94,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     43
+    ],
+    "P": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     21,
+     39,
+     40,
+     41,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     26,
+     27,
+     28,
+     29,
+     30,
+     31,
+     32,
+     33,
+     34,
+     35,
+     36,
+     37,
+     38
+    ]
+   }
+  },
+  {
+   "id": "cret",
+   "start": 6707,
+   "end": 6720,
+   "title": "Coefficient retired",
+   "desc": "Coefficient retired before the divider. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"coefficient_retired_for_divider\"): v (square-root bits) on q10–q20, q43; P (signed product) on q0–q8, q21, q39–q41, q44–q45; flags (exponent e) on q22–q25.",
+   "tof": 0,
+   "tof_mean": 0,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 13,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     43
+    ],
+    "P": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     21,
+     39,
+     40,
+     41,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ]
+   }
+  },
+  {
+   "id": "div_fwd",
+   "start": 6720,
+   "end": 9877,
+   "title": "Divider, forward rows (approx.)",
+   "desc": "Divider, forward rows (boundary +/-30 ops). The boundaries of this divider sub-stage are approximate (placed from the op stream, not read from the generator): treat the start and end as good to tens to a few hundred ops.",
+   "tof": 270,
+   "tof_mean": 270,
+   "ev": [
+    "inferred"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 239
+  },
+  {
+   "id": "phase",
+   "start": 9877,
+   "end": 10668,
+   "title": "Phase endpoint (approx.)",
+   "desc": "Phase endpoint: one rotation per quotient bit (boundary +/-30 ops). The boundaries of this divider sub-stage are approximate (placed from the op stream, not read from the generator): treat the start and end as good to tens to a few hundred ops.",
+   "tof": 105,
+   "tof_mean": 105,
+   "ev": [
+    "inferred"
+   ],
+   "n_zpow": 34,
+   "n_hmr": 40
+  },
+  {
+   "id": "div_exit",
+   "start": 10668,
+   "end": 10808,
+   "title": "Divider exit (approx.)",
+   "desc": "Divider exit (end boundary uncertain by about +/-250 ops). The boundaries of this divider sub-stage are approximate (placed from the op stream, not read from the generator): treat the start and end as good to tens to a few hundred ops.",
+   "tof": 5,
+   "tof_mean": 5,
+   "ev": [
+    "inferred"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 4
+  },
+  {
+   "id": "div_clean",
+   "start": 10808,
+   "end": 17306,
+   "title": "Divider clean-up (approx.)",
+   "desc": "Divider clean-up (start boundary uncertain by about +/-250 ops). The boundaries of this divider sub-stage are approximate (placed from the op stream, not read from the generator): treat the start and end as good to tens to a few hundred ops. Registers at the end of this stage (the builder's own owner map at its cut \"divider_return\"): v (square-root bits) on q10–q20, q43; P (signed product) on q0–q6, q21, q30, q36, q39–q41, q44–q45; flags (exponent e) on q22–q25.",
+   "tof": 364,
+   "tof_mean": 323.527,
+   "ev": [
+    "inferred"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 334,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     43
+    ],
+    "P": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     21,
+     30,
+     36,
+     39,
+     40,
+     41,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ]
+   }
+  },
+  {
+   "id": "load2",
+   "start": 17306,
+   "end": 21361,
+   "title": "Second table load",
+   "desc": "Second table load, certificate under a 19-wire work cap. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"second_table\"): v (square-root bits) on q10–q14, q18, q20, q43; P (signed product) on q0–q6, q21, q30, q36, q39–q41, q44–q45; flags (exponent e) on q22–q25; D (table coefficient) on q15–q17, q19, q26–q29, q31, q33, q35, q37–q38; H (table metadata) on q7, q9, q32.",
+   "tof": 71,
+   "tof_mean": 71,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 48,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20,
+     43
+    ],
+    "P": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     21,
+     30,
+     36,
+     39,
+     40,
+     41,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     28,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38
+    ],
+    "H": [
+     7,
+     9,
+     32
+    ]
+   }
+  },
+  {
+   "id": "h3",
+   "start": 21361,
+   "end": 21378,
+   "title": "Second H3 ready",
+   "desc": "Second H3 ready and a6 retired. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"second_a6_retired\"): v (square-root bits) on q10–q14, q18, q20; P (signed product) on q0–q6, q21, q30, q36, q39–q41, q44–q45; flags (exponent e) on q22–q25; D (table coefficient) on q15–q17, q19, q26–q29, q31, q33, q35, q37–q38; H (table metadata) on q7, q9, q32, q42.",
+   "tof": 1,
+   "tof_mean": 1,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 1,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20
+    ],
+    "P": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     21,
+     30,
+     36,
+     39,
+     40,
+     41,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     28,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38
+    ],
+    "H": [
+     7,
+     9,
+     32,
+     42
+    ]
+   }
+  },
+  {
+   "id": "coef2",
+   "start": 21378,
+   "end": 21681,
+   "title": "Second coefficient arithmetic",
+   "desc": "Second coefficient arithmetic. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"second_coefficient\"): v (square-root bits) on q10–q14, q18, q20; P (signed product) on q0–q6, q21, q30, q36, q39–q41, q44–q45; flags (exponent e) on q22–q25; D (table coefficient) on q15–q17, q19, q26–q27, q29, q31, q33, q35, q37–q38, q43; H (table metadata) on q7, q9, q32, q42–q43; snapshot bit on q28.",
+   "tof": 43,
+   "tof_mean": 43,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 36,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20
+    ],
+    "P": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     21,
+     30,
+     36,
+     39,
+     40,
+     41,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38,
+     43
+    ],
+    "H": [
+     7,
+     9,
+     32,
+     42,
+     43
+    ],
+    "snapshot": [
+     28
+    ]
+   }
+  },
+  {
+   "id": "meta2",
+   "start": 21681,
+   "end": 21766,
+   "title": "Second metadata retired",
+   "desc": "Second metadata retired, inverse product data. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"inverse_product_data\"): v (square-root bits) on q10–q14, q18, q20; product word on q0–q6, q21, q30, q36, q39–q42, q44–q45; flags (exponent e) on q22–q25; D (table coefficient) on q15–q17, q19, q26–q27, q29, q31, q33, q35, q37–q38, q43; H (table metadata) on q7, q9, q32; snapshot bit on q28.",
+   "tof": 0,
+   "tof_mean": 0,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 1,
+   "registers": {
+    "v": [
+     10,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20
+    ],
+    "word": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     21,
+     30,
+     36,
+     39,
+     40,
+     41,
+     42,
+     44,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38,
+     43
+    ],
+    "H": [
+     7,
+     9,
+     32
+    ],
+    "snapshot": [
+     28
+    ]
+   }
+  },
+  {
+   "id": "seed_clr",
+   "start": 21766,
+   "end": 24203,
+   "title": "Seed cleared",
+   "desc": "Seed cleared. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"seed_cleared\"): v (square-root bits) on q12, q14, q18, q20–q21, q39, q45; h (residual) on q0–q6, q30, q36, q42; flags (exponent e) on q22–q25; D (table coefficient) on q15–q17, q19, q26–q27, q29, q31, q33, q35, q37–q38, q43; H (table metadata) on q9, q32, q40; snapshot bit on q28.",
+   "tof": 147,
+   "tof_mean": 130.263,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 139,
+   "registers": {
+    "v": [
+     12,
+     14,
+     18,
+     20,
+     21,
+     39,
+     45
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     30,
+     36,
+     42
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "D": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38,
+     43
+    ],
+    "H": [
+     9,
+     32,
+     40
+    ],
+    "snapshot": [
+     28
+    ]
+   }
+  },
+  {
+   "id": "csrc",
+   "start": 24203,
+   "end": 24232,
+   "title": "Coefficient sources restored",
+   "desc": "Coefficient sources restored. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder).",
+   "tof": 3,
+   "tof_mean": 3,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 0
+  },
+  {
+   "id": "a_rest",
+   "start": 24232,
+   "end": 24734,
+   "title": "A restored",
+   "desc": "A restored. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"A_restored\"): v (square-root bits) on q12, q14, q18, q20–q21, q39, q41, q45; h (residual) on q0–q6, q30, q36, q42; flags (exponent e) on q22–q25; A (restored coefficient) on q15–q17, q19, q26–q27, q29, q31, q33, q35, q37–q38, q43; H (table metadata) on q9, q32, q34, q40, q44.",
+   "tof": 36,
+   "tof_mean": 36,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 36,
+   "registers": {
+    "v": [
+     12,
+     14,
+     18,
+     20,
+     21,
+     39,
+     41,
+     45
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     30,
+     36,
+     42
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "A": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38,
+     43
+    ],
+    "H": [
+     9,
+     32,
+     34,
+     40,
+     44
+    ]
+   }
+  },
+  {
+   "id": "r_paid",
+   "start": 24734,
+   "end": 26132,
+   "title": "Raw root restored, R repaid",
+   "desc": "Raw root restored, with R repaid. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"raw_root_restored_with_paid_R\"): v (square-root bits) on q7–q8, q11–q14, q18, q20–q21, q39, q41, q45; h (residual) on q0–q6, q30, q36, q42; flags (exponent e) on q22–q25; A (restored coefficient) on q15–q17, q19, q26–q27, q29, q31, q33, q35, q37–q38, q43; H (table metadata) on q9, q32, q34, q40, q44; phase snapshot on q28.",
+   "tof": 18,
+   "tof_mean": 18,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 3,
+   "registers": {
+    "v": [
+     7,
+     8,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20,
+     21,
+     39,
+     41,
+     45
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     30,
+     36,
+     42
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ],
+    "A": [
+     15,
+     16,
+     17,
+     19,
+     26,
+     27,
+     29,
+     31,
+     33,
+     35,
+     37,
+     38,
+     43
+    ],
+    "H": [
+     9,
+     32,
+     34,
+     40,
+     44
+    ],
+    "phase_snapshot": [
+     28
+    ]
+   }
+  },
+  {
+   "id": "body_ret",
+   "start": 26132,
+   "end": 33310,
+   "title": "Body return",
+   "desc": "Body return (mostly measurement-conditioned clean-up). Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"body_restored\"): v (square-root bits) on q7–q8, q11–q14, q18, q20–q21, q39, q41, q45; h (residual) on q0–q6, q30, q36, q42; flags (exponent e) on q22–q25.",
+   "tof": 30,
+   "tof_mean": 6.363,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 26,
+   "registers": {
+    "v": [
+     7,
+     8,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20,
+     21,
+     39,
+     41,
+     45
+    ],
+    "h": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     30,
+     36,
+     42
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ]
+   }
+  },
+  {
+   "id": "root_inv",
+   "start": 33310,
+   "end": 34523,
+   "title": "Square root undone",
+   "desc": "Square root undone. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"root_restored\"): n (normalised x) on q0–q8, q11–q14, q18, q20–q21, q30, q36, q39, q41–q42, q45; flags (exponent e) on q22–q25.",
+   "tof": 96,
+   "tof_mean": 96,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 84,
+   "registers": {
+    "n": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20,
+     21,
+     30,
+     36,
+     39,
+     41,
+     42,
+     45
+    ],
+    "flags": [
+     22,
+     23,
+     24,
+     25
+    ]
+   }
+  },
+  {
+   "id": "norm_inv",
+   "start": 34523,
+   "end": 34778,
+   "title": "Normalisation undone",
+   "desc": "Logical input restored (normalisation undone). Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder). Registers at the end of this stage (the builder's own owner map at its cut \"logical_input_restored\"): x on q0–q8, q11–q14, q18, q20–q21, q30, q36, q39, q41–q42, q45.",
+   "tof": 49,
+   "tof_mean": 43.493,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 10,
+   "registers": {
+    "x": [
+     0,
+     1,
+     2,
+     3,
+     4,
+     5,
+     6,
+     7,
+     8,
+     11,
+     12,
+     13,
+     14,
+     18,
+     20,
+     21,
+     30,
+     36,
+     39,
+     41,
+     42,
+     45
+    ]
+   }
+  },
+  {
+   "id": "layout",
+   "start": 34778,
+   "end": 34789,
+   "title": "Final layout swaps",
+   "desc": "Final layout swaps. Boundary read from the circuit generator's own cut list (Syed Asad Ali's builder).",
+   "tof": 0,
+   "tof_mean": 0,
+   "ev": [
+    "documented"
+   ],
+   "n_zpow": 0,
+   "n_hmr": 0
+  }
+ ],
+ "groups": [
+  {
+   "name": "x_reg",
+   "qubits": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "role": "input register \"x\" (little endian): holds x at the start, is rewritten in place by the normalisation and the square root, and is restored at the end",
+   "evidence": "verifier contract + register declaration in the file"
+  },
+  {
+   "name": "flags",
+   "qubits": [
+    22,
+    23,
+    24,
+    25
+   ],
+   "role": "exponent flags: the even shift e (0..10) chosen by the normalisation, held for the whole body and used by the phase endpoint to rotate the quotient word; idle across most peak runs but information-bearing",
+   "evidence": "builder owner map at every cut (Syed Asad Ali's generator)"
+  },
+  {
+   "name": "root_v",
+   "qubits": [
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21
+   ],
+   "role": "first half: the 12 square-root bits v, written in place over the top of x by the consuming square root (later some move to other wires; see each stage)",
+   "evidence": "builder owner map, cuts consumed_root..first_table"
+  },
+  {
+   "name": "residual_h",
+   "qubits": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9
+   ],
+   "role": "first half: the 10-bit residual h of the square root, in place over the bottom of x",
+   "evidence": "builder owner map, cuts consumed_root..first_table"
+  },
+  {
+   "name": "coef_D1",
+   "qubits": [
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38
+   ],
+   "role": "first table load: the 13-bit coefficient D; measured away (HMR) before the divider at op 6,707 and reloaded on other wires by the second table",
+   "evidence": "builder owner map, cuts first_table..signed_product15"
+  },
+  {
+   "name": "meta_H1",
+   "qubits": [
+    39,
+    40,
+    41
+   ],
+   "role": "first table load: metadata bits H, retired after the first coefficient; the same wires later hold seed and product bits",
+   "evidence": "builder owner map, cut first_table"
+  },
+  {
+   "name": "scratch",
+   "qubits": [
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45
+   ],
+   "role": "all 24 non-input wires; registers move between them stage by stage (each stage note lists the owner map at its end)",
+   "evidence": "verifier contract"
+  }
+ ],
+ "totals": {
+  "toffoli_static": 1599,
+  "toffoli_mean_executed_300x": 1512.647,
+  "n_ops": 34789
+ }
+}

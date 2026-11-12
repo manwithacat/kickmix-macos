@@ -2,11 +2,22 @@
 
 An in-browser viewer that runs a kickmix circuit for one basis-state input and shows what happens:
 qubit values over every operation, stages, Toffoli-class gates, measurement-based clean-ups, branches
-skipped, qubit occupancy and lifetimes, and the phase building up to its target. It ships with three
+skipped, qubit occupancy and lifetimes, and the phase building up to its target. It ships with four
 invsqrt circuits from the Google Quantum AI Verifiable Quantum Circuit Compilation competition, chosen with the
 "Circuit" selector, and can load any `.kmx` circuit you give it:
 
-- `67482db6c538` (default, 62 qubits): the current public frontier. yoyobar's Kaggle notebook
+- `321aff836362` (default, 46 qubits): the current best public invsqrt circuit, by Syed Asad Ali, working with a team of
+  AI agents, from the Kaggle notebook
+  [*vqcc-own-circuit-portfolio-notebook*](https://www.kaggle.com/code/syed3000/vqcc-own-circuit-portfolio-notebook)
+  (version 12) and dataset [*vqcc-own-circuit-portfolio*](https://www.kaggle.com/datasets/syed3000/vqcc-own-circuit-portfolio)
+  (version 12), Apache-2.0; `.kmb` SHA-256 `321aff83636214196daa9cbc9dcc9c5e12a155bcff8d9989e98b8cee40935177`.
+  34,789 ops, 1,599 Toffoli-class gates, many of them in measurement-conditioned blocks (about 1,512 Toffoli-class gates run per input on average in the
+  300-input sample; 1,511.57 in the official run). Our local run of the official invsqrt verifier passes it on all
+  3,133,452 inputs: cost 80,162.73, 46 qubits, 1,511.57 mean Toffolis, worst error 0.97358 of tolerance at x = 54,566
+  (the viewer's error curve, recomputed for every x with kickmix, gives the same worst input). Its 24 stages are the
+  circuit generator's own cut list; the four divider sub-stages are approximate (see "Stage names" on the page). The
+  qubit groups come from the generator's own register-to-wire map (x, the exponent flags, the square-root bits v, the residual h, and the first table's coefficient D and metadata H); because registers move between wires, each stage note lists the generator's owner map at the end of that stage.
+- `67482db6c538` (62 qubits, `?circuit=67482db6c538`): the previous default and earlier public frontier. yoyobar's Kaggle notebook
   [*LB 22.99 | invsqrt 101 - 62 qubits*](https://www.kaggle.com/code/yoyobar/lb-22-99-invsqrt-101-62-qubits) (version 8) published the first public
   62-qubit invsqrt circuit, `a568bc793481`; this file combines yoyobar's own candidate with Ahmed Berat Özer's
   patch from `6dbb98b34c3b`, which removes one controlled swap's AND. It is built on busyaprime's `9a8627`, on
@@ -59,7 +70,7 @@ value). The tracer keeps a checkpoint every 1,000 ops, so stepping backwards rep
 **Phase without kickback.** The phase track jumps by half a turn mid-circuit, and sweeping x makes the coefficient
 lookup's phase flash. That is measurement kickback: an HMR that reads 1 on a qubit holding 1 adds half a turn, and a
 later Z or CZ conditioned on that reading pays it back. The toggle replays the same x with every HMR outcome forced
-to 0: no kickback, no fix-ups, the same final phase (checked on x = 1, 161 and the maximum for all three circuits).
+to 0: no kickback, no fix-ups, the same final phase (checked on x = 1, 161 and the maximum for all four circuits).
 The band along the bottom of the phase track counts open phase debts, darker where they actually kicked back for
 this x.
 
@@ -166,6 +177,10 @@ python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
   HMR outcome copied from kickmix. 0 mismatches. A deliberately perturbed rotation angle and an altered
   outcome were both caught. The same check on 0766a111 also gave 0 mismatches. (`run()` now also returns the
   classical bits, for this comparison.)
+- On the 46-qubit 321aff836362 circuit the browser tracer's final phase (top 64 bits) equals kickmix's, and every
+  scratch qubit and x are restored, on 308 inputs (x = 1, 2, 161, the maximum and its neighbour, 2^21, the worst-error
+  inputs and 300 random ones; `data_tools/crosscheck_phase.js`, 0 mismatches). The full all-qubit and classical-bit
+  comparison with outcome-matched replays was not re-run for this circuit.
 - On the 62-qubit 67482db6c538 circuit the same check, with the same 2,299 inputs, gave 0 mismatches: final
   qubits and phase on a free run, and all 62 qubits, all 30,001 classical bits and the phase on an outcome-matched
   replay. A perturbed rotation angle (1,145 phase mismatches) and one flipped HMR outcome (1 classical-bit
@@ -184,16 +199,21 @@ python render.py width a.kmb b.kmb      # PNG + GIF in ./render-out
 |---|---|
 | `snapshot.js` | the playhead state machine, the static analysis (lifetimes, liabilities) and the snapshot object |
 | `view.js` | the zoom window, pointer gestures (drag, pinch), follow modes, highlighted qubits, and the per-op trace the diagram is binned from |
-| `ops.json` | the 62-qubit invsqrt circuit (kmb SHA-256 `67482db6…37ae4997`) as a compact op list, with `n_qubits` and `n_bits` |
-| `stages.json` | busyaprime's 17 named stages and qubit groups, carried over to this circuit. Where the two op streams run the same gate sequence on relabelled wires (front decoder and its phase repair, `lookup_b`, most of `arith_b`, `lookup_c`, the seed retirement: 36,700 ops in aligned blocks) a boundary moves with its block. Elsewhere it sits at the matching op pattern, checked against live-wire value sets and the stage anchors of the 62-qubit mechanism analysis. Stage notes say what changed against 9a8627: the lookup builds 27 of its 32 products in place and ends with an HMR block with Clifford fix-ups, later stages move fix-up parities into classical logic on measurement bits, plus yoyobar's four AND rewrites in `arith_a` and Özer's patch in `unnormalize` |
-| `errcurve.json` | error ÷ tolerance for all 3,133,452 inputs, computed with kickmix, binned. It is identical, input for input, to 9a8627's; 308 inputs were re-checked with a bit-level tracer |
-| `livepeak.json` | qubits holding 1, maximum over 3,000 sampled inputs, and per-qubit lifetime envelopes: at most 34 of the 40 non-x qubits hold a 1 at any instant |
+| `ops.json` | the 46-qubit invsqrt circuit (kmb SHA-256 `321aff83…40935177`) as a compact op list, with `n_qubits` and `n_bits` |
+| `stages.json` | the 24 stages of Syed Asad Ali's generator cut list (op ranges from its stage map; the four divider sub-stages are approximate and tagged `inferred`), with static and mean-executed Toffoli counts per stage, and two qubit groups (`x_reg`, `scratch`) |
+| `errcurve.json` | error ÷ tolerance for all 3,133,452 inputs, computed with kickmix (two seeds, identical for every x), binned; worst 0.97358 of tolerance at x = 54,566 |
+| `livepeak.json` | qubits holding 1, maximum over a 3,000-input stratified sample, and per-qubit lifetime envelopes: at most 23 of the 24 scratch qubits hold a 1 at any instant |
+| `circuits/67482db6c538/` | the same four files for the 62-qubit 67482db6c538 circuit (the previous default; it was the top-level set before 12 Nov 2026) |
 | `circuits/9a8627/` | the same four files for busyaprime's 9a8627 circuit |
 | `circuits/0766a111/` | the same four files for mrmeows' 0766a111 circuit |
+| `data_tools/` | the scripts that produced the 46-qubit data: `build_stages_in.py` (stage skeleton from a cuts file), `build_ops.js` (`.kmx` to `ops.json`), `build_errcurve.py` (kickmix, all x), `build_live.js` (`livepeak.json` and stage Toffoli counts, from `tracer.js`), `crosscheck_phase.js` (tracer versus kickmix phase). Order: `kmb_to_kmx.py`, `build_ops.js`, `build_stages_in.py`, `build_errcurve.py`, `build_live.js`, `crosscheck_phase.js` |
 
 ## Credits
 
-Circuits: the 62-qubit `67482db6c538`, which combines yoyobar's own candidate with Ahmed Berat Özer's patch
+Circuits: the 46-qubit `321aff836362` by Syed Asad Ali, working with a team of AI agents (Kaggle notebook
+[*vqcc-own-circuit-portfolio-notebook*](https://www.kaggle.com/code/syed3000/vqcc-own-circuit-portfolio-notebook),
+version 12, and dataset [*vqcc-own-circuit-portfolio*](https://www.kaggle.com/datasets/syed3000/vqcc-own-circuit-portfolio),
+version 12, Apache-2.0); the 62-qubit `67482db6c538`, which combines yoyobar's own candidate with Ahmed Berat Özer's patch
 (from `6dbb98b34c3b`); yoyobar published the first public 62-qubit invsqrt circuit, `a568bc793481`, in the
 Kaggle notebook [*LB 22.99 | invsqrt 101 - 62 qubits*](https://www.kaggle.com/code/yoyobar/lb-22-99-invsqrt-101-62-qubits) (version 8). It is built on
 busyaprime's 9a8627 build (Kaggle notebook

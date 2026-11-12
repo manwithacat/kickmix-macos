@@ -15,6 +15,10 @@
 
 ## Tooling changes
 
+- 2026-11-12, `tools/circuit-viewer`: the viewer now opens on Syed Asad Ali's 46-qubit invsqrt `321aff836362` (24 stages from the
+  generator's cut list, four divider sub-stages approximate; error curve for every x from kickmix). The 62-qubit `67482db6c538`
+  moves to `circuits/67482db6c538/` and stays selectable with `9a8627` and `0766a111`. New `data_tools/` scripts regenerate the
+  four data files from a `.kmb`.
 - 2026-10-31, `tools/circuit-viewer/render.py ledger` (no change to kickmix itself): rank and report what predicts
   a width cut. Width cost is a peak, not a sum, so the aged list (now titled "idle at peak") ranks values by ops
   idle at full width (`idle_at_peak`) with the longest idle gap as the second key; the old ranking by longest idle

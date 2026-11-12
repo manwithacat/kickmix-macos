@@ -634,7 +634,7 @@ import subprocess  # noqa: E402
 VIEWER = ROOT / "tools" / "circuit-viewer"
 NODE = shutil.which("node")
 needs_node = pytest.mark.skipif(NODE is None, reason="Node.js not installed")
-VIEWER_CIRCUITS = ["", "circuits/9a8627", "circuits/0766a111"]
+VIEWER_CIRCUITS = ["", "circuits/67482db6c538", "circuits/9a8627", "circuits/0766a111"]
 MAXX = 3133452
 
 
@@ -690,7 +690,7 @@ def test_viewer_snapshot_parity(sub):
     assert_same(js["static"], static_python(st), "static")
     for (op, x, seed, kick), snap in zip(pts, js["snapshots"]):
         py = R.viewer_snapshot(data, st, op, x, seed, bool(kick))
-        assert_same(snap, py, f"{sub or '67482db6c538'} op={op} x={x} seed={seed} kick={kick}")
+        assert_same(snap, py, f"{sub or '321aff836362'} op={op} x={x} seed={seed} kick={kick}")
         tb = py["ledger"]["trial_balance"]
         assert tb["live"] == tb["registers"] + tb["open_values"] + tb["closing_here"]
         assert tb["records"] == tb["repaid"] + tb["open_debts"] + tb["never_repaid"]
@@ -730,12 +730,12 @@ def test_viewer_ops_kmb_roundtrip(tmp_path):
 
 def test_cli_snapshot_contract(tmp_path):
     ops = str(VIEWER / "ops.json")
-    code, text = run_cli(["snapshot", ops, "--op", "15213", "--x", "161", "--out", str(tmp_path)])
+    code, text = run_cli(["snapshot", ops, "--op", "3000", "--x", "161", "--out", str(tmp_path)])
     assert code == 0, text
     d = check_summary(text)
-    assert d["verb"] == "snapshot" and d["facts"]["stage"] == "coeff_lookup"
+    assert d["verb"] == "snapshot" and d["facts"]["stage"] == "load1"
     full = json.loads(Path(d["files"][0]["path"]).read_text())
-    code, text = run_cli(["snapshot", ops, "--op", "15213", "--x", "161", "--print"])
+    code, text = run_cli(["snapshot", ops, "--op", "3000", "--x", "161", "--print"])
     assert code == 0 and json.loads(text) == full and full["schema"] == R.SNAPSHOT_SCHEMA
     code, text = run_cli(["snapshot", ops, "--op", "99999999"])
     assert code == 2 and "outside" in json.loads(text)["error"]

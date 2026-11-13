@@ -107,7 +107,7 @@ test('replay from a checkpoint equals a straight run, forwards and backwards', (
 });
 
 test('kickback off: same final phase and qubits', () => {
-  for (const dir of ['', 'circuits/9a8627/', 'circuits/0766a111/']) {
+  for (const dir of ['', 'circuits/67482db6c538/', 'circuits/9a8627/', 'circuits/0766a111/']) {
     const data = JSON.parse(fs.readFileSync(path.join(VIEWER, dir, 'ops.json'), 'utf8'));
     const P = T.prepare(data);
     for (const x of [1, 161, 3133452]) {
